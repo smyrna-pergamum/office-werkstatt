@@ -6,7 +6,7 @@
 
   OW.TYPES = {
     word: { ext: 'docx', engine: 'Word Werkzeug Pro' }, excel: { ext: 'xlsx', engine: 'Excel Werkzeug Pro' }, slide: { ext: 'pptx', engine: 'Slide Werkzeug Pro' },
-    note: { ext: 'note', engine: 'SilverBullet' }, draw: { ext: 'excalidraw', engine: 'Excalidraw' }, pdf: { ext: 'pdf', engine: 'PDF Werkstatt' },
+    note: { ext: 'note', engine: null }, draw: { ext: 'excalidraw', engine: null }, pdf: { ext: 'pdf', engine: 'PDF Werkstatt' },
   };
   const S = OW.settings = Object.assign({ theme: 'system', density: 'comfortable', view: 'grid', userName: '' }, JSON.parse(localStorage.getItem('ow-settings') || '{}'));
   const saveSettings = () => localStorage.setItem('ow-settings', JSON.stringify(S));
@@ -37,13 +37,14 @@
     onMount && onMount(card, close);
     return p;
   }
+  OW.modal = modal;
   OW.prompt = (label, value = '') => modal(`<form class="dlg"><h3>${label}</h3><input class="inp" value="${OW.escape(value)}"><div class="dlg-btns"><button type="button" class="btn ghost" data-x>${t('cancel')}</button><button class="btn primary">${t('ok')}</button></div></form>`, (c, close) => {
     const i = c.querySelector('input'); setTimeout(() => { i.focus(); i.select(); });
     c.querySelector('form').onsubmit = e => { e.preventDefault(); close(i.value); }; c.querySelector('[data-x]').onclick = () => close(null);
   });
   OW.confirm = (msg) => modal(`<div class="dlg"><h3>${msg}</h3><div class="dlg-btns"><button class="btn ghost" data-x>${t('cancel')}</button><button class="btn danger" data-ok>${t('ok')}</button></div></div>`, (c, close) => { c.querySelector('[data-x]').onclick = () => close(false); c.querySelector('[data-ok]').onclick = () => close(true); });
   OW.alert = (title, html) => modal(`<div class="dlg"><h3>${title}</h3><div class="dlg-body">${html}</div><div class="dlg-btns"><button class="btn primary" data-x>${t('ok')}</button></div></div>`, (c, close) => c.querySelector('[data-x]').onclick = () => close(true));
-  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.1</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
+  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.2</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
 
   /* command palette (Ctrl+K) */
   OW.palette = function ({ placeholder, items }) {
@@ -88,7 +89,7 @@
   function untitled(type) { const base = t('untitled.' + type); const n = files.filter(f => f.name.startsWith(base)).length; return n ? `${base} ${n + 1}` : base; }
   OW.createFile = async function (type, opts = {}) {
     const f = { id: OW.store.uid(), type, name: opts.name || untitled(type), content: opts.content !== undefined ? JSON.parse(JSON.stringify(opts.content)) : null, created: Date.now(), modified: Date.now(), favorite: false, shared: false, trashed: false };
-    if (opts.blob) { f.content = opts.blob; f.size = opts.blob.size; }
+    if (opts.blob) { f.content = opts.blob; f.size = opts.blob.size; if (opts.proExt) f.proExt = opts.proExt; }
     await OW.store.put(f); await load();
     if (opts.noOpen) return f;
     openFile(f.id, true); return f;
@@ -104,8 +105,9 @@
   async function downloadFile(id) {
     const f = await OW.store.get(id);
     if (f.type === 'pdf' && f.content instanceof Blob) return OW.download(f.content, OW.safeName(f.name) + '.pdf');
+    if (f.content instanceof Blob && OW.PRO_CFG && OW.PRO_CFG[f.type]) return OW.download(f.content, OW.safeName(f.name) + '.' + (f.proExt || OW.PRO_CFG[f.type].ext));
     if (f.type === 'word' && f.content) return OW.download(OW.ooxml.htmlToDocx(f.content.html || ''), OW.safeName(f.name) + '.docx');
-    if (f.type === 'excel' && f.content && f.content.sheets) return OW.download(OW.ooxml.cellsToXlsx(f.content.sheets[0].cells, f.content.sheets[0].name), OW.safeName(f.name) + '.xlsx');
+    if (f.type === 'excel' && f.content && f.content.sheets) return OW.download(OW.ooxml.sheetsToXlsx(f.content.sheets), OW.safeName(f.name) + '.xlsx');
     OW.download(new Blob([JSON.stringify({ format: 'office-werkstatt', version: 1, file: Object.assign({}, f, { content: f.content }) })], { type: 'application/json' }), OW.safeName(f.name) + '.owdoc');
   }
   function fileMenu(f, anchor) {
@@ -132,10 +134,13 @@
     for (const file of list) {
       const ext = (file.name.split('.').pop() || '').toLowerCase(), name = file.name.replace(/\.[^.]+$/, '');
       try {
+        const proType = { docx: 'word', xlsx: 'excel', pptx: 'slide' }[ext];
         if (ext === 'pdf') last = await OW.createFile('pdf', { name, blob: file, noOpen: true });
-        else if (ext === 'docx') last = await OW.createFile('word', { name, content: { html: await OW.ooxml.docxToHtml(await file.arrayBuffer()) }, noOpen: true });
+        // with the Werkzeug Pro engines the original file is kept as it is (no lossy conversion)
+        else if (proType && OW.engines && OW.engines[proType]) last = await OW.createFile(proType, { name, blob: file, proExt: ext, noOpen: true });
+        else if (ext === 'docx') last = await OW.createFile('word', { name, content: { html: OW.sanitizeHTML(await OW.ooxml.docxToHtml(await file.arrayBuffer())) }, noOpen: true });
         else if (['txt', 'md'].includes(ext)) last = await OW.createFile('word', { name, content: { html: (await file.text()).split(/\n/).map(l => { const m = /^(#{1,3})\s+(.*)/.exec(l); return m ? `<h${m[1].length}>${OW.escape(m[2])}</h${m[1].length}>` : `<p>${OW.escape(l) || '<br>'}</p>`; }).join('') }, noOpen: true });
-        else if (['html', 'htm'].includes(ext)) { const d = new DOMParser().parseFromString(await file.text(), 'text/html'); d.querySelectorAll('script,style').forEach(x => x.remove()); last = await OW.createFile('word', { name, content: { html: d.body.innerHTML }, noOpen: true }); }
+        else if (['html', 'htm'].includes(ext)) { const d = new DOMParser().parseFromString(await file.text(), 'text/html'); last = await OW.createFile('word', { name, content: { html: OW.sanitizeHTML(d.body.innerHTML) }, noOpen: true }); }
         else if (ext === 'xlsx') last = await OW.createFile('excel', { name, content: { sheets: [{ name: 'Sheet1', cells: await OW.ooxml.xlsxToCells(await file.arrayBuffer()) }], active: 0 }, noOpen: true });
         else if (ext === 'csv') { const cells = {}; OW.parseCSV(await file.text()).forEach((r, i) => r.forEach((v, j) => { if (v !== '' && j < 26) cells[String.fromCharCode(65 + j) + (i + 1)] = { v }; })); last = await OW.createFile('excel', { name, content: { sheets: [{ name, cells }], active: 0 }, noOpen: true }); }
         else if (ext === 'pptx') last = await OW.createFile('slide', { name, content: { theme: 'office', slides: await OW.ooxml.pptxToSlides(await file.arrayBuffer()) }, noOpen: true });
@@ -300,7 +305,7 @@
 
   /* ---------- Settings ---------- */
   function renderSettings() {
-    const eng = Object.keys(OW.TYPES).map(ty => `<li>${OW.appGlyph(ty, 22)}<span><b>${t('tool.' + ty + '.name')}</b><small>${OW.TYPES[ty].engine}</small></span><em class="${OW.engines[ty] ? 'ok' : ''}">${OW.engines[ty] ? t('engine.installed') : t('engine.builtin')}</em></li>`).join('');
+    const eng = Object.keys(OW.TYPES).map(ty => `<li>${OW.appGlyph(ty, 22)}<span><b>${t('tool.' + ty + '.name')}</b><small>${OW.TYPES[ty].engine || 'Office Werkstatt'}</small></span><em class="${OW.engines[ty] ? 'ok' : ''}">${OW.engines[ty] ? t('engine.installed') : t('engine.builtin')}</em></li>`).join('');
     $('#view-settings').innerHTML = `
       <div class="page-h"><h1>${I('settings', 28)}${t('nav.settings')}</h1></div>
       <div class="set-grid">
@@ -368,11 +373,12 @@
     const box = $('#langSwitch');
     box.innerHTML = `<span class="globe">${I('globe', 18)}</span>` + ['tr', 'de', 'en'].map(c => `<button data-l="${c}" class="${OW.lang === c ? 'on' : ''}">${c.toUpperCase()}</button>`).join('') + `<button class="more-l ${['es', 'fr'].includes(OW.lang) ? 'on' : ''}" title="${t('set.language')}">${['es', 'fr'].includes(OW.lang) ? OW.lang.toUpperCase() : I('chevronDown', 14)}</button>`;
     box.querySelectorAll('[data-l]').forEach(b => b.onclick = () => OW.setLang(b.dataset.l));
-    box.querySelector('.more-l').onclick = e => OW.popover(e.currentTarget, OW.LANGS.map(l => ({ label: `${l.flag}  ${l.name}`, checked: OW.lang === l.code, onClick: () => OW.setLang(l.code) })), { alignRight: true });
+    box.querySelector('.more-l').onclick = e => OW.popover(e.currentTarget, OW.LANGS.map(l => ({ label: OW.escape(l.name), noPad: true, checked: OW.lang === l.code, onClick: () => OW.setLang(l.code) })), { alignRight: true });
   }
   OW.onLang = async () => {
     OW.applyI18n(document); renderLang(); netPill(); storagePill();
-    if (!$('#editorHost').hidden && OW.currentFile && OW.closeEditor) { const id = OW.currentFile; const back = OW.lastRoute; await OW.closeEditor(); OW.lastRoute = back; await openFile(id); return; }
+    try { window.owDesktop && window.owDesktop.setLanguage && window.owDesktop.setLanguage(OW.lang); } catch { /* ignore */ }
+    if (!$('#editorHost').hidden && OW.currentFile && OW.relocalizeEditor) { render(); await OW.relocalizeEditor(); return; }
     render();
   };
   function netPill() { const on = navigator.onLine; $('#netPill').innerHTML = `${I(on ? 'cloudOk' : 'wifiOff', 14)}<span>${on ? t('net.online') : t('net.offline')}</span>`; $('#netPill').classList.toggle('off', !on); }

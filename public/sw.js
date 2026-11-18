@@ -1,10 +1,10 @@
 /* Office Werkstatt – service worker: caches the whole app so it runs without internet */
-const CACHE = 'office-werkstatt-v1.1.1';
+const CACHE = 'office-werkstatt-v1.2.0';
 const CORE = ['./', './index.html', './manifest.webmanifest', './css/app.css', './css/editors.css',
-  './js/icons.js', './js/i18n.js', './js/store.js', './js/zip.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
-  './js/editors/word.js', './js/editors/excel.js', './js/editors/slide.js', './js/editors/note.js', './js/editors/draw.js', './js/editors/pdf.js',
+  './js/icons.js', './js/i18n.js', './js/store.js', './js/sanitize.js', './js/desktop.js', './js/zip.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
+  './js/editors/word.js', './js/editors/excel.js', './js/editors/slide.js', './js/editors/note.js', './js/editors/note-calendar.js', './js/editors/draw.js', './js/editors/pdf.js', './js/editors/pro.js',
   './assets/logo.svg', './assets/icon-192.png', './assets/icon-512.png', './engines/engines.js'];
-self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())));
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);

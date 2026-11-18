@@ -13,11 +13,16 @@ const lang = `<script>
     if (l && map[l]) { var tags = [map[l], l]; Object.defineProperty(navigator, 'languages', { get: function () { return tags; } });
       Object.defineProperty(navigator, 'language', { get: function () { return tags[0]; } }); document.documentElement.lang = l; } } catch (e) {} })();
 </script>`;
+/* inside Office Werkstatt the library keeps the files: without the File System Access API the engines
+ * save through a download, which Office Werkstatt takes over (public/js/editors/pro.js) */
+const noDiskAccess = `<script>
+  (function () { if (window.parent === window) return; ['showSaveFilePicker', 'showOpenFilePicker', 'showDirectoryPicker'].forEach(function (n) { try { delete window[n]; } catch (e) {} }); })();
+</script>`;
 const boot = `<script type="module">
   import init from './${bin}.js';
   init({ module_or_path: './${bin}_bg.wasm' }).catch(function (e) { console.error(e); var l = document.querySelector('[id$="_loading"]'); if (l) l.textContent = 'Engine error: ' + e; });
 </script>`;
-html = html.replace(/<head>/i, '<head>\n  ' + lang).replace(/<\/body>/i, boot + '\n</body>');
+html = html.replace(/<head>/i, '<head>\n  ' + lang + '\n  ' + noDiskAccess).replace(/<\/body>/i, boot + '\n</body>');
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'index.html'), html);
 console.log('host page →', path.join(out, 'index.html'));

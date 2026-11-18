@@ -4,8 +4,9 @@ services:
     ports: ["8080:8080"]
     volumes: ["./data:/data"]
     environment:
-      # optional login for the whole team
-      # OW_USER: team
-      # OW_PASS: change-me
+      # Reachable from the network → a login is required (the server refuses to start without one).
+      # Put it behind HTTPS (reverse proxy such as Caddy/nginx/Traefik): basic auth is sent in clear text.
+      OW_USER: ${OW_USER:?set OW_USER in .env}
+      OW_PASS: ${OW_PASS:?set OW_PASS in .env}
       PORT: 8080
     restart: unless-stopped

@@ -2,7 +2,8 @@
  * engines/pdf/index.html = the offline single-file build of PDF Werkstatt (patched to red by scripts/fetch-engines).
  * At runtime the red palette is injected as well, so even an unpatched copy turns red.
  * Without the engine a built-in viewer (the browser's own PDF renderer, works offline) is used. */
-OW.PDF_RED_CSS = `:root,html{--cobalt:#C62828!important;--cobalt-strong:#8E1B1B!important;--cobalt-wash:#FDECEA!important}
+OW.PDF_RED_CSS = `#languageSelect,#themeBtn{display:none!important}
+:root,html{--cobalt:#C62828!important;--cobalt-strong:#8E1B1B!important;--cobalt-wash:#FDECEA!important}
 html[data-theme="dark"]{--cobalt:#F28B82!important;--cobalt-strong:#F6AEA9!important;--cobalt-wash:#3A1D1B!important}`;
 
 OW.editors.pdf = async function (ctx) {
@@ -31,7 +32,7 @@ OW.editors.pdf = async function (ctx) {
       const W = frame.contentWindow, orig = W.HTMLAnchorElement.prototype.click;
       W.HTMLAnchorElement.prototype.click = function () {
         if (this.download && /\.pdf$/i.test(this.download) && /^blob:/.test(this.href)) {
-          fetch(this.href).then(r => r.blob()).then(async b => { blob = b; ctx.file.content = b; ctx.file.size = b.size; await ctx.save(); OW.toast(t('pdf.savedToLibrary')); });
+          fetch(this.href).then(r => r.blob()).then(async b => { blob = b; ctx.file.content = b; ctx.file.size = b.size; if (await ctx.save()) OW.toast(t('pdf.savedToLibrary')); }).catch(e => console.error(e));
         }
         return orig.apply(this, arguments);
       };
@@ -68,6 +69,14 @@ OW.editors.pdf = async function (ctx) {
     url = URL.createObjectURL(blob);
     holder.innerHTML = `<iframe class="pdf-native" title="PDF" src="${url}#toolbar=1&view=FitH"></iframe>`;
   }
+  // print the document (not the PDF Werkstatt interface): use the engine's own print view
+  function printPdf() {
+    try {
+      const W = frame && frame.contentWindow, P = W && W.__pdfWorkshop;
+      if (P && P.printDoc) { if (!P.S || !P.S.doc) return OW.toast(t('pdf.openFirst')); return P.printDoc().catch(e => OW.toast(OW.escape(e && e.message || t('print.failed')), 'warn')); }
+      const f = holder.querySelector('iframe'); if (f) f.contentWindow.print(); else OW.toast(t('pdf.noFile'));
+    } catch { OW.toast(t('unsupported')); }
+  }
   function pick() {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/pdf,.pdf';
     inp.onchange = async () => { const f = inp.files[0]; if (!f) return; blob = f; ctx.file.content = f; ctx.file.size = f.size; if (/^(Unbenannt|Untitled|Adsız|Sin título|Sans titre)/.test(ctx.file.name)) { ctx.file.name = f.name.replace(/\.pdf$/i, ''); ctx.root.querySelector('.ed-name').value = ctx.file.name; } await ctx.save(); hasEngine ? sendFile(f, f.name) : mountViewer(); };
@@ -76,7 +85,7 @@ OW.editors.pdf = async function (ctx) {
 
   const R = [
     { id: 'start', label: t('tab.home'), groups: [
-      { items: [{ icon: 'upload', label: t('pdf.choose'), onClick: pick }, { icon: 'download', label: t('download'), onClick: () => blob ? OW.download(blob, OW.safeName(ctx.file.name) + '.pdf') : OW.toast(t('pdf.noFile')) }, { icon: 'print', label: t('bs.print'), onClick: () => { try { frame ? frame.contentWindow.print() : holder.querySelector('iframe').contentWindow.print(); } catch { OW.toast(t('unsupported')); } } }] },
+      { items: [{ icon: 'upload', label: t('pdf.choose'), onClick: pick }, { icon: 'download', label: t('download'), onClick: () => blob ? OW.download(blob, OW.safeName(ctx.file.name) + '.pdf') : OW.toast(t('pdf.noFile')) }, { icon: 'print', label: t('bs.print'), onClick: printPdf }] },
       ...(hasEngine ? [] : [{ items: [{ icon: 'sparkle', label: t('pdf.getEngine'), onClick: () => OW.alert(t('pdf.getEngine'), t('pdf.engineHowto')) }] }]),
       { items: [{ icon: 'expand', label: t('focusMode'), onClick: () => ctx.root.classList.toggle('focus') }] },
     ] },
@@ -84,12 +93,17 @@ OW.editors.pdf = async function (ctx) {
   ctx.exports = [{ label: 'PDF (.pdf)', fn: () => blob ? OW.download(blob, OW.safeName(ctx.file.name) + '.pdf') : OW.toast(t('pdf.noFile')) }];
 
   return {
+    chrome: hasEngine ? 'engine' : undefined,      // PDF Werkstatt has its own menus: no second toolbar
     ribbonMode: 'simplified',
     ribbon: () => R,
     mount(body) { body.innerHTML = '<div class="pdf-host"></div>'; holder = body.querySelector('.pdf-host'); hasEngine ? mountEngine() : mountViewer(); },
     getContent: () => blob,
     status: () => ({ left: hasEngine ? 'PDF Werkstatt · ' + t('pdf.engineActive') : t('pdf.builtinViewer'), right: blob ? (blob.size / 1048576).toFixed(2) + ' MB' : '' }),
     onTheme: themeFrame,
+    setLanguage(l) {
+      try { localStorage.setItem('pdf-workshop.language', ['tr', 'de', 'en'].includes(l) ? l : 'en'); const P = frame && frame.contentWindow.__pdfWorkshop; if (P && P.applyLanguage) { P.applyLanguage(['tr', 'de', 'en'].includes(l) ? l : 'en'); return true; } } catch { /* reload instead */ }
+      return false;
+    },
     destroy() { if (url) URL.revokeObjectURL(url); },
   };
 };

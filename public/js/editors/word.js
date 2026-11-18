@@ -204,7 +204,7 @@ OW.editors.word = async function (ctx) {
     mount(body) {
       body.innerHTML = '<div class="doc-canvas"><div class="doc-wrap"><div class="doc-page" contenteditable="true"></div></div></div>';
       wrap = body.querySelector('.doc-wrap'); pageEl = body.querySelector('.doc-page');
-      pageEl.innerHTML = c.html || '<p><br></p>';
+      pageEl.innerHTML = OW.sanitizeHTML(c.html) || '<p><br></p>';   // file content is untrusted (imports, .owdoc, shared server)
       applyPage(); requestAnimationFrame(applyPage); addEventListener('resize', applyPage);
       pageEl.addEventListener('input', () => ctx.markDirty());
       ['keyup', 'mouseup'].forEach(ev => pageEl.addEventListener(ev, () => { saveSel(); ctx.refresh();

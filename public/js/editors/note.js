@@ -7,7 +7,7 @@ OW.editors.note = async function (ctx) {
     sections: [{ id: uid(), name: t('note.quickNotes'), color: COLORS[0], pages: [{ id: uid(), title: t('note.untitled'), html: '<p><br></p>', created: Date.now(), ink: [] }] }],
   };
   let sec = nb.sections[0], pg = sec.pages[0], sort = 'manual';
-  let secEl, pagesEl, pageTitle, pageDate, pageBody, inkSvg, savedRange = null;
+  let secEl, pagesEl, pageTitle, pageDate, pageBody, inkSvg, calEl, cal, calOn = false, savedRange = null;
   let pen = { on: false, color: '#7C4DDB', width: 3, eraser: false };
 
   const exec = (c, v = null) => { restore(); document.execCommand(c, false, v); pageBody.focus(); sync(); ctx.refresh(); };
@@ -19,10 +19,13 @@ OW.editors.note = async function (ctx) {
 
   function renderSections() {
     secEl.innerHTML = `<div class="nt-nb"><span>${I('chevronDown', 14)}</span>${OW.appGlyph('note', 18)}<b>${OW.escape(ctx.file.name)}</b></div>`;
+    const cb = document.createElement('button'); cb.className = 'nt-sec nt-calbtn' + (calOn ? ' on' : '');
+    cb.innerHTML = `${I('calendar', 16)}<span>${t('note.calendar')}</span>`; cb.onclick = () => showCalendar(true);
+    secEl.appendChild(cb);
     nb.sections.forEach(s => {
-      const b = document.createElement('button'); b.className = 'nt-sec' + (s === sec ? ' on' : '');
+      const b = document.createElement('button'); b.className = 'nt-sec' + (s === sec && !calOn ? ' on' : '');
       b.innerHTML = `<i style="background:${s.color}"></i><span>${OW.escape(s.name)}</span>`;
-      b.onclick = () => { sec = s; pg = s.pages[0] || null; renderAll(); };
+      b.onclick = () => { sec = s; pg = s.pages[0] || null; calOn = false; renderAll(); };
       b.oncontextmenu = e => { e.preventDefault(); OW.popover(b, [
         { icon: 'pen', label: t('rename'), onClick: () => OW.prompt(t('rename'), s.name).then(n => { if (n) { s.name = n; renderSections(); ctx.markDirty(); } }) },
         { icon: 'palette', label: t('note.color'), onClick: () => { s.color = COLORS[(COLORS.indexOf(s.color) + 1) % COLORS.length]; renderSections(); ctx.markDirty(); } },
@@ -50,16 +53,19 @@ OW.editors.note = async function (ctx) {
   function renderPage() {
     const has = !!pg; pageTitle.parentElement.parentElement.classList.toggle('empty', !has);
     if (!has) return;
-    pageTitle.value = pg.title || ''; pageBody.innerHTML = pg.html || '<p><br></p>';
+    pageTitle.value = pg.title || ''; pageBody.innerHTML = OW.sanitizeHTML(pg.html) || '<p><br></p>';
     pageDate.textContent = new Date(pg.created).toLocaleString(OW.lang, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     drawInk();
   }
-  function renderAll() { renderSections(); renderPages(); renderPage(); ctx.refresh(); }
+  function renderAll() { secEl.closest('.nt').classList.toggle('cal-on', calOn); calEl.hidden = !calOn; renderSections(); renderPages(); renderPage(); if (calOn) cal.render(); ctx.refresh(); }
+  function showCalendar(on) { calOn = on; renderAll(); }
+  function openPageById(id) { for (const s of nb.sections) { const p = s.pages.find(x => x.id === id); if (p) { sec = s; pg = p; calOn = false; renderAll(); return; } } OW.toast(t('file.notFound')); }
+  function createPageWith(title, html) { const p = { id: uid(), title, html, created: Date.now(), ink: [] }; sec.pages.push(p); return p; }
 
   /* ---------- ink layer (Draw tab) ---------- */
   function drawInk() {
     const box = pageBody.parentElement; inkSvg.setAttribute('width', box.scrollWidth); inkSvg.setAttribute('height', box.scrollHeight);
-    inkSvg.innerHTML = (pg.ink || []).map(s => `<path d="${s.d}" stroke="${s.c}" stroke-width="${s.w}" fill="none" stroke-linecap="round" stroke-linejoin="round" ${s.hl ? 'opacity=".35"' : ''}/>`).join('');
+    const A = OW.escape; inkSvg.innerHTML = (pg.ink || []).map(s => `<path d="${A(s.d)}" stroke="${A(s.c)}" stroke-width="${A(s.w)}" fill="none" stroke-linecap="round" stroke-linejoin="round" ${s.hl ? 'opacity=".35"' : ''}/>`).join('');
     inkSvg.classList.toggle('active', pen.on);
   }
   function bindInk() {
@@ -91,6 +97,12 @@ OW.editors.note = async function (ctx) {
       { items: [{ icon: 'mail', label: t('note.emailPage'), onClick: () => { location.href = `mailto:?subject=${encodeURIComponent(pg.title || '')}&body=${encodeURIComponent(pageBody.innerText)}`; } },
         { t: 'menu', icon: 'calendar', label: t('note.meeting'), items: [{ label: t('note.meetingInsert'), onClick: () => exec('insertHTML', `<h3>${t('note.meeting')} · ${new Date().toLocaleDateString(OW.lang, { dateStyle: 'full' })}</h3><p><b>${t('note.participants')}:</b> </p><p><b>${t('note.agenda')}:</b></p><ul><li><br></li></ul><p><b>${t('note.actions')}:</b></p><ul class="checks"><li>☐ </li></ul>`) }] }] },
     ] },
+    { id: 'calendar', label: t('note.calendar'), groups: [
+      { items: [{ icon: 'calendar', label: t('note.calendar'), active: () => calOn, onClick: () => showCalendar(!calOn) }] },
+      { items: [{ icon: 'plus', label: t('cal.newEvent'), onClick: () => { showCalendar(true); cal.newEvent(); } }, { icon: 'clock', label: t('cal.today'), onClick: () => { showCalendar(true); cal.goToday(); } },
+        { icon: 'chevronLeft', title: t('cal.prev'), onClick: () => { showCalendar(true); cal.prev(); } }, { icon: 'chevronRight', title: t('cal.next'), onClick: () => { showCalendar(true); cal.next(); } }] },
+      { items: [{ icon: 'download', label: t('cal.exportIcs'), onClick: () => cal.exportIcs() }, { icon: 'upload', label: t('cal.importIcs'), onClick: () => { showCalendar(true); cal.importIcs(); } }] },
+    ] },
     { id: 'insert', label: t('tab.insert'), groups: [{ items: [
       { icon: 'table', label: t('table'), onClick: () => exec('insertHTML', '<table class="doc-table"><tr><td><br></td><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td><td><br></td></tr></table><p><br></p>') },
       { icon: 'image', label: t('image'), onClick: () => { saveSel(); const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = () => { const r = new FileReader(); r.onload = () => exec('insertHTML', `<img src="${r.result}" style="max-width:100%">`); r.readAsDataURL(inp.files[0]); }; inp.click(); } },
@@ -113,6 +125,7 @@ OW.editors.note = async function (ctx) {
   ctx.exports = [
     { label: 'HTML (.html)', hint: t('export.noteHint'), fn: () => OW.download(new Blob([`<!DOCTYPE html><meta charset="utf-8"><title>${OW.escape(ctx.file.name)}</title><body style="font-family:Calibri,sans-serif;max-width:860px;margin:40px auto">` + nb.sections.map(s => `<h1 style="color:${s.color}">${OW.escape(s.name)}</h1>` + s.pages.map(p => `<h2>${OW.escape(p.title || '')}</h2>${p.html}`).join('')).join('<hr>') + '</body>'], { type: 'text/html' }), OW.safeName(ctx.file.name) + '.html') },
     { label: 'Markdown (.md)', fn: () => OW.download(new Blob([nb.sections.map(s => `# ${s.name}\n\n` + s.pages.map(p => { const d = document.createElement('div'); d.innerHTML = p.html; return `## ${p.title || ''}\n\n${d.innerText}\n`; }).join('\n')).join('\n')], { type: 'text/markdown' }), OW.safeName(ctx.file.name) + '.md') },
+    { label: 'iCalendar (.ics)', hint: t('cal.exportHint'), fn: () => cal.exportIcs() },
     { label: 'Word (.docx)', fn: () => OW.download(OW.ooxml.htmlToDocx(`<h1>${OW.escape(pg.title || '')}</h1>` + pg.html), OW.safeName(pg.title || ctx.file.name) + '.docx') },
   ];
 
@@ -123,18 +136,20 @@ OW.editors.note = async function (ctx) {
       body.innerHTML = `<div class="nt"><aside class="nt-secs"></aside><aside class="nt-pages"></aside><section class="nt-canvas"><div class="nt-paper">
         <input class="nt-title" placeholder="${t('note.titlePh')}"><div class="nt-date"></div>
         <div class="nt-bodybox"><div class="nt-body" contenteditable="true"></div><svg class="nt-ink"></svg></div>
-        <div class="nt-empty">${I('note', 40)}<p>${t('note.noPage')}</p></div></div></section></div>`;
+        <div class="nt-empty">${I('note', 40)}<p>${t('note.noPage')}</p></div></div></section><section class="nt-cal" hidden></section></div>`;
       secEl = body.querySelector('.nt-secs'); pagesEl = body.querySelector('.nt-pages'); pageTitle = body.querySelector('.nt-title'); pageDate = body.querySelector('.nt-date'); pageBody = body.querySelector('.nt-body'); inkSvg = body.querySelector('.nt-ink');
       pageTitle.addEventListener('input', sync);
       pageTitle.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); pageBody.focus(); } });
       pageBody.addEventListener('input', sync);
       ['keyup', 'mouseup'].forEach(ev => pageBody.addEventListener(ev, () => { saveSel(); ctx.refresh(); }));
       pageBody.addEventListener('click', e => { const li = e.target.closest('ul.checks li'); if (li && e.offsetX < 22) { li.firstChild && (li.firstChild.nodeValue = li.textContent.startsWith('☑') ? li.firstChild.nodeValue.replace('☑', '☐') : li.firstChild.nodeValue.replace('☐', '☑')); li.classList.toggle('done'); sync(); } });
+      calEl = body.querySelector('.nt-cal');
+      cal = OW.noteCalendar({ ctx, nb, el: calEl, openPage: openPageById, createPage: createPageWith });
       bindInk(); renderAll();
     },
     focus() { pageTitle.focus(); },
     getContent: () => nb,
     setReadOnly(v) { pageBody.contentEditable = !v; pageTitle.readOnly = v; },
-    status: () => ({ left: `${sec.name} · ${sec.pages.length} ${t('note.pages')}`, right: '' }),
+    status: () => calOn ? ({ left: `${t('note.calendar')} · ${nb.events.length} ${t('cal.events')}`, right: '' }) : ({ left: `${OW.escape(sec.name)} · ${sec.pages.length} ${t('note.pages')}`, right: '' }),
   };
 };

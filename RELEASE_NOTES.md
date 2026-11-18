@@ -1,3 +1,29 @@
+## Office Werkstatt 1.2.0
+
+### Yazdırma ve kapatma (masaüstü)
+- **Yazdırma artık çalışıyor ve önizleme var.** `window.print()` masaüstü uygulamasını tamamen donduruyordu (Windows 11 yazdırma
+  penceresi açılmıyor, uygulama kapatılamıyordu). Artık Office Werkstatt'ın kendi **yazdırma önizlemesi** açılır: gerçek sayfalar,
+  yazıcı, kopya, sayfa aralığı, yön, kâğıt boyutu, renk, *PDF olarak kaydet*. Word/Excel/Slide Pro ve PDF Werkstatt da bunu kullanır.
+- **Kapatma:** Kaydedilmemiş bir PDF varken pencere sessizce açık kalıyordu; artık “Kaydedilmemiş değişiklikler – yine de kapat?” sorulur.
+  Takılan bir sayfa veya yazdırma işi uygulamanın kapanmasını engellemez.
+- Kapanışta görülen *“Cannot write headers after they are sent”* hatası giderildi.
+
+### Güvenlik
+- Sunucu varsayılan olarak yalnızca `127.0.0.1` adresinde dinler; ağda **giriş zorunlu** (aksi hâlde başlamaz). DNS-rebinding koruması.
+- Belgelerdeki HTML (içe aktarma, `.owdoc`, paylaşılan sunucu) her gösterimde temizlenir — betik/olay işleyici çalışmaz.
+- Kayıt hataları (401, 413, 500 …) artık fark edilir: değişiklikler korunur, yeniden denenir, kapatmadan önce uyarılır.
+- Statik dosya yolları ayraç duyarlı ve gerçek yol üzerinden denetlenir.
+
+### Düzenleyiciler
+- **Word / Excel / Slide** doğrudan **Werkzeug Pro** motorunda açılır; ayrı “basit görünüm” ve Pro düğmesi kaldırıldı.
+  Belgeler motorun kendi biçiminde (`.docx` / `.xlsx` / `.pptx`) kitaplıkta saklanır, içe aktarılan dosyalar kayıpsız korunur.
+- **PDF Werkzeug:** çift menüler kaldırıldı (tek menü: PDF Werkstatt).
+- **Note Werkzeug:** SilverBullet kaldırıldı; OneNote tarzı görünüme **takvim** eklendi (ay görünümü, yaklaşanlar,
+  etkinlikten toplantı notu, `.ics` içe/dışa aktarma).
+- **Draw Werkzeug:** Excalidraw düğmesi kaldırıldı.
+- Dil değiştirirken ana sayfaya dönülmez; dil menüsündeki boşluklar kaldırıldı.
+- `.xlsx` dışa aktarma tüm sayfaları ve stil bölümünü içerir.
+
 ## Office Werkstatt 1.1.1
 
 ### Düzeltmeler

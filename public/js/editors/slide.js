@@ -1,9 +1,6 @@
 /* Slide Werkzeug – presentations (ribbon modelled on PowerPoint for the web) */
-OW.editors.slide = async function (ctx) {
-  const t = ctx.t, I = OW.icon;
-  const W = 960, H = 540;
-  const uid = () => Math.random().toString(36).slice(2, 9);
-  const THEMES = {
+/* slide themes – also used to convert older slide documents to .pptx for Slide Werkzeug Pro */
+OW.SLIDE_THEMES = {
     office: { bg: '#ffffff', ink: '#1f2430', accent: '#EA6A2A', font: 'Aptos, Calibri, sans-serif', deco: 'none' },
     werkstatt: { bg: 'linear-gradient(135deg,#f3f0ff,#e6ecff)', ink: '#221d4f', accent: '#6B5CF0', font: 'Aptos, Calibri, sans-serif', deco: 'blob' },
     ocean: { bg: 'linear-gradient(160deg,#0b3d91,#1b6fd6)', ink: '#ffffff', accent: '#7fd3ff', font: 'Segoe UI, sans-serif', deco: 'wave' },
@@ -11,6 +8,12 @@ OW.editors.slide = async function (ctx) {
     forest: { bg: 'linear-gradient(135deg,#4caf50,#2e7d32)', ink: '#ffffff', accent: '#d7ff7a', font: 'Trebuchet MS, sans-serif', deco: 'bar' },
     night: { bg: '#141826', ink: '#e8ecf6', accent: '#ff8a5c', font: 'Segoe UI, sans-serif', deco: 'blob' },
   };
+OW.editors.slide = async function (ctx) {
+  const t = ctx.t, I = OW.icon;
+  const W = 960, H = 540;
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const THEMES = OW.SLIDE_THEMES;
+
   const content = ctx.file.content && ctx.file.content.slides ? ctx.file.content : { theme: 'office', slides: [] };
   if (!content.slides.length) content.slides.push(makeSlide('title', t('slide.clickTitle'), t('slide.clickSubtitle')));
   content.slides.forEach(s => { if (!s.els) { const n = makeSlide(s.layout || 'title-content', s.title, s.body); s.els = n.els; s.id = s.id || uid(); } });
@@ -53,7 +56,7 @@ OW.editors.slide = async function (ctx) {
         html += `<div class="sl-el sl-shape ${interactive && e.id === selId ? 'selected' : ''}" data-id="${e.id}" style="${base}"><svg width="${e.w}" height="${e.h}" fill="${fill}" stroke="${stroke}" stroke-width="3">${shp}</svg>${e.html ? `<div class="sh-txt">${e.html}</div>` : ''}</div>`;
       }
     });
-    target.innerHTML = html;
+    target.innerHTML = OW.sanitizeHTML(html, { svg: true });   // slide data comes from files / the server
     if (interactive && selId) { const el = target.querySelector(`[data-id="${selId}"]`); if (el) el.insertAdjacentHTML('beforeend', '<i class="hdl nw"></i><i class="hdl ne"></i><i class="hdl sw"></i><i class="hdl se"></i>'); }
   }
   function starPts(w, h) { const p = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 0.4 : 1; p.push(`${w / 2 + Math.cos(a) * r * (w / 2 - 2)},${h / 2 + Math.sin(a) * r * (h / 2 - 2)}`); } return p.join(' '); }

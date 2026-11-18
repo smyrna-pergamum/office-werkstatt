@@ -1,8 +1,8 @@
 {
   "name": "office-werkstatt-desktop",
   "productName": "Office Werkstatt",
-  "version": "1.1.1",
-  "description": "Office Werkstatt desktop app (Windows, macOS, Linux) \u2013 works without internet",
+  "version": "1.2.0",
+  "description": "Office Werkstatt desktop app (Windows, macOS, Linux) – works without internet",
   "main": "main.js",
   "author": "Januam",
   "license": "MIT",
@@ -29,6 +29,8 @@
     "files": [
       "main.js",
       "preload.js",
+      "print-preload.js",
+      "print-preview.html",
       "package.json"
     ],
     "extraResources": [
@@ -100,13 +102,7 @@
         }
       ],
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false,
-      "extraResources": [
-        {
-          "from": "../engines-bin/silverbullet/win32-x64",
-          "to": "app/engines-bin/silverbullet/win32-x64"
-        }
-      ]
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
@@ -130,13 +126,7 @@
         "dmg"
       ],
       "category": "public.app-category.productivity",
-      "icon": "build/icon.png",
-      "extraResources": [
-        {
-          "from": "../engines-bin/silverbullet/darwin-${arch}",
-          "to": "app/engines-bin/silverbullet/darwin-${arch}"
-        }
-      ]
+      "icon": "build/icon.png"
     },
     "linux": {
       "target": [
@@ -149,12 +139,6 @@
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         "application/pdf"
-      ],
-      "extraResources": [
-        {
-          "from": "../engines-bin/silverbullet/linux-x64",
-          "to": "app/engines-bin/silverbullet/linux-x64"
-        }
       ]
     },
     "compression": "maximum"

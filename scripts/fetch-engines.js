@@ -2,17 +2,16 @@
 /* Office Werkstatt – install the full reference engines into public/engines/<type>/
  * Needs internet ONCE (for the download). Afterwards everything runs offline.
  *
- *   node scripts/fetch-engines.js            → pdf + draw (+ word/excel/slide if Rust & trunk are installed)
- *   node scripts/fetch-engines.js pdf draw   → only these
+ *   node scripts/fetch-engines.js            → pdf (+ word/excel/slide if Rust & wasm-bindgen are installed)
+ *   node scripts/fetch-engines.js pdf word   → only these
  *   node scripts/fetch-engines.js --pdf-file C:\path\PDF-Werkstatt\index.html   (use a local copy)
  *
  * Engines
  *   pdf   PDF Werkstatt   github.com/smyrna-pergamum/PDF-Werkstatt   (single offline HTML, recoloured red)
- *   draw  Excalidraw      npm @excalidraw/excalidraw (UMD build + React)  → offline host page
  *   word  Word Werkzeug Pro   github.com/storytold/wordcraft   apps/wordcraft-web  (Rust → WebAssembly, cargo + wasm-bindgen)
  *   excel Excel Werkzeug Pro  github.com/storytold/gridcraft   apps/gridcraft-web
  *   slide Slide Werkzeug Pro  github.com/storytold/deckcraft   apps/deckcraft-web
- *   note  SilverBullet    github.com/silverbulletmd/silverbullet  (server binary, started by server.js under /sb/)
+ * Note Werkzeug and Draw Werkzeug use only their built-in editors (no external engine).
  */
 'use strict';
 const fs = require('fs'), path = require('path'), os = require('os'), { execSync, spawnSync } = require('child_process');
@@ -52,45 +51,6 @@ async function pdf() {
   return true;
 }
 
-async function draw() {
-  const out = path.join(ENG, 'draw'); fs.mkdirSync(out, { recursive: true });
-  log('draw', 'downloading Excalidraw + React from the npm registry …');
-  const pkgs = [['react', '18.3.1', 'umd/react.production.min.js'], ['react-dom', '18.3.1', 'umd/react-dom.production.min.js'], ['@excalidraw/excalidraw', '0.17.6', null]];
-  for (const [name, ver, file] of pkgs) {
-    const tgz = path.join(tmp, name.replace(/[@/]/g, '_') + '.tgz');
-    const reg = await (await fetch(`https://registry.npmjs.org/${name.replace('/', '%2F')}/${ver}`)).json();
-    await download(reg.dist.tarball, tgz);
-    const dir = path.join(tmp, name.replace(/[@/]/g, '_')); fs.mkdirSync(dir, { recursive: true });
-    run(`tar -xzf "${tgz}" -C "${dir}"`);
-    if (file) fs.copyFileSync(path.join(dir, 'package', file), path.join(out, path.basename(file)));
-    else {
-      fs.cpSync(path.join(dir, 'package', 'dist'), path.join(out, 'excalidraw'), { recursive: true });
-      for (const f of fs.readdirSync(path.join(out, 'excalidraw'))) if (/development|preact|assets-dev/.test(f)) fs.rmSync(path.join(out, 'excalidraw', f), { recursive: true, force: true });
-    }
-  }
-  fs.writeFileSync(path.join(out, 'index.html'), `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Excalidraw · Office Werkstatt</title>
-<style>html,body,#root{margin:0;height:100%} a[href*="discord"]{display:none!important}</style>
-<script>window.EXCALIDRAW_ASSET_PATH = "./excalidraw/";</script>
-<script src="react.production.min.js"></script><script src="react-dom.production.min.js"></script>
-<script src="excalidraw/excalidraw.production.min.js"></script></head>
-<body><div id="root"></div><script>
-  const KEY = 'ow-excalidraw-scene';
-  let initial = null; try { initial = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-  const dark = (() => { try { return parent.document.documentElement.dataset.theme === 'dark'; } catch (e) { return false; } })();
-  const lang = (() => { try { return { de: 'de-DE', tr: 'tr-TR', es: 'es-ES', fr: 'fr-FR' }[localStorage.getItem('ow-lang')] || 'en'; } catch (e) { return 'en'; } })();
-  const App = () => React.createElement(ExcalidrawLib.Excalidraw, { initialData: initial && Object.assign({ scrollToContent: true }, initial), theme: dark ? 'dark' : 'light', langCode: lang,
-    onChange: (els, st) => { try { localStorage.setItem(KEY, JSON.stringify({ elements: els, appState: { viewBackgroundColor: st.viewBackgroundColor } })); } catch (e) {} } },
-    /* own main menu: the default one links to external community sites */
-    React.createElement(M, null, React.createElement(D.LoadScene), React.createElement(D.SaveToActiveFile), React.createElement(D.Export), React.createElement(D.SaveAsImage),
-      React.createElement(D.Help), React.createElement(D.ClearCanvas), React.createElement(M.Separator), React.createElement(D.ToggleTheme), React.createElement(D.ChangeCanvasBackground)));
-  const M = ExcalidrawLib.MainMenu, D = M.DefaultItems;
-  ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
-</script></body></html>`);
-  log('draw', 'installed → public/engines/draw/index.html');
-  return true;
-}
-
 function craft(type, repo, app) {
   const out = path.join(ENG, type);
   if (!has('cargo') || !has('wasm-bindgen')) {
@@ -121,31 +81,16 @@ function craft(type, repo, app) {
   return true;
 }
 
-async function note() {
-  // SilverBullet (github.com/silverbulletmd/silverbullet): single binary, started by server/server.js under /sb/
-  const ver = process.env.SB_VERSION || '2.12.1';
-  for (const [plat, asset, exe] of [['win32-x64', 'windows-x86_64', 'silverbullet.exe'], ['linux-x64', 'linux-x86_64', 'silverbullet'], ['darwin-arm64', 'darwin-aarch64', 'silverbullet'], ['darwin-x64', 'darwin-x86_64', 'silverbullet']]) {
-    const dest = path.join(ROOT, 'engines-bin', 'silverbullet', plat); if (fs.existsSync(path.join(dest, exe))) continue;
-    try {
-      const zip = path.join(tmp, `sb-${plat}.zip`);
-      await download(`https://github.com/silverbulletmd/silverbullet/releases/download/${ver}/silverbullet-server-${asset}.zip`, zip);
-      fs.mkdirSync(dest, { recursive: true }); run(process.platform === 'win32' ? `tar -xf "${zip}" -C "${dest}"` : `unzip -o -q "${zip}" -d "${dest}"`);
-      log('note', `SilverBullet ${ver} → engines-bin/silverbullet/${plat}`);
-    } catch (e) { log('note', `${plat}: ${e.message}`); }
-  }
-  return true;
-}
-
 (async () => {
   fs.mkdirSync(ENG, { recursive: true });
   const ok = {};
-  const steps = { pdf, draw, word: () => craft('word', 'wordcraft', 'wordcraft-web'), excel: () => craft('excel', 'gridcraft', 'gridcraft-web'), slide: () => craft('slide', 'deckcraft', 'deckcraft-web'), note };
+  const steps = { pdf, word: () => craft('word', 'wordcraft', 'wordcraft-web'), excel: () => craft('excel', 'gridcraft', 'gridcraft-web'), slide: () => craft('slide', 'deckcraft', 'deckcraft-web') };
   for (const [t, fn] of Object.entries(steps)) {
     if (!sel(t)) continue;
     try { ok[t] = await fn(); } catch (e) { log(t, 'failed: ' + e.message); ok[t] = false; }
   }
   // registry used when the app is opened via file://
-  const reg = {}; for (const t of ['word', 'excel', 'slide', 'note', 'draw', 'pdf']) reg[t] = fs.existsSync(path.join(ENG, t, 'index.html'));
+  const reg = {}; for (const t of ['word', 'excel', 'slide', 'pdf']) reg[t] = fs.existsSync(path.join(ENG, t, 'index.html'));
   fs.writeFileSync(path.join(ENG, 'engines.js'), `/* generated by scripts/fetch-engines.js */\nwindow.OW_ENGINES = ${JSON.stringify(reg)};\n`);
   console.log('\nInstalled engines:', reg);
   fs.rmSync(tmp, { recursive: true, force: true });

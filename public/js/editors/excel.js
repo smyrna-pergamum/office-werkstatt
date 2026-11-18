@@ -271,7 +271,7 @@ OW.editors.excel = async function (ctx) {
       labels.forEach((l, i) => svg += `<text x="${45 + i * bw + bw / 2}" y="${H - 12}" font-size="10" text-anchor="middle" fill="currentColor">${OW.escape(String(l).slice(0, 10))}</text>`);
       svg += `<text x="34" y="16" font-size="10" text-anchor="end" fill="currentColor">${max.toLocaleString(OW.lang)}</text></svg>`;
       const el = document.createElement('div'); el.className = 'xl-chart'; el.style.left = ch.x + 'px'; el.style.top = ch.y + 'px';
-      el.innerHTML = `<div class="xc-h"><span>${t('excel.chart')} · ${ch.range}</span><button title="${t('delete')}">${I('x', 14)}</button></div>${svg}`;
+      el.innerHTML = `<div class="xc-h"><span>${t('excel.chart')} · ${OW.escape(ch.range)}</span><button title="${t('delete')}">${I('x', 14)}</button></div>${svg}`;
       el.querySelector('button').onclick = () => { sh.charts.splice(idx, 1); drawCharts(); ctx.markDirty(); };
       el.querySelector('.xc-h').onpointerdown = e => { const sx = e.clientX - ch.x, sy = e.clientY - ch.y; const mv = ev => { ch.x = ev.clientX - sx; ch.y = ev.clientY - sy; el.style.left = ch.x + 'px'; el.style.top = ch.y + 'px'; }; const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); ctx.markDirty(); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
       gridEl.appendChild(el);

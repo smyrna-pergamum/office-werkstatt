@@ -284,6 +284,13 @@ editor.back | Back to dashboard | Zurück zum Dashboard | Ana sayfaya dön | Vol
 editor.name | Document name | Dokumentname | Belge adı | Nombre del documento | Nom du document
 editor.saved | All changes saved | Alle Änderungen gespeichert | Tüm değişiklikler kaydedildi | Todos los cambios guardados | Toutes les modifications enregistrées
 editor.savedNow | Saved | Gespeichert | Kaydedildi | Guardado | Enregistré
+save.failed | Could not save – your changes are kept and saving is retried | Speichern fehlgeschlagen – Änderungen bleiben erhalten, neuer Versuch folgt | Kaydedilemedi – değişiklikler korunuyor, yeniden denenecek | No se pudo guardar – los cambios se conservan y se reintentará | Échec de l'enregistrement – modifications conservées, nouvel essai
+save.recovered | Saved again | Wieder gespeichert | Yeniden kaydedildi | Guardado de nuevo | Enregistré à nouveau
+save.closeAnyway | Your latest changes could not be saved. Close anyway and lose them? | Die letzten Änderungen konnten nicht gespeichert werden. Trotzdem schließen und verwerfen? | Son değişiklikler kaydedilemedi. Yine de kapatılsın ve kaybolsun mu? | No se pudieron guardar los últimos cambios. ¿Cerrar de todos modos y perderlos? | Les dernières modifications n'ont pas pu être enregistrées. Fermer quand même et les perdre ?
+print.opening | Opening the print dialog… | Druckdialog wird geöffnet … | Yazdırma penceresi açılıyor… | Abriendo el cuadro de impresión… | Ouverture de la boîte d'impression…
+pro.saved | Saved to Office Werkstatt | In Office Werkstatt gespeichert | Office Werkstatt'a kaydedildi | Guardado en Office Werkstatt | Enregistré dans Office Werkstatt
+print.failed | Printing failed | Drucken fehlgeschlagen | Yazdırma başarısız | Error al imprimir | Échec de l'impression
+pdf.openFirst | Open a PDF first | Zuerst ein PDF öffnen | Önce bir PDF açın | Abra primero un PDF | Ouvrez d'abord un PDF
 editor.search | Search for tools, help and more | Nach Tools, Hilfe und mehr suchen | Araç, yardım ve daha fazlasını ara | Buscar herramientas, ayuda y más | Rechercher outils, aide et plus
 editor.searchTools | Search a command… | Befehl suchen… | Komut ara… | Buscar un comando… | Rechercher une commande…
 editor.comments | Comments | Kommentare | Yorumlar | Comentarios | Commentaires
@@ -552,6 +559,34 @@ note.styles | Styles | Formatvorlagen | Stiller | Estilos | Styles
 note.emailPage | Email page | Seite per E-Mail | Sayfayı e-postala | Enviar página | Envoyer la page
 note.meeting | Meeting details | Besprechungsdetails | Toplantı ayrıntıları | Detalles de reunión | Détails de la réunion
 note.meetingInsert | Insert meeting template | Besprechungsvorlage einfügen | Toplantı şablonu ekle | Insertar plantilla | Insérer le modèle de réunion
+note.calendar | Calendar | Kalender | Takvim | Calendario | Calendrier
+cal.today | Today | Heute | Bugün | Hoy | Aujourd'hui
+cal.prev | Previous month | Vorheriger Monat | Önceki ay | Mes anterior | Mois précédent
+cal.next | Next month | Nächster Monat | Sonraki ay | Mes siguiente | Mois suivant
+cal.newEvent | New event | Neuer Termin | Yeni etkinlik | Nuevo evento | Nouvel événement
+cal.editEvent | Edit event | Termin bearbeiten | Etkinliği düzenle | Editar evento | Modifier l'événement
+cal.title | Title | Titel | Başlık | Título | Titre
+cal.date | Date | Datum | Tarih | Fecha | Date
+cal.start | Start | Beginn | Başlangıç | Inicio | Début
+cal.end | End | Ende | Bitiş | Fin | Fin
+cal.allDay | All day | Ganztägig | Tüm gün | Todo el día | Toute la journée
+cal.notes | Notes | Notizen | Notlar | Notas | Notes
+cal.linkPage | Linked page | Verknüpfte Seite | Bağlı sayfa | Página vinculada | Page liée
+cal.noLink | – none – | – keine – | – yok – | – ninguna – | – aucune –
+cal.meetingPage | Create meeting notes | Besprechungsnotizen anlegen | Toplantı notu oluştur | Crear notas de reunión | Créer des notes de réunion
+cal.openPage | Open page | Seite öffnen | Sayfayı aç | Abrir página | Ouvrir la page
+cal.when | When | Wann | Zaman | Cuándo | Quand
+cal.untitled | (no title) | (ohne Titel) | (başlıksız) | (sin título) | (sans titre)
+cal.noEvents | No events on this day. | Keine Termine an diesem Tag. | Bu günde etkinlik yok. | No hay eventos este día. | Aucun événement ce jour-là.
+cal.addThisDay | Add event | Termin hinzufügen | Etkinlik ekle | Añadir evento | Ajouter un événement
+cal.pagesThatDay | Pages from this day | Seiten von diesem Tag | Bu günün sayfaları | Páginas de este día | Pages de ce jour
+cal.upcoming | Upcoming | Demnächst | Yaklaşanlar | Próximos | À venir
+cal.noUpcoming | Nothing planned. | Nichts geplant. | Planlanmış bir şey yok. | Nada planificado. | Rien de prévu.
+cal.events | events | Termine | etkinlik | eventos | événements
+cal.exportIcs | Export calendar (.ics) | Kalender exportieren (.ics) | Takvimi dışa aktar (.ics) | Exportar calendario (.ics) | Exporter le calendrier (.ics)
+cal.importIcs | Import calendar (.ics) | Kalender importieren (.ics) | Takvim içe aktar (.ics) | Importar calendario (.ics) | Importer un calendrier (.ics)
+cal.exportHint | For Outlook, Google Calendar, Thunderbird … | Für Outlook, Google Kalender, Thunderbird … | Outlook, Google Takvim, Thunderbird … için | Para Outlook, Google Calendar, Thunderbird … | Pour Outlook, Google Agenda, Thunderbird …
+cal.imported | {n} events imported | {n} Termine importiert | {n} etkinlik içe aktarıldı | {n} eventos importados | {n} événements importés
 note.participants | Participants | Teilnehmende | Katılımcılar | Participantes | Participants
 note.agenda | Agenda | Tagesordnung | Gündem | Orden del día | Ordre du jour
 note.actions | Action items | Aufgaben | Eylem maddeleri | Tareas | Actions

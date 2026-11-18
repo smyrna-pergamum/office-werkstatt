@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-src file:; object-src file:">
+<title>Office Werkstatt</title>
+<style>
+  :root { --bg:#F5F6FC; --panel:#fff; --line:#E3E5EF; --ink:#1F2430; --ink2:#5B6170; --accent:#6B5CF0; --accent2:#5848E0; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121522; --panel:#1A1E2E; --line:#2A2F44; --ink:#E8EBF5; --ink2:#9AA1B8; --accent:#8B7CF8; --accent2:#A99BFF; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 "Segoe UI", system-ui, sans-serif; }
+  body { display: flex; }
+  #preview { flex: 1; min-width: 0; position: relative; background: #525659; }
+  #preview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  #busy { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #fff; font-size: 15px; background: rgba(40,42,48,.55); }
+  body.busy #busy { display: flex; }
+  aside { width: 320px; flex: none; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  header { padding: 18px 20px 6px; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header p { margin: 4px 0 0; color: var(--ink2); font-size: 12.5px; }
+  form { flex: 1; overflow: auto; padding: 8px 20px; display: flex; flex-direction: column; gap: 14px; }
+  label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--ink2); }
+  select, input { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; outline: none; }
+  select:focus, input:focus { border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { flex: 1; padding: 8px; border: 0; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .hint { font-size: 11.5px; color: var(--ink2); margin-top: -8px; }
+  footer { padding: 14px 20px 18px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  footer .b { display: flex; gap: 8px; }
+  .btn { flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: 600 14px "Segoe UI", sans-serif; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent2); }
+  .btn:disabled { opacity: .55; cursor: default; }
+  #msg { min-height: 18px; font-size: 12.5px; color: var(--ink2); }
+  #msg.err { color: #D93A32; }
+</style>
+</head>
+<body>
+  <div id="preview"><iframe id="pdf" title="preview"></iframe><div id="busy" data-t="busy"></div></div>
+  <aside>
+    <header><h1 data-t="title"></h1><p id="pages"></p></header>
+    <form id="f" onsubmit="return false">
+      <label><span data-t="printer"></span><select id="printer"></select></label>
+      <div class="row">
+        <label><span data-t="copies"></span><input id="copies" type="number" min="1" max="99" value="1"></label>
+        <label><span data-t="color"></span><select id="color"><option value="1" data-t="colorOn"></option><option value="0" data-t="colorOff"></option></select></label>
+      </div>
+      <label><span data-t="range"></span><input id="range" placeholder=""></label>
+      <div class="hint" data-t="rangeHint"></div>
+      <label><span data-t="orientation"></span>
+        <div class="seg" id="orient"><button type="button" data-v="0" class="on" data-t="portrait"></button><button type="button" data-v="1" data-t="landscape"></button></div></label>
+      <label><span data-t="paper"></span><select id="paper">
+        <option value="auto" data-t="paperAuto"></option><option value="A4">A4</option><option value="A3">A3</option><option value="A5">A5</option><option value="Letter">Letter</option><option value="Legal">Legal</option>
+      </select></label>
+    </form>
+    <footer>
+      <div id="msg"></div>
+      <div class="b"><button class="btn primary" id="print" data-t="print"></button></div>
+      <div class="b"><button class="btn" id="pdfsave" data-t="savePdf"></button><button class="btn" id="cancel" data-t="cancel"></button></div>
+    </footer>
+  </aside>
+<script>
+  const T = {
+    en: { title: 'Print', printer: 'Printer', copies: 'Copies', color: 'Colour', colorOn: 'Colour', colorOff: 'Black & white', range: 'Pages', rangeHint: 'Empty = all pages · e.g. 1-3, 5', orientation: 'Orientation', portrait: 'Portrait', landscape: 'Landscape', paper: 'Paper size', paperAuto: 'As in the document', print: 'Print', savePdf: 'Save as PDF', cancel: 'Cancel', busy: 'Preparing preview …', pages: n => n === 1 ? '1 page' : n + ' pages', sent: 'Sent to the printer.', saved: 'PDF saved.', noPrinter: 'No printer found – you can still save as PDF.', badRange: 'Invalid page range' },
+    de: { title: 'Drucken', printer: 'Drucker', copies: 'Kopien', color: 'Farbe', colorOn: 'Farbe', colorOff: 'Schwarzweiß', range: 'Seiten', rangeHint: 'Leer = alle Seiten · z. B. 1-3, 5', orientation: 'Ausrichtung', portrait: 'Hochformat', landscape: 'Querformat', paper: 'Papierformat', paperAuto: 'Wie im Dokument', print: 'Drucken', savePdf: 'Als PDF speichern', cancel: 'Abbrechen', busy: 'Vorschau wird erstellt …', pages: n => n === 1 ? '1 Seite' : n + ' Seiten', sent: 'An den Drucker gesendet.', saved: 'PDF gespeichert.', noPrinter: 'Kein Drucker gefunden – Speichern als PDF ist möglich.', badRange: 'Ungültiger Seitenbereich' },
+    tr: { title: 'Yazdır', printer: 'Yazıcı', copies: 'Kopya', color: 'Renk', colorOn: 'Renkli', colorOff: 'Siyah beyaz', range: 'Sayfalar', rangeHint: 'Boş = tüm sayfalar · ör. 1-3, 5', orientation: 'Yön', portrait: 'Dikey', landscape: 'Yatay', paper: 'Kâğıt boyutu', paperAuto: 'Belgedeki gibi', print: 'Yazdır', savePdf: 'PDF olarak kaydet', cancel: 'İptal', busy: 'Önizleme hazırlanıyor …', pages: n => n + ' sayfa', sent: 'Yazıcıya gönderildi.', saved: 'PDF kaydedildi.', noPrinter: 'Yazıcı bulunamadı – PDF olarak kaydedebilirsiniz.', badRange: 'Geçersiz sayfa aralığı' },
+    es: { title: 'Imprimir', printer: 'Impresora', copies: 'Copias', color: 'Color', colorOn: 'Color', colorOff: 'Blanco y negro', range: 'Páginas', rangeHint: 'Vacío = todas · p. ej. 1-3, 5', orientation: 'Orientación', portrait: 'Vertical', landscape: 'Horizontal', paper: 'Tamaño de papel', paperAuto: 'Como en el documento', print: 'Imprimir', savePdf: 'Guardar como PDF', cancel: 'Cancelar', busy: 'Preparando la vista previa …', pages: n => n === 1 ? '1 página' : n + ' páginas', sent: 'Enviado a la impresora.', saved: 'PDF guardado.', noPrinter: 'No hay impresora – puede guardar como PDF.', badRange: 'Rango de páginas no válido' },
+    fr: { title: 'Imprimer', printer: 'Imprimante', copies: 'Copies', color: 'Couleur', colorOn: 'Couleur', colorOff: 'Noir et blanc', range: 'Pages', rangeHint: 'Vide = toutes · p. ex. 1-3, 5', orientation: 'Orientation', portrait: 'Portrait', landscape: 'Paysage', paper: 'Format du papier', paperAuto: 'Comme dans le document', print: 'Imprimer', savePdf: 'Enregistrer en PDF', cancel: 'Annuler', busy: 'Préparation de l’aperçu …', pages: n => n === 1 ? '1 page' : n + ' pages', sent: 'Envoyé à l’imprimante.', saved: 'PDF enregistré.', noPrinter: 'Aucune imprimante – vous pouvez enregistrer en PDF.', badRange: 'Plage de pages non valide' },
+  };
+  const P = window.owPrint;
+  const L = T[P.lang] || T.en;
+  document.documentElement.lang = P.lang;
+  document.querySelectorAll('[data-t]').forEach(e => { const v = L[e.dataset.t]; if (typeof v === 'string') e.textContent = v; });
+  document.title = 'Office Werkstatt – ' + L.title;
+  const $ = id => document.getElementById(id);
+  const msg = (m, err) => { $('msg').textContent = m || ''; $('msg').className = err ? 'err' : ''; };
+  let landscape = false;
+
+  function opts() { return { landscape, pageSize: $('paper').value, color: $('color').value === '1', copies: Math.max(1, Math.min(99, +$('copies').value || 1)), range: $('range').value.trim(), deviceName: $('printer').value }; }
+  async function refresh() {
+    document.body.classList.add('busy');
+    try { const r = await P.render(opts()); $('pdf').src = r.url + '#toolbar=0&navpanes=0&view=FitH'; $('pages').textContent = L.pages(r.pages); msg(''); }
+    catch (e) { msg(String(e && e.message || e), true); }
+    finally { document.body.classList.remove('busy'); }
+  }
+  $('orient').querySelectorAll('button').forEach(b => b.onclick = () => { landscape = b.dataset.v === '1'; $('orient').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
+  $('paper').onchange = refresh;
+  $('print').onclick = async () => {
+    const o = opts(); if (o.range && !/^\s*\d+(\s*-\s*\d+)?(\s*,\s*\d+(\s*-\s*\d+)?)*\s*$/.test(o.range)) return msg(L.badRange, true);
+    $('print').disabled = true;
+    try { const r = await P.print(o); if (r && r.ok) { msg(L.sent); setTimeout(() => P.close(true), 700); } else msg(r && r.why || 'error', true); }
+    finally { $('print').disabled = false; }
+  };
+  $('pdfsave').onclick = async () => { const r = await P.savePdf(); if (r && r.ok) msg(L.saved); else if (r && r.why) msg(r.why, true); };
+  $('cancel').onclick = () => P.close(false);
+  addEventListener('keydown', e => { if (e.key === 'Escape') P.close(false); if (e.key === 'Enter' && e.target.tagName !== 'SELECT') $('print').click(); });
+
+  (async () => {
+    const printers = await P.printers();
+    const sel = $('printer');
+    for (const p of printers) { const o = document.createElement('option'); o.value = p.name; o.textContent = p.displayName || p.name; if (p.selected) o.selected = true; sel.appendChild(o); }
+    if (!printers.length) { sel.disabled = true; $('print').disabled = true; msg(L.noPrinter); }
+    await refresh();
+  })();
+</script>
+</body>
+</html>

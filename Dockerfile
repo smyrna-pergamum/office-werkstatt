@@ -4,7 +4,8 @@ WORKDIR /app
 COPY server ./server
 COPY public ./public
 COPY package.json ./
-ENV PORT=8080 DATA_DIR=/data
+# inside the container the server must listen on all interfaces; OW_USER/OW_PASS are required then
+ENV PORT=8080 HOST=0.0.0.0 DATA_DIR=/data
 VOLUME /data
 EXPOSE 8080
 RUN mkdir -p /data && chown node:node /data

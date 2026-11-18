@@ -7,6 +7,11 @@
     if (l && map[l]) { var tags = [map[l], l]; Object.defineProperty(navigator, 'languages', { get: function () { return tags; } });
       Object.defineProperty(navigator, 'language', { get: function () { return tags[0]; } }); document.documentElement.lang = l; } } catch (e) {} })();
 </script>
+  <script>
+  /* inside Office Werkstatt the library keeps the files: no direct disk access (File System Access API),
+     so saving falls back to a download that Office Werkstatt takes over */
+  (function () { if (window.parent === window) return; ['showSaveFilePicker', 'showOpenFilePicker', 'showDirectoryPicker'].forEach(function (n) { try { delete window[n]; } catch (e) {} }); })();
+</script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>Slide Werkzeug Pro</title>

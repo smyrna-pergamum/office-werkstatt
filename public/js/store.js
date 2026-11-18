@@ -47,11 +47,17 @@ window.OW = window.OW || {};
     },
   };
   const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+  /* every server answer is checked: a 401/413/500 must never look like a successful save */
+  async function ok(r, what) {
+    if (r.ok) return r;
+    let msg = ''; try { msg = (await r.json()).error || ''; } catch { /* not json */ }
+    const e = new Error(`${what} failed: HTTP ${r.status}${msg ? ' – ' + msg : ''}`); e.status = r.status; throw e;
+  }
   const server = {
     name: 'server',
-    async list() { const r = await fetch('api/files'); return r.json(); },
+    async list() { const r = await ok(await fetch('api/files', { cache: 'no-store' }), 'list'); const a = await r.json(); if (!Array.isArray(a)) throw new Error('list failed: bad answer'); return a; },
     async get(id) {
-      const r = await fetch('api/files/' + encodeURIComponent(id)); if (!r.ok) return null;
+      const r = await fetch('api/files/' + encodeURIComponent(id), { cache: 'no-store' }); if (r.status === 404) return null; await ok(r, 'load');
       const f = await r.json();
       if (f && f.content && f.content.__blob) f.content = await (await fetch(f.content.__blob)).blob();
       return f;
@@ -59,10 +65,11 @@ window.OW = window.OW || {};
     async put(f) {
       const body = Object.assign({}, f);
       if (f.content instanceof Blob) body.content = { __blob: await blobToDataURL(f.content) };
-      await fetch('api/files/' + encodeURIComponent(f.id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const r = await ok(await fetch('api/files/' + encodeURIComponent(f.id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), 'save');
+      const j = await r.json().catch(() => null); if (!j || !j.ok) throw new Error('save failed: bad answer');
       return f;
     },
-    async remove(id) { await fetch('api/files/' + encodeURIComponent(id), { method: 'DELETE' }); },
+    async remove(id) { await ok(await fetch('api/files/' + encodeURIComponent(id), { method: 'DELETE' }), 'delete'); },
   };
 
   let backend = local;

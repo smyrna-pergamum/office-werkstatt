@@ -3,15 +3,20 @@
  * Serves the web app and stores documents in ./data so a team can use it from any browser.
  *   node server/server.js                → http://localhost:8080
  *   PORT=9000 DATA_DIR=/srv/ow node server/server.js
- *   OW_USER=team OW_PASS=secret node server/server.js   (optional HTTP basic auth)
+ *   HOST=0.0.0.0 OW_USER=team OW_PASS=secret node server/server.js   (share in the network – login required)
+ * By default the server only listens on 127.0.0.1 (this computer). Listening on a network address
+ * without OW_USER/OW_PASS is refused, because everybody who can reach it could read/change/delete
+ * all documents. In a network, put it behind HTTPS (reverse proxy) – basic auth is sent in clear text.
  * Works fully offline / in an intranet – no external requests. */
 'use strict';
-const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto'), net = require('net'), { spawn } = require('child_process');
+const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 
 const ROOT = path.resolve(__dirname, '..', 'public');
 const DATA = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', 'data'));
-const PORT = +process.env.PORT || 8080, HOST = process.env.HOST || '0.0.0.0';
-const USER = process.env.OW_USER, PASS = process.env.OW_PASS;
+const PORT = +process.env.PORT || 8080, HOST = process.env.HOST || '127.0.0.1';
+const USER = process.env.OW_USER || '', PASS = process.env.OW_PASS || '';
+const AUTH = !!(USER || PASS);
+const isLoopback = h => /^(127\.\d+\.\d+\.\d+|localhost|::1|\[::1\])$/i.test(String(h || ''));
 const VERSION = process.env.OW_VERSION || (() => { try { return require(path.join(__dirname, '..', 'package.json')).version; } catch { return 'unknown'; } })();
 const MAX_BODY = (+process.env.MAX_MB || 150) * 1024 * 1024;
 fs.mkdirSync(path.join(DATA, 'files'), { recursive: true });
@@ -19,46 +24,21 @@ fs.mkdirSync(path.join(DATA, 'files'), { recursive: true });
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.wasm': 'application/wasm', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.map': 'application/json', '.txt': 'text/plain; charset=utf-8', '.pdf': 'application/pdf' };
 
-/* ---------- built-in note engine: SilverBullet (engines-bin/silverbullet/<platform>/) ----------
- * Started as a child process on 127.0.0.1 and served under /sb/ through this server, so the
- * browser, the desktop app and the PWA all reach it on the same origin – no internet needed. */
-const BIN = path.resolve(process.env.OW_BIN_DIR || path.join(__dirname, '..', 'engines-bin'));
-const SB_PORT = +process.env.OW_SB_PORT || 0;
-let sb = { port: 0, proc: null, ready: false };
-function sbBinary() {
-  const exe = process.platform === 'win32' ? 'silverbullet.exe' : 'silverbullet';
-  const p = path.join(BIN, 'silverbullet', `${process.platform}-${process.arch}`, exe);
-  return fs.existsSync(p) ? p : null;
-}
-function freePort() { return new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); }); }
-async function startSilverBullet() {
-  const bin = sbBinary(); if (!bin || process.env.OW_NO_SB) return;
-  const space = path.join(DATA, 'notes'); fs.mkdirSync(space, { recursive: true });
-  if (!fs.readdirSync(space).some(f => f.endsWith('.md'))) fs.writeFileSync(path.join(space, 'index.md'),
-    '# Office Werkstatt · Notes\n\nWillkommen! · Hoş geldiniz! · Welcome!\n\n- [[Ideen]]\n- [[Besprechungen]]\n- [ ] Erste Aufgabe\n\n> Diese Notizen sind Markdown-Dateien in `data/notes` und funktionieren komplett offline.\n');
-  sb.port = SB_PORT || await freePort();
-  sb.proc = spawn(bin, [space, '--single', '-L', '127.0.0.1', '-p', String(sb.port)], { env: Object.assign({}, process.env, { SB_URL_PREFIX: '/sb' }), stdio: 'ignore', windowsHide: true });
-  sb.proc.on('exit', () => { sb.ready = false; sb.proc = null; });
-  for (let i = 0; i < 50 && !sb.ready; i++) { await new Promise(r => setTimeout(r, 200)); sb.ready = await new Promise(r => { const q = http.get({ host: '127.0.0.1', port: sb.port, path: '/sb/' }, res => { res.resume(); r(res.statusCode < 500); }); q.on('error', () => r(false)); }); }
-  console.log(sb.ready ? `SilverBullet (note engine) → /sb/` : 'SilverBullet could not be started');
-}
-const stopSilverBullet = () => { try { sb.proc && sb.proc.kill(); } catch { /* ignore */ } };
-process.on('exit', stopSilverBullet); process.on('SIGINT', () => process.exit()); process.on('SIGTERM', () => process.exit());
-function proxySB(req, res) {
-  if (!sb.ready) return send(res, 503, 'note engine not running', 'text/plain');
-  const up = http.request({ host: '127.0.0.1', port: sb.port, method: req.method, path: req.url, headers: Object.assign({}, req.headers, { host: `127.0.0.1:${sb.port}` }) }, r => { res.writeHead(r.statusCode, r.headers); r.pipe(res); });
-  up.on('error', () => send(res, 502, 'note engine error', 'text/plain'));
-  req.pipe(up);
-}
+process.on('SIGINT', () => process.exit()); process.on('SIGTERM', () => process.exit());
 
 const safeId = id => /^[a-zA-Z0-9_-]{1,64}$/.test(id) ? id : null;
 const fileOf = id => path.join(DATA, 'files', id + '.json');
-const send = (res, code, body, type = 'application/json') => { res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body)); };
+const send = (res, code, body, type = 'application/json') => {
+  if (res.headersSent || res.writableEnded || res.destroyed) { res.destroy(); return; }
+  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body)); };
 
 function authorized(req) {
-  if (!USER) return true;
+  if (!AUTH) return true;
   const h = req.headers.authorization || '';
-  const [u, p] = Buffer.from(h.replace(/^Basic /, ''), 'base64').toString().split(':');
+  if (!/^Basic /i.test(h)) return false;
+  const dec = Buffer.from(h.replace(/^Basic /i, ''), 'base64').toString(), i = dec.indexOf(':');
+  if (i < 0) return false;
+  const u = dec.slice(0, i), p = dec.slice(i + 1);
   const eq = (a, b) => { a = Buffer.from(String(a)); b = Buffer.from(String(b)); return a.length === b.length && crypto.timingSafeEqual(a, b); };
   return eq(u, USER) && eq(p, PASS);
 }
@@ -73,7 +53,7 @@ function readBody(req) {
 
 async function api(req, res, parts) {
   if (parts[1] === 'health') return send(res, 200, { ok: true, name: 'office-werkstatt', version: VERSION });
-  if (parts[1] === 'engines') { const o = {}; for (const t of ['word', 'excel', 'slide', 'draw', 'pdf']) o[t] = fs.existsSync(path.join(ROOT, 'engines', t, 'index.html')); o.note = sb.ready; return send(res, 200, o); }
+  if (parts[1] === 'engines') { const o = {}; for (const t of ['word', 'excel', 'slide', 'pdf']) o[t] = fs.existsSync(path.join(ROOT, 'engines', t, 'index.html')); return send(res, 200, o); }
   if (parts[1] !== 'files') return send(res, 404, { error: 'not found' });
   const id = parts[2] ? safeId(decodeURIComponent(parts[2])) : null;
   if (parts[2] && !id) return send(res, 400, { error: 'bad id' });
@@ -95,38 +75,71 @@ async function api(req, res, parts) {
 }
 
 function serveStatic(req, res, urlPath) {
-  let p = decodeURIComponent(urlPath); if (p.endsWith('/')) p += 'index.html';
-  const full = path.join(ROOT, path.normalize(p).replace(/^(\.\.[/\\])+/, ''));
-  if (!full.startsWith(ROOT)) return send(res, 403, 'forbidden', 'text/plain');
+  let p; try { p = decodeURIComponent(urlPath); } catch { return send(res, 400, 'bad request', 'text/plain'); }
+  if (p.includes('\0')) return send(res, 400, 'bad request', 'text/plain');
+  if (p.endsWith('/')) p += 'index.html';
+  const full = path.resolve(ROOT, '.' + path.posix.normalize('/' + p.replace(/\\/g, '/')));
+  if (!inside(ROOT, full)) return send(res, 403, 'forbidden', 'text/plain');
+  fs.realpath(full, (rerr, real) => {
+    // also resolve links/junctions: the real file must still be inside public/
+    if (rerr) return send(res, 404, 'not found', 'text/plain');
+    if (!inside(ROOT_REAL, real)) return send(res, 403, 'forbidden', 'text/plain');
+    serveFile(req, res, p, real);
+  });
+}
+const ROOT_REAL = (() => { try { return fs.realpathSync(ROOT); } catch { return ROOT; } })();
+// separator-aware containment check ("public2" is NOT inside "public")
+function inside(root, file) { const rel = path.relative(root, file); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)); }
+function serveFile(req, res, p, full) {
   fs.stat(full, (err, st) => {
     if (err || !st.isFile()) return send(res, 404, 'not found', 'text/plain');
     const type = MIME[path.extname(full).toLowerCase()] || 'application/octet-stream';
-    const headers = { 'Content-Type': type, 'Content-Length': st.size, 'Cache-Control': p.endsWith('sw.js') ? 'no-cache' : 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' };
+    // app code is always revalidated (updates apply at once); the large engines may be cached for 5 minutes
+    const headers = { 'Content-Type': type, 'Content-Length': st.size, 'Cache-Control': p.startsWith('/engines/') ? 'public, max-age=300' : 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
+    headers['Last-Modified'] = st.mtime.toUTCString();
+    const ims = Date.parse(req.headers['if-modified-since'] || '');
+    if (!isNaN(ims) && Math.floor(st.mtimeMs / 1000) * 1000 <= ims) { delete headers['Content-Length']; res.writeHead(304, headers); return res.end(); }
     res.writeHead(200, headers);
     if (req.method === 'HEAD') return res.end();
-    fs.createReadStream(full).pipe(res);
+    fs.createReadStream(full).on('error', () => res.destroy()).pipe(res);
   });
 }
 
+/* DNS-rebinding guard: on 127.0.0.1 only answer requests addressed to this computer, so a web page
+ * of another site cannot read the documents through a domain name that resolves to 127.0.0.1. */
+let LOCAL_ONLY = true;
+function hostAllowed(req) {
+  if (!LOCAL_ONLY) return true;
+  return isLoopback(String(req.headers.host || '').replace(/:\d+$/, ''));
+}
 const server = http.createServer(async (req, res) => {
+  if (!hostAllowed(req)) { res.writeHead(421, { 'Content-Type': 'text/plain' }); return res.end('misdirected request'); }
   if (!authorized(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Office Werkstatt"' }); return res.end('auth required'); }
-  const urlPath = new URL(req.url, 'http://x').pathname;
+  let urlPath; try { urlPath = new URL(req.url, 'http://x').pathname; } catch { return send(res, 400, 'bad request', 'text/plain'); }
   const parts = urlPath.split('/').filter(Boolean);
-  try { if (parts[0] === 'sb') return proxySB(req, res); if (parts[0] === 'api') return await api(req, res, parts); serveStatic(req, res, urlPath); }
+  try { if (parts[0] === 'api') return await api(req, res, parts); serveStatic(req, res, urlPath); }
   catch (e) { console.error(e); send(res, 500, { error: 'server error' }); }
 });
 
-// websockets (SilverBullet live updates) are tunnelled to the engine as raw sockets
-server.on('upgrade', (req, socket, head) => {
-  if (!req.url.startsWith('/sb/') || !sb.ready || !authorized(req)) return socket.destroy();
-  const up = net.connect(sb.port, '127.0.0.1', () => {
-    up.write(`${req.method} ${req.url} HTTP/1.1\r\n` + Object.entries(req.headers).map(([k, v]) => `${k}: ${v}`).join('\r\n') + '\r\n\r\n');
-    if (head && head.length) up.write(head);
-    socket.pipe(up).pipe(socket);
-  });
-  up.on('error', () => socket.destroy()); socket.on('error', () => up.destroy());
-});
+server.on('upgrade', (_req, socket) => socket.destroy());   // no websockets are used
 
-const start = async (port = 0, host = '127.0.0.1') => { await startSilverBullet(); return new Promise(r => { const s = server.listen(port, host, () => r(s.address().port)); }); };
-if (require.main === module) start(PORT, HOST).then(p => console.log(`Office Werkstatt → http://localhost:${p}  (data: ${DATA})`));
-module.exports = { server, start, stop: stopSilverBullet };
+function checkExposure(host) {
+  if ((USER && !PASS) || (PASS && !USER)) throw new Error('Set both OW_USER and OW_PASS (or neither).');
+  if (!isLoopback(host) && !AUTH && process.env.OW_INSECURE_NO_AUTH !== '1')
+    throw new Error(`Refusing to listen on ${host} without a login: anyone on the network could read, change and delete all documents.\n` +
+      'Set OW_USER and OW_PASS (and use HTTPS via a reverse proxy), or HOST=127.0.0.1 for this computer only.');
+  LOCAL_ONLY = isLoopback(host) && process.env.OW_ALLOW_ANY_HOST !== '1';
+}
+const start = async (port = 0, host = '127.0.0.1') => {
+  checkExposure(host);
+  return new Promise((r, j) => { server.once('error', j); const s = server.listen(port, host, () => r(s.address().port)); });
+};
+/* stop: close all open connections so nothing keeps the process alive */
+const stop = () => new Promise(r => {
+  if (server.closeAllConnections) server.closeAllConnections();
+  server.close(() => r()); setTimeout(r, 1000);
+});
+if (require.main === module) start(PORT, HOST)
+  .then(p => console.log(`Office Werkstatt → http://${isLoopback(HOST) ? 'localhost' : HOST}:${p}  (data: ${DATA}${AUTH ? ', login required' : ''})`))
+  .catch(e => { console.error('Office Werkstatt: ' + e.message); process.exit(1); });
+module.exports = { server, start, stop };

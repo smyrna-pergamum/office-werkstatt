@@ -100,7 +100,7 @@ OW.editors = OW.editors || {};
       if (it === '-') { pop.appendChild(h('<div class="pop-sep"></div>')); return; }
       if (it.header) { pop.appendChild(h(`<div class="pop-head">${it.header}</div>`)); return; }
       if (it.html) { const x = h(it.html); pop.appendChild(x); it.init && it.init(x); return; }
-      const b = h(`<button class="pop-item ${it.danger ? 'danger' : ''} ${it.checked ? 'checked' : ''}">${it.icon ? I(it.icon, 16) : (it.glyph ? OW.appGlyph(it.glyph, 18) : '<span class="pi-pad"></span>')}<span>${it.label}</span>${it.checked ? I('check', 14, 'ck') : ''}${it.hint ? `<kbd>${it.hint}</kbd>` : ''}</button>`);
+      const b = h(`<button class="pop-item ${it.danger ? 'danger' : ''} ${it.checked ? 'checked' : ''}">${it.icon ? I(it.icon, 16) : (it.glyph ? OW.appGlyph(it.glyph, 18) : (it.noPad ? '' : '<span class="pi-pad"></span>'))}<span>${it.label}</span>${it.checked ? I('check', 14, 'ck') : ''}${it.hint ? `<kbd>${it.hint}</kbd>` : ''}</button>`);
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { pop.remove(); it.onClick && it.onClick(); });
       pop.appendChild(b);
@@ -125,11 +125,26 @@ OW.editors = OW.editors || {};
   };
   OW.safeName = n => (n || 'Untitled').replace(/[\\/:*?"<>|]+/g, '_');
 
+  /* a document saved by a Pro engine, opened where only the built-in editor exists */
+  OW.blobToBuiltin = async function (file) {
+    const buf = await file.content.arrayBuffer(), X = OW.ooxml, ext = (file.proExt || '').toLowerCase();
+    if (file.type === 'word' && (!ext || ext === 'docx')) return { html: OW.sanitizeHTML(await X.docxToHtml(buf)) };
+    if (file.type === 'excel' && (!ext || ext === 'xlsx')) return { sheets: [{ name: 'Sheet1', cells: await X.xlsxToCells(buf) }], active: 0 };
+    if (file.type === 'slide' && (!ext || ext === 'pptx')) return { theme: 'office', slides: await X.pptxToSlides(buf) };
+    throw new Error('needs the Werkzeug Pro engine: .' + ext);
+  };
+
   /* ---------- the editor frame ---------- */
   OW.openEditor = async function (file, opts = {}) {
     const host = document.getElementById('editorHost');
-    const factory = OW.editors[file.type];
+    // Word / Excel / Slide: the full Werkzeug Pro engine is the editor whenever it is installed
+    const pro = !!(OW.proEditors && OW.proEditors[file.type] && OW.engines && OW.engines[file.type]);
+    const factory = pro ? OW.proEditors[file.type] : OW.editors[file.type];
     if (!factory) return;
+    if (!pro && file.type !== 'pdf' && file.content instanceof Blob) {
+      // saved by a Pro engine, but the engine is not available here → read it with the built-in editor
+      try { file.content = await OW.blobToBuiltin(file); } catch (e) { console.error(e); return OW.toast(t('unsupported'), 'warn'); }
+    }
     const T = OW.TYPES[file.type];
     host.hidden = false; host.innerHTML = '';
     document.body.classList.add('editing');
@@ -170,7 +185,7 @@ OW.editors = OW.editors || {};
       file, t, root,
       markDirty() {
         dirty = true; $('.ed-saved').classList.add('pending');
-        clearTimeout(saveTimer); saveTimer = setTimeout(save, 700);
+        clearTimeout(saveTimer); saveTimer = setTimeout(save, (instance && instance.saveDelay) || 700);
       },
       refresh() {
         if (!instance || !instance.ribbon) return;
@@ -190,17 +205,31 @@ OW.editors = OW.editors || {};
       exports: [],
     };
 
+    let saveFailed = false;
     async function save() {
-      if (!dirty || !instance) return;
-      file.content = await instance.getContent();
-      file.name = nameInput.value.trim() || file.name;
-      file.history = (file.history || []).concat([{ at: Date.now(), by: OW.settings.userName || t('user.guest') }]).slice(-20);
-      await OW.store.put(file);
-      dirty = false; $('.ed-saved').classList.remove('pending');
+      if (!dirty || !instance) return true;
+      dirty = false;                       // edits made while saving set it again
+      try {
+        file.content = await instance.getContent();
+        file.name = nameInput.value.trim() || file.name;
+        file.history = (file.history || []).concat([{ at: Date.now(), by: OW.settings.userName || t('user.guest') }]).slice(-20);
+        await OW.store.put(file);
+        if (!dirty) $('.ed-saved').classList.remove('pending', 'failed');
+        if (saveFailed) { saveFailed = false; OW.toast(t('save.recovered')); }
+        return true;
+      } catch (e) {
+        // keep the changes in memory, show it, and try again a bit later
+        console.error(e); dirty = true; $('.ed-saved').classList.add('pending', 'failed');
+        if (!saveFailed) OW.toast(t('save.failed') + (e.status === 401 ? ' (401)' : e.status ? ` (HTTP ${e.status})` : ''), 'warn');
+        saveFailed = true; clearTimeout(saveTimer); saveTimer = setTimeout(save, 5000);
+        return false;
+      }
     }
-    ctx.save = async () => { dirty = true; await save(); };
+    ctx.save = async () => { dirty = true; return save(); };
 
     instance = await factory(ctx);
+    // full engines bring their own menus: no second ribbon / tab row / status bar
+    if (instance.chrome === 'engine') root.classList.add('ed-engine');
     let ribbonTabs = instance.ribbon();
     const mode = instance.ribbonMode || 'simplified';
 
@@ -224,18 +253,7 @@ OW.editors = OW.editors || {};
     instance.mount($('.ed-body'));
     selectTab(ribbonTabs[0].id);
 
-    /* full engine slot (Word/Excel/Slide Werkzeug Pro, SilverBullet, Excalidraw builds in engines/<type>/) */
-    if (file.type !== 'pdf' && OW.engines && OW.engines[file.type]) {
-      const b = h(`<button class="pill-btn engine-btn" title="${t('engine.tooltip', { name: OW.TYPES[file.type].engine })}">${I('app', 16)}<span>${OW.TYPES[file.type].engine}</span></button>`);
-      b.addEventListener('click', () => {
-        const ex = $('.engine-frame');
-        if (ex) { ex.remove(); b.classList.remove('on'); root.classList.remove('engine-on'); instance.engineOut && instance.engineOut(); return; }
-        instance.engineIn && instance.engineIn();
-        const f = h(`<iframe class="engine-frame" title="${OW.TYPES[file.type].engine}" src="engines/${file.type}/index.html"></iframe>`);
-        $('.ed-main').appendChild(f); b.classList.add('on'); root.classList.add('engine-on');
-      });
-      $('.ed-tabacts').prepend(b);
-    }
+    /* Word/Excel/Slide/PDF with an installed engine open directly in it (instance.chrome === 'engine'); there is no second view */
     if (opts.fresh && instance.focus) instance.focus();
 
     /* ----- title bar ----- */
@@ -244,7 +262,7 @@ OW.editors = OW.editors || {};
     $('.ed-back').addEventListener('click', close);
     $('.ed-theme').addEventListener('click', () => { OW.toggleTheme(); $('.ed-theme').innerHTML = I(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', 18); instance.onTheme && instance.onTheme(); });
     $('.ed-search').addEventListener('click', () => commandSearch());
-    $('.ed-lang').addEventListener('click', e => OW.popover(e.currentTarget, OW.LANGS.map(l => ({ label: `${l.flag}  ${l.name}`, checked: OW.lang === l.code, onClick: () => OW.setLang(l.code) })), { alignRight: true }));
+    $('.ed-lang').addEventListener('click', e => OW.popover(e.currentTarget, OW.LANGS.map(l => ({ label: OW.escape(l.name), noPad: true, checked: OW.lang === l.code, onClick: () => OW.setLang(l.code) })), { alignRight: true }));
     OW.currentFile = file.id;
 
     /* ----- right-hand actions ----- */
@@ -311,7 +329,7 @@ OW.editors = OW.editors || {};
           <dt>${t('field.created')}</dt><dd>${new Date(file.created).toLocaleString(OW.lang)}</dd><dt>${t('field.modified')}</dt><dd>${new Date(file.modified || file.created).toLocaleString(OW.lang)}</dd>
           <dt>${t('field.storage')}</dt><dd>${OW.store.mode === 'server' ? t('storage.server') : t('storage.local')}</dd></dl></div>`;
         if (k === 'new') { body.innerHTML = `<h1>${t('new')}</h1><div class="bs-new"></div>`; Object.keys(OW.TYPES).forEach(ty => { const b = h(`<button class="bs-tile">${OW.appGlyph(ty, 40)}<span>${t('type.' + ty)}</span></button>`); b.addEventListener('click', async () => { await close(); OW.createFile(ty); }); body.firstElementChild.nextElementSibling.appendChild(b); }); }
-        if (k === 'save') { ctx.save().then(() => OW.toast(t('editor.savedNow'))); show('info'); }
+        if (k === 'save') { ctx.save().then(ok => ok && OW.toast(t('editor.savedNow'))); show('info'); }
         if (k === 'export') { body.innerHTML = `<h1>${t('bs.export')}</h1><div class="bs-list"></div>`; ctx.exports.forEach(x => { const b = h(`<button class="bs-row">${I('download', 20)}<span><b>${x.label}</b><small>${x.hint || ''}</small></span></button>`); b.addEventListener('click', x.fn); body.querySelector('.bs-list').appendChild(b); }); }
         if (k === 'print') { bs.remove(); (instance.print || (() => window.print()))(); }
         if (k === 'close') { bs.remove(); close(); }
@@ -328,7 +346,8 @@ OW.editors = OW.editors || {};
     }
 
     async function close() {
-      clearTimeout(saveTimer); await save();
+      clearTimeout(saveTimer);
+      if (!(await save()) && !(await OW.confirm(t('save.closeAnyway')))) { saveTimer = setTimeout(save, 5000); return; }
       instance.destroy && instance.destroy();
       host.hidden = true; host.innerHTML = ''; document.body.classList.remove('editing'); OW.currentFile = null;
       document.removeEventListener('keydown', keys);
@@ -336,9 +355,27 @@ OW.editors = OW.editors || {};
       OW.refresh();
     }
     OW.closeEditor = close;
+    /* language change: rebuild this editor in place (no detour over the dashboard) */
+    OW.relocalizeEditor = async function () {
+      if (instance.setLanguage && instance.setLanguage(OW.lang)) return rebuildChrome();
+      clearTimeout(saveTimer);
+      if (!(await save())) return rebuildChrome();
+      instance.destroy && instance.destroy();
+      document.removeEventListener('keydown', keys);
+      const fresh = (await OW.store.get(file.id)) || file;
+      return OW.openEditor(fresh, { relocalize: true });
+    };
+    function rebuildChrome() {
+      // texts of the shell only (used when the content must not be reloaded, e.g. an unsaved PDF)
+      ribbonTabs = instance.ribbon();
+      tl.querySelectorAll('button').forEach(b => { const tb = b.dataset.tab === 'file' ? { label: t('tab.file') } : ribbonTabs.find(x => x.id === b.dataset.tab); if (tb) b.textContent = tb.label; });
+      selectTab(activeTab);
+      $('.ed-lang span').textContent = OW.lang.toUpperCase();
+      $('.ed-back').title = t('editor.back'); $('.ed-search span').textContent = t('editor.search');
+    }
 
     function keys(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); ctx.save().then(() => OW.toast(t('editor.savedNow'))); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); ctx.save().then(ok => ok && OW.toast(t('editor.savedNow'))); }
       if (e.altKey && e.key.toLowerCase() === 'm') { e.preventDefault(); commandSearch(); }
       if (e.key === 'Escape' && document.querySelector('.backstage')) document.querySelector('.backstage').remove();
     }

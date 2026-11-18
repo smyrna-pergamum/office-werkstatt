@@ -28,14 +28,18 @@
 
 ## Özellikler
 
-| Araç | Yerleşik düzenleyici | Tam motor (yerleşik) |
-|---|---|---|
-| **Word Werkzeug** | Zengin metin, stiller, tablo, resim, içindekiler, dipnot, bul/değiştir, sayfa düzeni, `.docx` içe/dışa aktarma | **Word Werkzeug Pro** |
-| **Excel Werkzeug** | Formül motoru (SUM / SUMME / TOPLA / SUMA / SOMME…), biçimler, koşullu biçim, grafik, sıralama/filtre, çoklu sayfa, `.xlsx` / `.csv` | **Excel Werkzeug Pro** |
-| **Slide Werkzeug** | Düzenler, temalar, şekiller, resim, geçişler, sunum modu (F5), `.pptx` içe/dışa aktarma, PDF / HTML | **Slide Werkzeug Pro** |
-| **Note Werkzeug** | Defter → bölüm → sayfa, etiketler, kalem/mürekkep, toplantı şablonu | **SilverBullet** (Markdown wiki) |
-| **Draw Werkzeug** | El çizimi tarzı beyaz tahta, şekiller, oklar, metin, kitaplık, `.excalidraw`, PNG / SVG | **Excalidraw** |
-| **PDF Werkzeug** | Düzenleme, OCR, imzalama, koruma, dönüştürme | **PDF Werkstatt** (kırmızı sürüm) |
+| Araç | Düzenleyici |
+|---|---|
+| **Word Werkzeug** | **Word Werkzeug Pro** (tam motor) — belgeler `.docx` olarak kitaplıkta saklanır |
+| **Excel Werkzeug** | **Excel Werkzeug Pro** (tam motor) — `.xlsx`, çoklu sayfa, formüller |
+| **Slide Werkzeug** | **Slide Werkzeug Pro** (tam motor) — `.pptx` içe aktarma, sunum |
+| **Note Werkzeug** | OneNote tarzı: defter → bölüm → sayfa, etiketler, kalem/mürekkep, toplantı şablonu, **takvim** (ay görünümü, etkinlik ↔ sayfa bağlantısı, `.ics` içe/dışa aktarma) |
+| **Draw Werkzeug** | El çizimi tarzı beyaz tahta, şekiller, oklar, metin, `.excalidraw` içe/dışa aktarma, PNG / SVG |
+| **PDF Werkzeug** | **PDF Werkstatt** (kırmızı sürüm): düzenleme, OCR, imzalama, koruma, dönüştürme |
+
+Pro motorlar kurulu olduğunda Word / Excel / Slide doğrudan bu motorlarda açılır (ayrı bir “basit görünüm” yoktur).
+Motorun Kaydet komutu (Ctrl+S) belgeyi Office Werkstatt kitaplığına yazar; kapatırken, dil değişirken ve düzenlemeye ara
+verildiğinde otomatik kaydedilir. Motor yoksa yerleşik düzenleyiciler kullanılır.
 
 - **Office tarzı arayüz:** başlık çubuğu, sekmeler (Datei / Start / Einfügen …), şerit, Kommentare, Aufholen, Bearbeiten / Anzeigen, Teilen, Datei arka planı, otomatik kayıt, Alt+M komut araması.
 - **Ana sayfa:** karşılama alanı, oluşturma butonları, son dosyalar, hızlı başlangıç, sürükle-bırak yükleme, Ctrl+K arama.
@@ -60,12 +64,17 @@ Kurulum **internet ve yönetici hakkı gerektirmez**; masaüstü kısayolu, baş
 
 ### 2 · Sunucu (ekip / intranet) — Node.js 18+, bağımlılık yok
 ```bash
-node server/server.js                 # http://localhost:8080
+node server/server.js                 # http://localhost:8080 — yalnızca bu bilgisayar (127.0.0.1)
 # Windows: start-windows.bat   ·   Linux/macOS: ./start.sh
-PORT=9000 DATA_DIR=/srv/ow OW_USER=ekip OW_PASS=gizli node server/server.js
-docker compose up -d                  # veriler ./data içinde
+HOST=0.0.0.0 OW_USER=ekip OW_PASS=gizli node server/server.js      # ağda paylaşım: giriş zorunlu
+OW_USER=ekip OW_PASS=gizli docker compose up -d                     # veriler ./data içinde
 ```
-Sunucu modunda herkes aynı dosyaları görür; Note Werkzeug için SilverBullet otomatik başlar (`/sb/`).
+**Güvenlik:** Sunucu varsayılan olarak yalnızca `127.0.0.1` adresinde dinler. Ağ adresinde (`HOST=0.0.0.0` vb.) `OW_USER` / `OW_PASS`
+olmadan **başlamaz** — aksi hâlde ağdaki herkes tüm belgeleri okuyup değiştirebilirdi. Ağda mutlaka bir HTTPS ters vekil
+(Caddy, nginx, Traefik) arkasında çalıştırın; temel kimlik doğrulama şifreyi açık metin gönderir. Yerel modda başka sitelerin
+`127.0.0.1`'e yönlendirilmiş alan adlarıyla (DNS rebinding) erişimi engellenir. Belgelerdeki HTML her gösterimde temizlenir
+(betik, olay işleyici, `javascript:` bağlantısı çalışmaz).
+Sunucu modunda herkes aynı dosyaları görür.
 Tarayıcıda adres çubuğundaki **Yükle** simgesiyle uygulama olarak (PWA) kurulabilir.
 
 ### 3 · Kurulumsuz
@@ -92,20 +101,14 @@ public/              web uygulaması (index.html, css/, js/, assets/, manifest, 
   js/editors/        word · excel · slide · note · draw · pdf
   js/zip.js          OOXML motoru (.docx/.xlsx/.pptx okuma, .docx/.xlsx/.pptx yazma)
   js/i18n.js         5 dilli sözlük
+  js/editors/pro.js  Word/Excel/Slide Werkzeug Pro köprüsü (açma, kaydetme, otomatik kayıt)
+  js/sanitize.js     HTML temizleyici (belge içeriği)
+  js/desktop.js      masaüstü: yazdırma yönlendirmesi
   engines/           tam motorlar + engines.js + apps.js (Eigene App)
-engines-bin/         SilverBullet sunucu dosyaları (Windows, Linux)
-server/server.js     bağımlılıksız Node sunucusu + REST API (/api/files, /api/engines, /sb/)
-desktop/             Electron kabuğu + çevrimdışı NSIS kurulum betiği
+server/server.js     bağımlılıksız Node sunucusu + REST API (/api/files, /api/engines)
+desktop/             Electron kabuğu, yazdırma önizlemesi, çevrimdışı NSIS kurulum betiği
 scripts/             motor kurulum / derleme betikleri
 ```
-
-## Not motoru değerlendirmesi
-| | Memos | SilverBullet | AFFiNE |
-|---|---|---|---|
-| Tür | Kısa not / zaman akışı | Markdown wiki & not defteri | Doküman + beyaz tahta |
-| Boyut | ~30 MB | ~40–55 MB tek dosya | yüzlerce MB |
-| Çevrimdışı | sunucu gerekir | sunucu + PWA çevrimdışı senk. | yerel öncelikli, çok ağır derleme |
-| Karar | farklı amaç | **seçildi, yerleşik** | çıkarıldı |
 
 ---
 
@@ -122,5 +125,5 @@ Den Offline-Installer für Windows gibt es unter **Releases**; Server-Start mit 
 ## Lisans
 Office Werkstatt: [MIT](LICENSE) © Süleyman Akbulut.
 Yerleşik motorlar kendi lisanslarını korur; lisans metinleri ilgili klasörlerdedir:
-`public/engines/word|excel|slide/LICENSE-*` (MIT veya Apache-2.0), `public/engines/pdf/LICENSE` (AGPL-3.0),
-`engines-bin/silverbullet/LICENSE.md` (MIT), Excalidraw ve React (MIT).
+`public/engines/word|excel|slide/LICENSE-*` (MIT veya Apache-2.0), `public/engines/pdf/LICENSE` (AGPL-3.0).
+PDF Werkstatt içindeki bileşenler (PDF.js, pdf-lib, MuPDF, Tesseract.js …) için `public/engines/pdf/LICENSE`.

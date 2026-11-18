@@ -23,6 +23,7 @@ window.OW = window.OW || {};
     arrowLeft: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
     chevronDown: '<path d="M6 9l6 6 6-6"/>',
     chevronRight: '<path d="M9 6l6 6-6 6"/>',
+    chevronLeft: '<path d="M15 6l-6 6 6 6"/>',
     more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     x: '<path d="M6 6l12 12M18 6L6 18"/>',
