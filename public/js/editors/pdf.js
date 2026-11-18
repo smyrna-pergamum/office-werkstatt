@@ -41,7 +41,21 @@ OW.editors.pdf = async function (ctx) {
     try { localStorage.setItem('pdf-workshop.language', ['tr', 'de', 'en'].includes(OW.lang) ? OW.lang : 'en'); } catch {}
     holder.innerHTML = '<iframe class="pdf-engine" title="PDF Werkstatt"></iframe>';
     frame = holder.querySelector('iframe');
-    frame.addEventListener('load', () => { themeFrame(); hookSaves(); if (blob) setTimeout(() => sendFile(blob, ctx.file.name), 400); });
+    let started = false;
+    function engineReady() {
+      if (started || !frame.isConnected) return; started = true;
+      themeFrame(); hookSaves();
+      if (blob) sendFile(blob, ctx.file.name);
+    }
+    // Start as soon as PDF Werkstatt has set itself up. Do not wait for the iframe's load event:
+    // that one also waits for the engine's background downloads (extra fonts).
+    (function poll(n) {
+      if (started || !frame.isConnected) return;
+      try { const w = frame.contentWindow; if (w.__pdfWorkshop && /\/engines\/pdf\/index\.html$/.test(w.location.pathname)) return engineReady(); }
+      catch { return; /* file:// – cannot look inside, the load event below takes over */ }
+      if (n < 1200) setTimeout(() => poll(n + 1), 25);
+    })(0);
+    frame.addEventListener('load', () => { if (started) themeFrame(); else setTimeout(engineReady, 400); });
     frame.src = 'engines/pdf/index.html';
   }
   function mountViewer() {

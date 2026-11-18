@@ -12,6 +12,7 @@ const ROOT = path.resolve(__dirname, '..', 'public');
 const DATA = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', 'data'));
 const PORT = +process.env.PORT || 8080, HOST = process.env.HOST || '0.0.0.0';
 const USER = process.env.OW_USER, PASS = process.env.OW_PASS;
+const VERSION = process.env.OW_VERSION || (() => { try { return require(path.join(__dirname, '..', 'package.json')).version; } catch { return 'unknown'; } })();
 const MAX_BODY = (+process.env.MAX_MB || 150) * 1024 * 1024;
 fs.mkdirSync(path.join(DATA, 'files'), { recursive: true });
 
@@ -71,7 +72,7 @@ function readBody(req) {
 }
 
 async function api(req, res, parts) {
-  if (parts[1] === 'health') return send(res, 200, { ok: true, name: 'office-werkstatt', version: '1.0.0' });
+  if (parts[1] === 'health') return send(res, 200, { ok: true, name: 'office-werkstatt', version: VERSION });
   if (parts[1] === 'engines') { const o = {}; for (const t of ['word', 'excel', 'slide', 'draw', 'pdf']) o[t] = fs.existsSync(path.join(ROOT, 'engines', t, 'index.html')); o.note = sb.ready; return send(res, 200, o); }
   if (parts[1] !== 'files') return send(res, 404, { error: 'not found' });
   const id = parts[2] ? safeId(decodeURIComponent(parts[2])) : null;

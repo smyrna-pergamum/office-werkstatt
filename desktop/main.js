@@ -6,6 +6,7 @@ const path = require('path'), fs = require('fs');
 
 const base = app.isPackaged ? path.join(process.resourcesPath, 'app') : path.join(__dirname, '..');
 process.env.DATA_DIR = path.join(app.getPath('userData'), 'documents');
+process.env.OW_VERSION = app.getVersion();
 const { start } = require(path.join(base, 'server', 'server.js'));
 
 let win = null, port = 0;

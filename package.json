@@ -1,6 +1,6 @@
 {
   "name": "office-werkstatt",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Office Werkstatt – integrated offline office suite (web, desktop, server)",
   "license": "MIT",
   "private": true,

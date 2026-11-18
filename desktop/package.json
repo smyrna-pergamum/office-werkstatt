@@ -1,7 +1,7 @@
 {
   "name": "office-werkstatt-desktop",
   "productName": "Office Werkstatt",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Office Werkstatt desktop app (Windows, macOS, Linux) \u2013 works without internet",
   "main": "main.js",
   "author": "Januam",

@@ -46,6 +46,8 @@ async function pdf() {
     src = local;
   }
   fs.writeFileSync(path.join(out, 'index.html'), recolor(fs.readFileSync(src, 'utf8')));
+  // move the ~63 MB of embedded fonts / OCR / MuPDF data out of the page so the PDF menu appears at once
+  require('./split-pdf-engine').split(path.join(out, 'index.html'));
   log('pdf', 'installed (red edition) → public/engines/pdf/index.html');
   return true;
 }
