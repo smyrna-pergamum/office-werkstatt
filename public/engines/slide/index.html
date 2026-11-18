@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  /* follow the Office Werkstatt language: the craft apps read navigator.languages */
+  (function () { try { var l = localStorage.getItem('ow-lang'); var map = { de: 'de-DE', tr: 'tr-TR', en: 'en-GB', es: 'es-ES', fr: 'fr-FR' };
+    if (l && map[l]) { var tags = [map[l], l]; Object.defineProperty(navigator, 'languages', { get: function () { return tags; } });
+      Object.defineProperty(navigator, 'language', { get: function () { return tags[0]; } }); document.documentElement.lang = l; } } catch (e) {} })();
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Slide Werkzeug Pro</title>
+
+
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
+    #deckcraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #deckcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <canvas id="deckcraft_canvas"></canvas>
+  <div id="deckcraft_loading">Loading Slide Werkzeug Pro&hellip;</div>
+<script type="module">
+  import init from './engine.js';
+  init({ module_or_path: './engine_bg.wasm' }).catch(function (e) { console.error(e); var l = document.querySelector('[id$="_loading"]'); if (l) l.textContent = 'Engine error: ' + e; });
+</script>
+</body>
+</html>

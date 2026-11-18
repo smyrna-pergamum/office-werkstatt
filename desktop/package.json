@@ -1,0 +1,167 @@
+{
+  "name": "office-werkstatt-desktop",
+  "productName": "Office Werkstatt",
+  "version": "1.1.0",
+  "description": "Office Werkstatt desktop app (Windows, macOS, Linux) \u2013 works without internet",
+  "main": "main.js",
+  "author": "Januam",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "node build/win-pack.mjs",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "dist:win:nsis-builder": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "resedit": "^3.1.1"
+  },
+  "build": {
+    "appId": "org.januam.officewerkstatt",
+    "productName": "Office Werkstatt",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../public",
+        "to": "app/public"
+      },
+      {
+        "from": "../server",
+        "to": "app/server"
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": "docx",
+        "name": "Word document",
+        "description": "Word Werkzeug document",
+        "role": "Editor",
+        "icon": "build/icon"
+      },
+      {
+        "ext": "xlsx",
+        "name": "Spreadsheet",
+        "description": "Excel Werkzeug spreadsheet",
+        "role": "Editor",
+        "icon": "build/icon"
+      },
+      {
+        "ext": "pptx",
+        "name": "Presentation",
+        "description": "Slide Werkzeug presentation",
+        "role": "Editor",
+        "icon": "build/icon"
+      },
+      {
+        "ext": "pdf",
+        "name": "PDF document",
+        "description": "PDF Werkzeug",
+        "role": "Editor",
+        "icon": "build/icon"
+      },
+      {
+        "ext": "csv",
+        "name": "CSV table",
+        "role": "Editor",
+        "icon": "build/icon"
+      },
+      {
+        "ext": "excalidraw",
+        "name": "Drawing",
+        "description": "Draw Werkzeug drawing",
+        "role": "Editor",
+        "icon": "build/icon"
+      },
+      {
+        "ext": "owdoc",
+        "name": "Office Werkstatt file",
+        "role": "Editor",
+        "icon": "build/icon"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "extraResources": [
+        {
+          "from": "../engines-bin/silverbullet/win32-x64",
+          "to": "app/engines-bin/silverbullet/win32-x64"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Office Werkstatt",
+      "artifactName": "Office-Werkstatt-Setup-${version}.exe",
+      "installerLanguages": [
+        "de_DE",
+        "tr_TR",
+        "en_US",
+        "es_ES",
+        "fr_FR"
+      ],
+      "multiLanguageInstaller": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "extraResources": [
+        {
+          "from": "../engines-bin/silverbullet/darwin-${arch}",
+          "to": "app/engines-bin/silverbullet/darwin-${arch}"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office",
+      "icon": "build/icon.png",
+      "mimeTypes": [
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/pdf"
+      ],
+      "extraResources": [
+        {
+          "from": "../engines-bin/silverbullet/linux-x64",
+          "to": "app/engines-bin/silverbullet/linux-x64"
+        }
+      ]
+    },
+    "compression": "maximum"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smyrna-pergamum/office-werkstatt.git"
+  },
+  "homepage": "https://github.com/smyrna-pergamum/office-werkstatt"
+}

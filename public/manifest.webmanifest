@@ -1,0 +1,35 @@
+{
+  "name": "Office Werkstatt",
+  "short_name": "Werkstatt",
+  "description": "Integrated offline office suite – documents, spreadsheets, slides, notes, drawings and PDF.",
+  "id": "/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#F5F6FC",
+  "theme_color": "#6B5CF0",
+  "lang": "de",
+  "icons": [
+    { "src": "assets/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Word Werkzeug", "url": "./index.html?new=word", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Excel Werkzeug", "url": "./index.html?new=excel", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Slide Werkzeug", "url": "./index.html?new=slide", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Draw Werkzeug", "url": "./index.html?new=draw", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "file_handlers": [
+    { "action": "./index.html", "accept": {
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+      "application/pdf": [".pdf"],
+      "text/csv": [".csv"],
+      "application/json": [".excalidraw", ".owdoc"]
+    } }
+  ]
+}

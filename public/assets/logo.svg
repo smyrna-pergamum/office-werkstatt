@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Office Werkstatt">
+  <defs>
+    <mask id="hex">
+      <polygon points="64,12 109,38 109,90 64,116 19,90 19,38" fill="#fff" stroke="#fff" stroke-width="14" stroke-linejoin="round"/>
+    </mask>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g mask="url(#hex)">
+    <!-- six facets = six tools, one workshop -->
+    <polygon points="64,64 64,-2 121,31" fill="#2F6BEA"/>
+    <polygon points="64,64 121,31 121,97" fill="#1E9E5A"/>
+    <polygon points="64,64 121,97 64,130" fill="#EA6A2A"/>
+    <polygon points="64,64 64,130 7,97" fill="#D93A32"/>
+    <polygon points="64,64 7,97 7,31" fill="#E3A21A"/>
+    <polygon points="64,64 7,31 64,-2" fill="#7C4DDB"/>
+    <rect width="128" height="128" fill="url(#shine)"/>
+  </g>
+  <!-- inner workbench: hexagon with folded-page W -->
+  <polygon points="64,36 88,50 88,78 64,92 40,78 40,50" fill="#fff" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M47 54 L55 77 L64 61 L73 77 L81 54" fill="none" stroke="#2A2470" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="98" cy="22" r="5" fill="#FFD84D" stroke="#fff" stroke-width="2"/>
+</svg>

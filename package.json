@@ -1,0 +1,12 @@
+{
+  "name": "office-werkstatt",
+  "version": "1.1.0",
+  "description": "Office Werkstatt – integrated offline office suite (web, desktop, server)",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js",
+    "engines": "node scripts/fetch-engines.js"
+  },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,11 @@
+services:
+  office-werkstatt:
+    build: .
+    ports: ["8080:8080"]
+    volumes: ["./data:/data"]
+    environment:
+      # optional login for the whole team
+      # OW_USER: team
+      # OW_PASS: change-me
+      PORT: 8080
+    restart: unless-stopped
