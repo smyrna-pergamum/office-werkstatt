@@ -177,7 +177,7 @@
       if (exporting || !showGuides || !G || !cv || !cv.lowerCanvasEl) return;
       const c = cv.lowerCanvasEl.getContext('2d'), z = cv.getZoom(), f = fmt();
       if (opt && opt.ctx && opt.ctx !== c) return; // thumbnails / exports render without guides
-      c.save(); c.setTransform(z, 0, 0, z, 0, 0);
+      const rs = cv.getRetinaScaling ? cv.getRetinaScaling() : 1; c.save(); c.setTransform(z * rs, 0, 0, z * rs, 0, 0);
       if (G.bleed) {
         c.fillStyle = 'rgba(217,58,50,.10)'; c.fillRect(0, 0, G.W, G.bleed); c.fillRect(0, G.H - G.bleed, G.W, G.bleed); c.fillRect(0, G.bleed, G.bleed, G.H - 2 * G.bleed); c.fillRect(G.W - G.bleed, G.bleed, G.bleed, G.H - 2 * G.bleed);
         c.strokeStyle = '#D93A32'; c.lineWidth = 1 / z; c.setLineDash([]); c.strokeRect(G.bleed, G.bleed, G.w, G.h);
