@@ -18,11 +18,30 @@ const lang = `<script>
 const noDiskAccess = `<script>
   (function () { if (window.parent === window) return; ['showSaveFilePicker', 'showOpenFilePicker', 'showDirectoryPicker'].forEach(function (n) { try { delete window[n]; } catch (e) {} }); })();
 </script>`;
+const followTheme = `<script>
+  /* inside Office Werkstatt the "system" theme is the Office Werkstatt theme (light / dark) */
+  (function () { var P; try { P = window.parent; if (P === window || !P.document) return; } catch (e) { return; }
+    var om = window.matchMedia.bind(window), lists = [];
+    var dark = function () { try { return P.document.documentElement.getAttribute('data-theme') === 'dark'; } catch (e) { return false; } };
+    window.matchMedia = function (q) {
+      if (!/prefers-color-scheme/.test(q)) return om(q);
+      var want = /dark/.test(q), real = om(q), l = Object.create(real), ls = [];
+      var def = function (k, v) { Object.defineProperty(l, k, { value: v, configurable: true, writable: true }); };
+      Object.defineProperty(l, 'matches', { get: function () { return dark() === want; }, configurable: true });
+      def('media', q); def('onchange', null);
+      def('addListener', function (f) { ls.push(f); }); def('removeListener', function (f) { var i = ls.indexOf(f); if (i >= 0) ls.splice(i, 1); });
+      def('addEventListener', function (t, f) { if (t === 'change') ls.push(f); }); def('removeEventListener', function (t, f) { var i = ls.indexOf(f); if (i >= 0) ls.splice(i, 1); });
+      l._fire = function () { var ev = new Event('change'); try { Object.defineProperty(ev, 'matches', { value: l.matches }); Object.defineProperty(ev, 'media', { value: q }); } catch (e) {} ls.slice().forEach(function (f) { try { typeof f === 'function' ? f.call(l, ev) : f.handleEvent(ev); } catch (e) {} }); if (typeof l.onchange === 'function') l.onchange(ev); };
+      lists.push(l); return l;
+    };
+    try { new P.MutationObserver(function () { lists.forEach(function (l) { l._fire(); }); }).observe(P.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+  })();
+</script>`;
 const boot = `<script type="module">
   import init from './${bin}.js';
   init({ module_or_path: './${bin}_bg.wasm' }).catch(function (e) { console.error(e); var l = document.querySelector('[id$="_loading"]'); if (l) l.textContent = 'Engine error: ' + e; });
 </script>`;
-html = html.replace(/<head>/i, '<head>\n  ' + lang + '\n  ' + noDiskAccess).replace(/<\/body>/i, boot + '\n</body>');
+html = html.replace(/<head>/i, '<head>\n  ' + lang + '\n  ' + noDiskAccess + '\n  ' + followTheme).replace(/<\/body>/i, boot + '\n</body>');
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'index.html'), html);
 console.log('host page →', path.join(out, 'index.html'));

@@ -54,8 +54,6 @@ OW.templates = function () {
 
     /* ---------- Draw ---------- */
     { type: 'draw', id: 'blank', name: t('tpl.blankBoard'), content: null },
-    { type: 'draw', id: 'flow', name: t('draw.lib.flow'), content: { elements: OW.drawTemplate('flow', t).map((e, i) => Object.assign({ id: 'f' + i, seed: i * 99 + 7, stroke: '#1e1e1e', bg: 'transparent', fill: 'hachure', sw: 2, ss: 'solid', rough: 1, opacity: 100, fs: 20 }, e)), view: { x: 200, y: 60, z: 1 } } },
-    { type: 'draw', id: 'mind', name: t('draw.lib.mind'), content: { elements: OW.drawTemplate('mind', t).map((e, i) => Object.assign({ id: 'm' + i, seed: i * 77 + 3, stroke: '#1e1e1e', bg: 'transparent', fill: 'hachure', sw: 2, ss: 'solid', rough: 1, opacity: 100, fs: 20 }, e)), view: { x: 120, y: 60, z: 1 } } },
-    { type: 'draw', id: 'kanban', name: t('draw.lib.kanban'), content: { elements: OW.drawTemplate('kanban', t).map((e, i) => Object.assign({ id: 'k' + i, seed: i * 55 + 1, stroke: '#1e1e1e', bg: 'transparent', fill: 'hachure', sw: 2, ss: 'solid', rough: 1, opacity: 100, fs: 20 }, e)), view: { x: 80, y: 60, z: 1 } } },
+    ...['brainstorm', 'mind', 'kanban', 'retro', 'flow'].map(k => ({ type: 'draw', id: k, name: t('board.tpl.' + k), content: { board: 2, elements: OW.boardTemplate(k, t).map((e, i) => Object.assign({ id: k[0] + i }, e)), view: { x: 0, y: 0, z: 0 } } })),
   ].concat(OW.designTemplates ? OW.designTemplates(t) : [], OW.formTemplates ? OW.formTemplates(t) : []);
 };

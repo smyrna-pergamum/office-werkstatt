@@ -228,6 +228,16 @@ OW.editors = OW.editors || {};
     ctx.save = async () => { dirty = true; return save(); };
 
     instance = await factory(ctx);
+    // every Help tab gets "Check for updates" (opens the releases page of the project)
+    if (instance.ribbon) {
+      const origRibbon = instance.ribbon.bind(instance);
+      const upd = { icon: 'download', label: t('help.updates'), owUpdates: true, onClick: OW.checkUpdates };
+      instance.ribbon = () => {
+        const tabs = origRibbon();
+        if (instance.chrome !== 'engine' && !tabs.some(x => x.id === 'help')) tabs.push({ id: 'help', label: t('tab.help'), groups: [{ items: [{ icon: 'app', label: t('help.about'), onClick: () => OW.about() }] }] });
+        return tabs.map(tab => tab.id !== 'help' || tab.groups.some(g => g.items.some(i => i.owUpdates)) ? tab : Object.assign({}, tab, { groups: tab.groups.concat([{ items: [upd] }]) }));
+      };
+    }
     // full engines bring their own menus: no second ribbon / tab row / status bar
     if (instance.chrome === 'engine') root.classList.add('ed-engine');
     let ribbonTabs = instance.ribbon();

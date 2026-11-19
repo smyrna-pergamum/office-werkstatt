@@ -1,3 +1,28 @@
+## Office Werkstatt 1.3.0
+
+### Draw Werkzeug – not ve beyin fırtınası panosu
+- Sonsuz tuval: not kartları (zengin metin), yapışkan notlar, metin, şekiller, öğelere yapışan bağlantılar, kalem/vurgulayıcı,
+  çerçeveler, resimler ve **zihin haritası** (Tab = alt konu, Enter = sonraki konu).
+- Klasik Office şeridi (Giriş · Ekle · Çiz · Görünüm · Yardım), seçimin üstünde mini biçim çubuğu.
+- Şablonlar: beyin fırtınası, zihin haritası, kanban, retrospektif, SWOT, akış şeması. PNG / SVG / .excalidraw dışa aktarma.
+- Eski çizimler ve `.excalidraw` dosyaları otomatik dönüştürülür.
+
+### Word / Excel / Slide Werkzeug Pro
+- **Farklı Kaydet** (Ctrl+Shift+S ve motorun kendi Farklı Kaydet / Dışa Aktar sayfaları) motorun yazabildiği **tüm biçimleri** listeler:
+  - Word: DOCX, DOCM, DOTX, DOTM, DOC (RTF), ODT, OTT, FODT, RTF, Word XML, Word 2003 XML, PDF, HTML, Markdown, LaTeX, TXT, PNG
+  - Excel: XLSX, XLSM, XLTX, XLTM, CSV, TSV, TXT, JSON, HTML, PDF
+  - Slide: PPTX, PPTM, PPSX, PPSM, POTX, POTM, PDF, PNG, JPEG (çok slaytta ZIP), RTF / TXT ana hat, `.werkzeug`
+- Slide'ın kendi biçimi artık **`.werkzeug`** adıyla görünür (eski adı `.deckcraft`).
+- **Eski ve diğer biçimler açılır:** `.doc`, `.xls`, `.ppt` (PPT: slayt metinleri aktarılır), DOCM, DOTX, ODT, RTF, Markdown, XLSM, XLSB, ODS, CSV, PPSX, POTX …
+- Belgeler motorların komut API'siyle açılır ve kaydedilir; Ctrl+S doğrudan kitaplığa kaydeder.
+- Word / Excel / Slide, Office Werkstatt'ın **açık / koyu temasına** uyar.
+- Word: “Geliştirici” sekmesi yerine **“Gelişmiş”**; Zotero / atıf araçları bu sekmenin altında.
+- Yardım menüsünde **Güncellemeleri denetle** → GitHub Releases (tüm yerleşik Werkzeug'larda).
+
+### Yeni araçlar
+- **Design Werkzeug** – Canva tarzı tasarım stüdyosu (şablonlar, marka kiti, QR kod, stok medya, baskı PDF'i, video).
+- **Formular Werkzeug** – sürükle-bırak form oluşturucu, yayınlama + QR kod, yanıtlar → Excel.
+
 ## Office Werkstatt 1.2.0
 
 ### Yazdırma ve kapatma (masaüstü)

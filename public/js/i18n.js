@@ -89,7 +89,9 @@ quick.open | Open file | Datei öffnen | Dosya aç | Abrir archivo | Ouvrir un f
 quick.template | Use template | Vorlage verwenden | Şablon kullan | Usar plantilla | Utiliser un modèle
 drop.zone | Drag files here or click | Dateien hierher ziehen oder klicken | Dosyaları buraya sürükleyin veya tıklayın | Arrastra archivos aquí o haz clic | Glissez des fichiers ici ou cliquez
 drop.title | Drop to import | Zum Importieren loslassen | İçe aktarmak için bırakın | Suelta para importar | Déposez pour importer
-drop.hint | DOCX, XLSX, PPTX, PDF, CSV, TXT, Markdown, Excalidraw, images | DOCX, XLSX, PPTX, PDF, CSV, TXT, Markdown, Excalidraw, Bilder | DOCX, XLSX, PPTX, PDF, CSV, TXT, Markdown, Excalidraw, görseller | DOCX, XLSX, PPTX, PDF, CSV, TXT, Markdown, Excalidraw, imágenes | DOCX, XLSX, PPTX, PDF, CSV, TXT, Markdown, Excalidraw, images
+drop.hint | DOCX, DOC, XLSX, XLS, PPTX, PPT, PDF, CSV, TXT, Markdown, Excalidraw, images | DOCX, DOC, XLSX, XLS, PPTX, PPT, PDF, CSV, TXT, Markdown, Excalidraw, Bilder | DOCX, DOC, XLSX, XLS, PPTX, PPT, PDF, CSV, TXT, Markdown, Excalidraw, resimler | DOCX, DOC, XLSX, XLS, PPTX, PPT, PDF, CSV, TXT, Markdown, Excalidraw, imágenes | DOCX, DOC, XLSX, XLS, PPTX, PPT, PDF, CSV, TXT, Markdown, Excalidraw, images
+import.pptTextOnly | Old PowerPoint file (.ppt): the slide texts were taken over – layout and pictures are not. | Alte PowerPoint-Datei (.ppt): Die Folientexte wurden übernommen – Layout und Bilder nicht. | Eski PowerPoint dosyası (.ppt): slayt metinleri aktarıldı – düzen ve resimler aktarılmadı. | Archivo antiguo de PowerPoint (.ppt): se importaron los textos, no el diseño ni las imágenes. | Ancien fichier PowerPoint (.ppt) : les textes ont été repris – pas la mise en page ni les images.
+import.needsPro | {name} needs Word / Excel Werkzeug Pro | {name} benötigt Word / Excel Werkzeug Pro | {name} için Word / Excel Werkzeug Pro gerekir | {name} requiere Word / Excel Werkzeug Pro | {name} nécessite Word / Excel Werkzeug Pro
 # ---------- tools / types ----------
 tool.word.name | Word Werkzeug | Word Werkzeug | Word Werkzeug | Word Werkzeug | Word Werkzeug
 tool.word.desc | Create, edit and design texts. | Texte erstellen, bearbeiten und gestalten. | Metin oluşturun, düzenleyin ve tasarlayın. | Crea, edita y diseña textos. | Créez, modifiez et mettez en forme vos textes.
@@ -288,6 +290,60 @@ save.failed | Could not save – your changes are kept and saving is retried | S
 save.recovered | Saved again | Wieder gespeichert | Yeniden kaydedildi | Guardado de nuevo | Enregistré à nouveau
 save.closeAnyway | Your latest changes could not be saved. Close anyway and lose them? | Die letzten Änderungen konnten nicht gespeichert werden. Trotzdem schließen und verwerfen? | Son değişiklikler kaydedilemedi. Yine de kapatılsın ve kaybolsun mu? | No se pudieron guardar los últimos cambios. ¿Cerrar de todos modos y perderlos? | Les dernières modifications n'ont pas pu être enregistrées. Fermer quand même et les perdre ?
 print.opening | Opening the print dialog… | Druckdialog wird geöffnet … | Yazdırma penceresi açılıyor… | Abriendo el cuadro de impresión… | Ouverture de la boîte d'impression…
+pro.saveAs | Save As | Speichern unter | Farklı Kaydet | Guardar como | Enregistrer sous
+pro.fileName | File name | Dateiname | Dosya adı | Nombre de archivo | Nom du fichier
+pro.fileType | Save as type | Dateityp | Kayıt türü | Tipo | Type
+pro.save | Save | Speichern | Kaydet | Guardar | Enregistrer
+pro.hintLibrary | Saved in Office Werkstatt (library). | Wird in Office Werkstatt (Bibliothek) gespeichert. | Office Werkstatt'a (kitaplık) kaydedilir. | Se guarda en Office Werkstatt (biblioteca). | Enregistré dans Office Werkstatt (bibliothèque).
+pro.hintDownload | A copy in this format is saved to your computer; the document stays in the library. | Eine Kopie in diesem Format wird auf dem Computer gespeichert; das Dokument bleibt in der Bibliothek. | Bu biçimde bir kopya bilgisayarınıza kaydedilir; belge kitaplıkta kalır. | Se guarda una copia en este formato en el equipo; el documento sigue en la biblioteca. | Une copie dans ce format est enregistrée sur l'ordinateur ; le document reste dans la bibliothèque.
+pro.exported | {name} saved | {name} gespeichert | {name} kaydedildi | {name} guardado | {name} enregistré
+pro.writeFailed | Could not write the file. | Datei konnte nicht geschrieben werden. | Dosya yazılamadı. | No se pudo escribir el archivo. | Impossible d'écrire le fichier.
+pro.openFailed | The document could not be opened in the engine. | Das Dokument konnte nicht geöffnet werden. | Belge motorda açılamadı. | No se pudo abrir el documento. | Le document n'a pas pu être ouvert.
+fmt.wordcraft.docx | Word Document | Word-Dokument | Word Belgesi | Documento de Word | Document Word
+fmt.wordcraft.doc | Word 97–2003 Document (RTF) | Word 97–2003-Dokument (RTF) | Word 97–2003 Belgesi (RTF) | Documento de Word 97–2003 (RTF) | Document Word 97–2003 (RTF)
+fmt.wordcraft.dotx | Word Template | Word-Vorlage | Word Şablonu | Plantilla de Word | Modèle Word
+fmt.wordcraft.odt | OpenDocument Text | OpenDocument-Text | OpenDocument Metni | Texto OpenDocument | Texte OpenDocument
+fmt.wordcraft.ott | OpenDocument Text Template | OpenDocument-Textvorlage | OpenDocument Metin Şablonu | Plantilla de texto OpenDocument | Modèle de texte OpenDocument
+fmt.wordcraft.fodt | Flat OpenDocument Text | Flat-OpenDocument-Text | Düz OpenDocument Metni | Texto OpenDocument plano | Texte OpenDocument plat
+fmt.wordcraft.rtf | Rich Text Format | Rich Text Format | Zengin Metin Biçimi | Formato de texto enriquecido | Texte mis en forme (RTF)
+fmt.wordcraft.xml | Word XML Document | Word-XML-Dokument | Word XML Belgesi | Documento XML de Word | Document XML Word
+fmt.wordcraft.xml2003 | Word 2003 XML Document | Word 2003-XML-Dokument | Word 2003 XML Belgesi | Documento XML de Word 2003 | Document XML Word 2003
+fmt.wordcraft.pdf | PDF | PDF | PDF | PDF | PDF
+fmt.wordcraft.html | Web Page | Webseite | Web Sayfası | Página web | Page web
+fmt.wordcraft.md | Markdown | Markdown | Markdown | Markdown | Markdown
+fmt.wordcraft.tex | LaTeX | LaTeX | LaTeX | LaTeX | LaTeX
+fmt.wordcraft.txt | Plain Text | Nur Text | Düz Metin | Texto sin formato | Texte brut
+fmt.wordcraft.png | Page Image | Seitenbild | Sayfa Görüntüsü | Imagen de página | Image de page
+fmt.wordcraft.werkzeug | Office Werkstatt Document | Office Werkstatt-Dokument | Office Werkstatt Belgesi | Documento de Office Werkstatt | Document Office Werkstatt
+fmt.gridcraft.xlsx | Excel Workbook | Excel-Arbeitsmappe | Excel Çalışma Kitabı | Libro de Excel | Classeur Excel
+fmt.gridcraft.xlsm | Excel Macro-Enabled Workbook | Excel-Arbeitsmappe mit Makros | Excel Makro İçerebilen Çalışma Kitabı | Libro de Excel habilitado para macros | Classeur Excel prenant en charge les macros
+fmt.gridcraft.xlsb | Excel Binary Workbook | Excel-Binärarbeitsmappe | Excel İkili Çalışma Kitabı | Libro binario de Excel | Classeur Excel binaire
+fmt.gridcraft.ods | OpenDocument Spreadsheet | OpenDocument-Tabelle | OpenDocument Hesap Tablosu | Hoja de cálculo OpenDocument | Classeur OpenDocument
+fmt.gridcraft.csv | CSV (Comma delimited) | CSV (Trennzeichen-getrennt) | CSV (virgülle ayrılmış) | CSV (delimitado por comas) | CSV (séparateur : virgule)
+fmt.gridcraft.tsv | Text (Tab delimited) | Text (Tabstopp-getrennt) | Metin (sekmeyle ayrılmış) | Texto (delimitado por tabulaciones) | Texte (séparateur : tabulation)
+fmt.gridcraft.txt | Text (Tab delimited, .txt) | Text (Tabstopp-getrennt, .txt) | Metin (sekmeyle ayrılmış, .txt) | Texto (tabulaciones, .txt) | Texte (tabulation, .txt)
+fmt.gridcraft.json | JSON | JSON | JSON | JSON | JSON
+fmt.gridcraft.html | Web Page | Webseite | Web Sayfası | Página web | Page web
+fmt.gridcraft.pdf | PDF | PDF | PDF | PDF | PDF
+fmt.gridcraft.werkzeug | Office Werkstatt Workbook | Office Werkstatt-Arbeitsmappe | Office Werkstatt Çalışma Kitabı | Libro de Office Werkstatt | Classeur Office Werkstatt
+fmt.deckcraft.pptx | PowerPoint Presentation | PowerPoint-Präsentation | PowerPoint Sunusu | Presentación de PowerPoint | Présentation PowerPoint
+fmt.deckcraft.pdf | PDF | PDF | PDF | PDF | PDF
+fmt.deckcraft.png | PNG Images | PNG-Bilder | PNG Resimleri | Imágenes PNG | Images PNG
+fmt.deckcraft.jpg | JPEG Images | JPEG-Bilder | JPEG Resimleri | Imágenes JPEG | Images JPEG
+fmt.deckcraft.gif | Animated GIF | Animiertes GIF | Hareketli GIF | GIF animado | GIF animé
+fmt.deckcraft.rtf | Outline (RTF) | Gliederung (RTF) | Ana Hat (RTF) | Esquema (RTF) | Plan (RTF)
+fmt.deckcraft.txt | Outline (Text) | Gliederung (Text) | Ana Hat (Metin) | Esquema (texto) | Plan (texte)
+fmt.deckcraft.werkzeug | Office Werkstatt Presentation | Office Werkstatt-Präsentation | Office Werkstatt Sunusu | Presentación de Office Werkstatt | Présentation Office Werkstatt
+fmt.wordcraft.docm | Word Macro-Enabled Document | Word-Dokument mit Makros | Word Makro İçerebilen Belge | Documento de Word habilitado para macros | Document Word prenant en charge les macros
+fmt.wordcraft.dotm | Word Macro-Enabled Template | Word-Vorlage mit Makros | Word Makro İçerebilen Şablon | Plantilla de Word habilitada para macros | Modèle Word prenant en charge les macros
+fmt.gridcraft.xltx | Excel Template | Excel-Vorlage | Excel Şablonu | Plantilla de Excel | Modèle Excel
+fmt.gridcraft.xltm | Excel Macro-Enabled Template | Excel-Vorlage mit Makros | Excel Makro İçerebilen Şablon | Plantilla de Excel habilitada para macros | Modèle Excel prenant en charge les macros
+fmt.deckcraft.pptm | PowerPoint Macro-Enabled Presentation | PowerPoint-Präsentation mit Makros | PowerPoint Makro İçerebilen Sunu | Presentación habilitada para macros | Présentation prenant en charge les macros
+fmt.deckcraft.ppsx | PowerPoint Show | PowerPoint-Bildschirmpräsentation | PowerPoint Gösterisi | Presentación con diapositivas de PowerPoint | Diaporama PowerPoint
+fmt.deckcraft.ppsm | PowerPoint Macro-Enabled Show | PowerPoint-Bildschirmpräsentation mit Makros | PowerPoint Makro İçerebilen Gösteri | Presentación con macros | Diaporama prenant en charge les macros
+fmt.deckcraft.potx | PowerPoint Template | PowerPoint-Vorlage | PowerPoint Şablonu | Plantilla de PowerPoint | Modèle PowerPoint
+fmt.deckcraft.potm | PowerPoint Macro-Enabled Template | PowerPoint-Vorlage mit Makros | PowerPoint Makro İçerebilen Şablon | Plantilla de PowerPoint habilitada para macros | Modèle PowerPoint prenant en charge les macros
+help.updates | Check for updates | Nach Updates suchen | Güncellemeleri denetle | Buscar actualizaciones | Rechercher des mises à jour
 pro.saved | Saved to Office Werkstatt | In Office Werkstatt gespeichert | Office Werkstatt'a kaydedildi | Guardado en Office Werkstatt | Enregistré dans Office Werkstatt
 print.failed | Printing failed | Drucken fehlgeschlagen | Yazdırma başarısız | Error al imprimir | Échec de l'impression
 pdf.openFirst | Open a PDF first | Zuerst ein PDF öffnen | Önce bir PDF açın | Abra primero un PDF | Ouvrez d'abord un PDF
@@ -597,6 +653,72 @@ note.recentEdits | Recent edits | Letzte Änderungen | Son düzenlemeler | Edici
 note.navigation | Navigation | Navigation | Gezinti | Navegación | Navigation
 note.pages | pages | Seiten | sayfa | páginas | pages
 # ---------- draw ----------
+board.menu | Menu | Menü | Menü | Menú | Menu
+board.hintTitle | Your board is empty | Dein Board ist leer | Pano boş | Tu pizarra está vacía | Votre tableau est vide
+board.hint | Double-click anywhere for a note · tools on the Home tab · templates on the Insert tab | Doppelklick irgendwo für eine Notiz · Werkzeuge im Reiter Start · Vorlagen im Reiter Einfügen | Not için herhangi bir yere çift tıklayın · araçlar Giriş sekmesinde · şablonlar Ekle sekmesinde | Doble clic para una nota · herramientas en Inicio · plantillas en Insertar | Double-clic pour une note · outils dans Accueil · modèles dans Insertion
+board.t.select | Select | Auswählen | Seç | Seleccionar | Sélectionner
+board.t.hand | Hand (move the view) | Hand (Ansicht verschieben) | El (görünümü kaydır) | Mano (mover la vista) | Main (déplacer la vue)
+board.t.note | Note | Notiz | Not | Nota | Note
+board.t.sticky | Sticky note | Haftnotiz | Yapışkan not | Nota adhesiva | Note adhésive
+board.t.text | Text | Text | Metin | Texto | Texte
+board.t.shape | Shape (double-click: choose) | Form (Doppelklick: wählen) | Şekil (çift tık: seç) | Forma (doble clic: elegir) | Forme (double-clic : choisir)
+board.t.connector | Connector | Verbinder | Bağlantı | Conector | Connecteur
+board.t.pen | Pen (double-click: colour) | Stift (Doppelklick: Farbe) | Kalem (çift tık: renk) | Lápiz (doble clic: color) | Stylo (double-clic : couleur)
+board.t.eraser | Eraser | Radierer | Silgi | Borrador | Gomme
+board.t.frame | Frame | Rahmen | Çerçeve | Marco | Cadre
+board.t.mind | Mind map | Mindmap | Zihin haritası | Mapa mental | Carte mentale
+board.t.image | Image | Bild | Resim | Imagen | Image
+board.frame | Frame | Rahmen | Çerçeve | Marco | Cadre
+board.frameTitle | Frame title | Rahmentitel | Çerçeve başlığı | Título del marco | Titre du cadre
+board.focusFrame | Zoom to frame | Auf Rahmen zoomen | Çerçeveye yakınlaş | Ampliar al marco | Zoomer sur le cadre
+board.color | Colour | Farbe | Renk | Color | Couleur
+board.shapeKind | Shape | Form | Şekil | Forma | Forme
+board.k.rect | Rectangle | Rechteck | Dikdörtgen | Rectángulo | Rectangle
+board.k.roundRect | Rounded rectangle | Abgerundetes Rechteck | Yuvarlak dikdörtgen | Rectángulo redondeado | Rectangle arrondi
+board.k.ellipse | Ellipse | Ellipse | Elips | Elipse | Ellipse
+board.k.diamond | Diamond | Raute | Eşkenar dörtgen | Rombo | Losange
+board.k.triangle | Triangle | Dreieck | Üçgen | Triángulo | Triangle
+board.straight | Straight | Gerade | Düz | Recto | Droit
+board.curve | Curved | Gebogen | Eğri | Curvo | Courbe
+board.elbow | Elbow | Gewinkelt | Köşeli | En ángulo | Coudé
+board.arrowHead | Arrow head | Pfeilspitze | Ok ucu | Punta de flecha | Pointe de flèche
+board.addChild | Add sub-topic | Unterthema hinzufügen | Alt konu ekle | Añadir subtema | Ajouter un sous-thème
+board.addSibling | Add topic | Thema hinzufügen | Konu ekle | Añadir tema | Ajouter un thème
+board.front | Bring to front | Nach vorne | Öne getir | Traer al frente | Premier plan
+board.back | Send to back | Nach hinten | Arkaya gönder | Enviar al fondo | Arrière-plan
+board.pen.fine | Fine | Fein | İnce | Fino | Fin
+board.pen.normal | Normal | Normal | Normal | Normal | Normal
+board.pen.bold | Bold | Kräftig | Kalın | Grueso | Épais
+board.templates | Templates | Vorlagen | Şablonlar | Plantillas | Modèles
+board.tpl.brainstorm | Brainstorming | Brainstorming | Beyin fırtınası | Lluvia de ideas | Brainstorming
+board.tpl.mind | Mind map | Mindmap | Zihin haritası | Mapa mental | Carte mentale
+board.tpl.kanban | Kanban board | Kanban-Board | Kanban panosu | Tablero Kanban | Tableau Kanban
+board.tpl.retro | Retrospective | Retrospektive | Retrospektif | Retrospectiva | Rétrospective
+board.tpl.swot | SWOT analysis | SWOT-Analyse | SWOT analizi | Análisis DAFO | Analyse SWOT
+board.tpl.flow | Flowchart | Flussdiagramm | Akış şeması | Diagrama de flujo | Organigramme
+board.tpl.question | Our question | Unsere Frage | Sorumuz | Nuestra pregunta | Notre question
+board.tpl.questionHint | Collect ideas around it – one per sticky note. | Sammelt Ideen drumherum – eine pro Haftnotiz. | Etrafına fikir toplayın – her yapışkan nota bir fikir. | Reunid ideas alrededor: una por nota. | Rassemblez des idées autour – une par note.
+board.tpl.idea | Idea | Idee | Fikir | Idea | Idée
+board.tpl.good | What went well | Was lief gut | İyi giden | Qué fue bien | Ce qui a bien marché
+board.tpl.improve | What to improve | Was verbessern | Geliştirilecek | Qué mejorar | À améliorer
+board.tpl.actions | Action items | Maßnahmen | Aksiyonlar | Acciones | Actions
+board.tpl.s | Strengths | Stärken | Güçlü yönler | Fortalezas | Forces
+board.tpl.w | Weaknesses | Schwächen | Zayıf yönler | Debilidades | Faiblesses
+board.tpl.o | Opportunities | Chancen | Fırsatlar | Oportunidades | Opportunités
+board.tpl.t | Threats | Risiken | Tehditler | Amenazas | Menaces
+board.c.ink | Default | Standard | Varsayılan | Predeterminado | Par défaut
+board.c.none | No fill | Keine Füllung | Dolgu yok | Sin relleno | Sans remplissage
+board.c.white | White | Weiß | Beyaz | Blanco | Blanc
+board.c.yellow | Yellow | Gelb | Sarı | Amarillo | Jaune
+board.c.orange | Orange | Orange | Turuncu | Naranja | Orange
+board.c.red | Red | Rot | Kırmızı | Rojo | Rouge
+board.c.pink | Pink | Rosa | Pembe | Rosa | Rose
+board.c.purple | Purple | Lila | Mor | Morado | Violet
+board.c.blue | Blue | Blau | Mavi | Azul | Bleu
+board.c.teal | Teal | Türkis | Turkuaz | Turquesa | Turquoise
+board.c.green | Green | Grün | Yeşil | Verde | Vert
+board.c.gray | Grey | Grau | Gri | Gris | Gris
+board.shortcuts | V select · H hand · N note · S sticky note · T text · R shape · C connector · P pen · E eraser · F frame · M mind map · I image<br>Double-click empty space: new note · Double-click an element: edit · Enter: edit selection · Esc: done<br>Mind map: Tab = sub-topic · Enter = next topic<br>Space + drag / middle mouse / scroll: move · Ctrl + scroll: zoom · Shift+1: show all<br>Ctrl+C / X / V · Ctrl+D duplicate · Ctrl+Z / Y · Delete · arrow keys move | V Auswählen · H Hand · N Notiz · S Haftnotiz · T Text · R Form · C Verbinder · P Stift · E Radierer · F Rahmen · M Mindmap · I Bild<br>Doppelklick auf leere Fläche: neue Notiz · Doppelklick auf Element: bearbeiten · Enter: Auswahl bearbeiten · Esc: fertig<br>Mindmap: Tab = Unterthema · Enter = nächstes Thema<br>Leertaste + Ziehen / mittlere Maustaste / Scrollen: verschieben · Strg + Scrollen: Zoom · Umschalt+1: alles zeigen<br>Strg+C / X / V · Strg+D duplizieren · Strg+Z / Y · Entf · Pfeiltasten verschieben | V seç · H el · N not · S yapışkan not · T metin · R şekil · C bağlantı · P kalem · E silgi · F çerçeve · M zihin haritası · I resim<br>Boş alana çift tık: yeni not · Öğeye çift tık: düzenle · Enter: seçileni düzenle · Esc: bitir<br>Zihin haritası: Tab = alt konu · Enter = sonraki konu<br>Boşluk + sürükle / orta tuş / kaydırma: görünümü taşı · Ctrl + kaydırma: yakınlaştır · Shift+1: tümünü göster<br>Ctrl+C / X / V · Ctrl+D çoğalt · Ctrl+Z / Y · Delete · ok tuşları taşır | V seleccionar · H mano · N nota · S nota adhesiva · T texto · R forma · C conector · P lápiz · E borrador · F marco · M mapa mental · I imagen<br>Doble clic en vacío: nueva nota · Doble clic en elemento: editar · Enter: editar · Esc: terminar<br>Mapa mental: Tab = subtema · Enter = siguiente tema<br>Espacio + arrastrar / botón central / desplazar: mover · Ctrl + desplazar: zoom · Mayús+1: ver todo<br>Ctrl+C / X / V · Ctrl+D duplicar · Ctrl+Z / Y · Supr · flechas mueven | V sélectionner · H main · N note · S note adhésive · T texte · R forme · C connecteur · P stylo · E gomme · F cadre · M carte mentale · I image<br>Double-clic sur le vide : nouvelle note · Double-clic sur un élément : modifier · Entrée : modifier · Échap : terminer<br>Carte mentale : Tab = sous-thème · Entrée = thème suivant<br>Espace + glisser / bouton du milieu / défilement : déplacer · Ctrl + défilement : zoom · Maj+1 : tout afficher<br>Ctrl+C / X / V · Ctrl+D dupliquer · Ctrl+Z / Y · Suppr · flèches déplacent
 draw.t.hand | Hand (pan) | Hand (verschieben) | El (kaydır) | Mano (desplazar) | Main (déplacer)
 draw.t.select | Selection | Auswahl | Seçim | Selección | Sélection
 draw.t.rectangle | Rectangle | Rechteck | Dikdörtgen | Rectángulo | Rectangle

@@ -34,6 +34,10 @@ window.OW = window.OW || {};
         const f = files[name]; if (!f) return null;
         return td.decode(f.method === 0 ? f.data : await inflateRaw(f.data));
       },
+      async bytes(name) {
+        const f = files[name]; if (!f) return null;
+        return f.method === 0 ? f.data.slice() : new Uint8Array(await inflateRaw(f.data));
+      },
     };
   }
 
@@ -298,5 +302,17 @@ window.OW = window.OW || {};
     return writeZip(files);
   }
 
-  OW.ooxml = { readZip, writeZip, docxToHtml, xlsxToCells, pptxToSlides, htmlToDocx, cellsToXlsx, sheetsToXlsx, slidesToPptx, esc };
+  /* the same OOXML package as another kind (template, macro-enabled, slide show): only the main
+   * part's content type differs, e.g. .docx → .dotx */
+  async function retype(blob, toType) {
+    const z = await readZip(await blob.arrayBuffer()), out = {};
+    for (const n of z.names) {
+      if (n.endsWith('/')) continue;
+      out[n] = n === '[Content_Types].xml'
+        ? (await z.text(n)).replace(/(PartName="\/(?:word\/document|xl\/workbook|ppt\/presentation)\.xml"\s+ContentType=")[^"]+(")/, '$1' + toType + '$2')
+        : await z.bytes(n);
+    }
+    return writeZip(out);
+  }
+  OW.ooxml = { retype, readZip, writeZip, docxToHtml, xlsxToCells, pptxToSlides, htmlToDocx, cellsToXlsx, sheetsToXlsx, slidesToPptx, esc };
 })();

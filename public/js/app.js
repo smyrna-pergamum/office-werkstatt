@@ -39,13 +39,16 @@
     return p;
   }
   OW.modal = modal;
+  /* updates: the releases page of the project (opens in the system browser in the desktop app) */
+  OW.RELEASES_URL = 'https://github.com/smyrna-pergamum/office-werkstatt/releases/latest';
+  OW.checkUpdates = () => { const w = window.open(OW.RELEASES_URL, '_blank', 'noopener'); if (!w && !window.owDesktop) location.href = OW.RELEASES_URL; };
   OW.prompt = (label, value = '') => modal(`<form class="dlg"><h3>${label}</h3><input class="inp" value="${OW.escape(value)}"><div class="dlg-btns"><button type="button" class="btn ghost" data-x>${t('cancel')}</button><button class="btn primary">${t('ok')}</button></div></form>`, (c, close) => {
     const i = c.querySelector('input'); setTimeout(() => { i.focus(); i.select(); });
     c.querySelector('form').onsubmit = e => { e.preventDefault(); close(i.value); }; c.querySelector('[data-x]').onclick = () => close(null);
   });
   OW.confirm = (msg) => modal(`<div class="dlg"><h3>${msg}</h3><div class="dlg-btns"><button class="btn ghost" data-x>${t('cancel')}</button><button class="btn danger" data-ok>${t('ok')}</button></div></div>`, (c, close) => { c.querySelector('[data-x]').onclick = () => close(false); c.querySelector('[data-ok]').onclick = () => close(true); });
   OW.alert = (title, html) => modal(`<div class="dlg"><h3>${title}</h3><div class="dlg-body">${html}</div><div class="dlg-btns"><button class="btn primary" data-x>${t('ok')}</button></div></div>`, (c, close) => c.querySelector('[data-x]').onclick = () => close(true));
-  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.2</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Design Werkzeug · Formular Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
+  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.3</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Design Werkzeug · Formular Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
 
   /* command palette (Ctrl+K) */
   OW.palette = function ({ placeholder, items }) {
@@ -107,7 +110,7 @@
   async function downloadFile(id) {
     const f = await OW.store.get(id);
     if (f.type === 'pdf' && f.content instanceof Blob) return OW.download(f.content, OW.safeName(f.name) + '.pdf');
-    if (f.content instanceof Blob && OW.PRO_CFG && OW.PRO_CFG[f.type]) return OW.download(f.content, OW.safeName(f.name) + '.' + (f.proExt || OW.PRO_CFG[f.type].ext));
+    if (f.content instanceof Blob && OW.PRO_CFG && OW.PRO_CFG[f.type]) { const x = f.proExt || OW.PRO_CFG[f.type].ext; return OW.download(f.content, OW.safeName(f.name) + '.' + (x === OW.PRO_CFG[f.type].craft ? 'werkzeug' : x)); }
     if (f.type === 'word' && f.content) return OW.download(OW.ooxml.htmlToDocx(f.content.html || ''), OW.safeName(f.name) + '.docx');
     if (f.type === 'excel' && f.content && f.content.sheets) return OW.download(OW.ooxml.sheetsToXlsx(f.content.sheets), OW.safeName(f.name) + '.xlsx');
     OW.download(new Blob([JSON.stringify({ format: 'office-werkstatt', version: 1, file: Object.assign({}, f, { content: f.content }) })], { type: 'application/json' }), OW.safeName(f.name) + '.owdoc');
@@ -136,10 +139,15 @@
     for (const file of list) {
       const ext = (file.name.split('.').pop() || '').toLowerCase(), name = file.name.replace(/\.[^.]+$/, '');
       try {
-        const proType = { docx: 'word', xlsx: 'excel', pptx: 'slide' }[ext];
+        // every format a Werkzeug Pro engine reads goes to it unchanged (no lossy conversion)
+        let proType = ['word', 'excel', 'slide'].find(ty => OW.engines && OW.engines[ty] && OW.proOpenTypes && OW.proOpenTypes(ty).includes(ext) && ext !== 'ppt' && ext !== 'werkzeug');
+        if (ext === 'werkzeug') { proType = OW.werkzeugType ? await OW.werkzeugType(file) : null; if (!proType) { OW.toast(t('import.unsupported', { name: OW.escape(file.name) }), 'warn'); continue; } }
         if (ext === 'pdf') last = await OW.createFile('pdf', { name, blob: file, noOpen: true });
         // with the Werkzeug Pro engines the original file is kept as it is (no lossy conversion)
         else if (proType && OW.engines && OW.engines[proType]) last = await OW.createFile(proType, { name, blob: file, proExt: ext, noOpen: true });
+        // old PowerPoint 97-2003: the texts of all slides are taken over into a new .pptx
+        else if (ext === 'ppt') { const pptx = OW.pptToPptx(await file.arrayBuffer()); last = OW.engines && OW.engines.slide ? await OW.createFile('slide', { name, blob: pptx, proExt: 'pptx', noOpen: true }) : await OW.createFile('slide', { name, content: { theme: 'office', slides: await OW.ooxml.pptxToSlides(await pptx.arrayBuffer()) }, noOpen: true }); OW.toast(t('import.pptTextOnly')); }
+        else if (ext === 'doc' || ext === 'xls') { OW.toast(t('import.needsPro', { name: OW.escape(file.name) }), 'warn'); continue; }
         else if (ext === 'docx') last = await OW.createFile('word', { name, content: { html: OW.sanitizeHTML(await OW.ooxml.docxToHtml(await file.arrayBuffer())) }, noOpen: true });
         else if (['txt', 'md'].includes(ext)) last = await OW.createFile('word', { name, content: { html: (await file.text()).split(/\n/).map(l => { const m = /^(#{1,3})\s+(.*)/.exec(l); return m ? `<h${m[1].length}>${OW.escape(m[2])}</h${m[1].length}>` : `<p>${OW.escape(l) || '<br>'}</p>`; }).join('') }, noOpen: true });
         else if (['html', 'htm'].includes(ext)) { const d = new DOMParser().parseFromString(await file.text(), 'text/html'); last = await OW.createFile('word', { name, content: { html: OW.sanitizeHTML(d.body.innerHTML) }, noOpen: true }); }

@@ -20,7 +20,7 @@ process.on('unhandledRejection', e => logError('unhandledRejection', e));
 
 let win = null, port = 0, uiLang = 'en';
 const pending = [];
-const isDoc = p => /\.(docx|xlsx|pptx|pdf|csv|txt|md|excalidraw|owdoc|json)$/i.test(p || '') && fs.existsSync(p);
+const isDoc = p => /\.(docx|docm|dotx|dotm|doc|dot|odt|ott|fodt|rtf|xlsx|xlsm|xltx|xltm|xls|xlsb|ods|csv|tsv|pptx|pptm|ppsx|ppsm|potx|potm|ppt|werkzeug|pdf|txt|md|excalidraw|owdoc|json)$/i.test(p || '') && fs.existsSync(p);
 function queue(paths) {
   const files = paths.filter(isDoc).map(p => ({ name: path.basename(p), data: fs.readFileSync(p) }));
   if (!files.length) return;
@@ -46,7 +46,7 @@ async function createWindow() {
   win = new BrowserWindow({
     width: 1400, height: 900, minWidth: 380, minHeight: 500, title: 'Office Werkstatt',
     icon: path.join(base, 'public', 'assets', 'icon-512.png'), backgroundColor: '#F5F6FC', autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, backgroundThrottling: false },   // engines keep answering (autosave) while the window is hidden
   });
   win.loadURL(`${origin}/index.html`);
   win.webContents.on('did-finish-load', () => { if (pending.length) win.webContents.send('open-files', pending.splice(0)); });
