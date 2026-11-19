@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Bütünleşik, internetsiz çalışan ofis paketi</b> – tarayıcıda, masaüstünde ve kendi sunucunuzda.<br>
-  Word · Excel · Slide · Note · Draw · PDF Werkzeug — tek pencerede.
+  Word · Excel · Slide · Note · Draw · PDF · Formular Werkzeug — tek pencerede.
 </p>
 
 <p align="center">
@@ -36,6 +36,7 @@
 | **Note Werkzeug** | OneNote tarzı: defter → bölüm → sayfa, etiketler, kalem/mürekkep, toplantı şablonu, **takvim** (ay görünümü, etkinlik ↔ sayfa bağlantısı, `.ics` içe/dışa aktarma) |
 | **Draw Werkzeug** | El çizimi tarzı beyaz tahta, şekiller, oklar, metin, `.excalidraw` içe/dışa aktarma, PNG / SVG |
 | **PDF Werkzeug** | **PDF Werkstatt** (kırmızı sürüm): düzenleme, OCR, imzalama, koruma, dönüştürme |
+| **Formular Werkzeug** | Sürükle-bırak form oluşturucu, sınırsız soru, takvimden gün + saat seçimi, resim ve metin blokları, karşılama ekranı, başlık resmi, renk / arka plan / çerçeve, önizleme/kiosk, link + QR kod, yanıtlar → Excel Werkzeug, `.xlsx` / `.csv` |
 
 Pro motorlar kurulu olduğunda Word / Excel / Slide doğrudan bu motorlarda açılır (ayrı bir “basit görünüm” yoktur).
 Motorun Kaydet komutu (Ctrl+S) belgeyi Office Werkstatt kitaplığına yazar; kapatırken, dil değişirken ve düzenlemeye ara
@@ -54,6 +55,21 @@ verildiğinde otomatik kaydedilir. Motor yoksa yerleşik düzenleyiciler kullan�
 <tr><td><img src="docs/draw-werkzeug.png" alt="Draw Werkzeug"></td><td><img src="docs/note-werkzeug.png" alt="Note Werkzeug"></td></tr>
 <tr><td><img src="docs/slide-werkzeug.png" alt="Slide Werkzeug"></td><td><img src="docs/dashboard-dark.png" alt="Koyu tema"></td></tr>
 </table>
+
+## Formular Werkzeug
+
+Formu sürükle-bırak ile oluşturun (soru sayısı sınırsız; resim, metin bloğu, takvimden gün/saat seçimi, karşılama ekranı, başlık resmi, çerçeve ve arka plan rengi), **Oluştur** deyin – tek dosyalık bir HTML form sayfası çıkar. Yanıtlar otomatik olarak bir **Excel Werkzeug tablosunda** toplanır.
+
+| Kullanım | Nasıl paylaşılır | Yanıtlar nereye gider |
+|---|---|---|
+| **Sunucu** (internet / yerel ağ) | Link `https://<sunucu>/f/<id>` ve **QR kod** – şifre gerekmez, kişiler sadece bu formu görür | Sunucuya; Excel tablosu her yeni yanıtla kendini günceller |
+| **HTML dosyası** (ör. januam.org sitesine) | Sayfayı istediğiniz yere koyun; *Sunucu adresi* girildiyse oraya gönderir (CORS açık) | Sunucuya – sunucuya ulaşılamazsa cihaza kaydeder, bir sonraki açılışta yeniden dener |
+| **Kiosk** (tablet / laptop, internetsiz) | Sayfayı cihazda açık bırakın; form her yanıttan sonra kendini sıfırlar | Cihaza; altta *Yanıtları dışa aktar* → *Yanıtlar → İçe aktar* |
+| **E-posta yedeği** | Sunucu yoksa “E-posta ile gönder” butonu çıkar | Gelen e-postaları *Yanıtlar → İçe aktar*'a yapıştırın |
+
+Sunucu uç noktaları: `GET /f/<id>` (herkese açık sayfa) · `POST /api/forms/<id>/responses` (herkese açık, doğrulamalı, IP başına dakikada 30 istek – `OW_FORM_RATE`) · `GET/DELETE /api/forms/<id>/responses` ve `PUT/GET/DELETE /api/forms/<id>/publish` (ekip girişi gerekir). Veriler `data/forms/` içinde.
+
+<table><tr><td><img src="docs/form-werkzeug.png" alt="Formular Werkzeug"></td><td><img src="docs/form-werkzeug-antworten.png" alt="Yanıtlar"></td></tr></table>
 
 ## Hızlı başlangıç
 
