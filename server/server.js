@@ -125,9 +125,62 @@ function formPage(req, res, id) {
   page(200, fs.readFileSync(p));
 }
 
+
+/* ---------- stock media (Design Werkzeug) ----------
+ * The API keys stay on this server (data/stock-keys.json); the browser only sees results.
+ * /api/stock/media fetches images / audio from the providers' hosts so they can be embedded
+ * in a design (no tainted canvas, works the same for every user). */
+const STOCK = require(path.join(ROOT, 'js', 'stock-core.js'));
+const stockKeysFile = path.join(DATA, 'stock-keys.json');
+const stockKeys = () => { try { return JSON.parse(fs.readFileSync(stockKeysFile, 'utf8')); } catch { return {}; } };
+async function stockApi(req, res, what, url) {
+  const P = STOCK.PROVIDERS;
+  if (what === 'config' && req.method === 'GET') { const k = stockKeys(), o = {}; for (const id of Object.keys(P)) o[id] = { key: !P[id].key || !!k[id], needsKey: P[id].key, kinds: P[id].kinds, site: P[id].site }; return send(res, 200, o); }
+  if (what === 'keys' && req.method === 'PUT') {
+    try { const b = JSON.parse(await readBody(req, 16 * 1024)), k = stockKeys(); for (const id of Object.keys(P)) if (typeof b[id] === 'string') { if (b[id].trim()) k[id] = b[id].trim().slice(0, 200); else delete k[id]; }
+      fs.writeFileSync(stockKeysFile, JSON.stringify(k), { mode: 0o600 }); return send(res, 200, { ok: true }); } catch { return send(res, 400, { error: 'bad request' }); }
+  }
+  if (what === 'search' && req.method === 'GET') {
+    const id = url.searchParams.get('provider'), kind = url.searchParams.get('kind'), q = (url.searchParams.get('q') || '').slice(0, 100), page = Math.max(1, Math.min(50, +url.searchParams.get('page') || 1));
+    const p = P[id]; if (!p || !p.kinds.includes(kind)) return send(res, 400, { error: 'bad provider' });
+    const key = stockKeys()[id]; if (p.key && !key) return send(res, 412, { error: 'no key' });
+    try {
+      const r0 = p.request(kind, q, page, key), r = await fetch(r0.url, { headers: Object.assign({ 'User-Agent': 'OfficeWerkstatt/' + VERSION }, r0.headers || {}), signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return send(res, 502, { error: 'provider ' + r.status });
+      return send(res, 200, p.parse(await r.json(), kind));
+    } catch (e) { return send(res, 504, { error: 'offline' }); }
+  }
+  if (what === 'media' && req.method === 'GET') {
+    let u = url.searchParams.get('url') || '';
+    try {
+      for (let hop = 0; hop < 4; hop++) {
+        const x = new URL(u); if (x.protocol !== 'https:' || !STOCK.MEDIA_HOSTS.some(re => re.test(x.hostname))) return send(res, 403, { error: 'host not allowed' });
+        const r = await fetch(x, { redirect: 'manual', headers: { 'User-Agent': 'OfficeWerkstatt/' + VERSION }, signal: AbortSignal.timeout(30000) });
+        if (r.status >= 300 && r.status < 400 && r.headers.get('location')) { u = new URL(r.headers.get('location'), x).href; continue; }
+        if (!r.ok) return send(res, 502, { error: 'provider ' + r.status });
+        const type = (r.headers.get('content-type') || '').split(';')[0];
+        if (!/^(image\/(png|jpe?g|gif|webp|svg\+xml)|audio\/[\w.+-]+|application\/octet-stream)$/.test(type)) return send(res, 415, { error: 'type' });
+        if (+r.headers.get('content-length') > 40 * 1024 * 1024) return send(res, 413, { error: 'too large' });
+        const buf = Buffer.from(await r.arrayBuffer()); if (buf.length > 40 * 1024 * 1024) return send(res, 413, { error: 'too large' });
+        res.writeHead(200, { 'Content-Type': type, 'Content-Length': buf.length, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'" });
+        return res.end(buf);
+      }
+      return send(res, 508, { error: 'too many redirects' });
+    } catch { return send(res, 504, { error: 'offline' }); }
+  }
+  if (what === 'track' && req.method === 'POST') { // Unsplash asks to report downloads
+    try { const b = JSON.parse(await readBody(req, 4096)), x = new URL(b.url), key = stockKeys().unsplash;
+      if (x.protocol === 'https:' && x.hostname === 'api.unsplash.com' && key) await fetch(x, { headers: { Authorization: 'Client-ID ' + key }, signal: AbortSignal.timeout(10000) }).catch(() => {});
+    } catch { /* ignore */ }
+    return send(res, 200, { ok: true });
+  }
+  send(res, 404, { error: 'not found' });
+}
+
 async function api(req, res, parts) {
   if (parts[1] === 'health') return send(res, 200, { ok: true, name: 'office-werkstatt', version: VERSION });
   if (parts[1] === 'engines') { const o = {}; for (const t of ['word', 'excel', 'slide', 'pdf']) o[t] = fs.existsSync(path.join(ROOT, 'engines', t, 'index.html')); return send(res, 200, o); }
+  if (parts[1] === 'stock') return stockApi(req, res, parts[2], new URL(req.url, 'http://x'));
   if (parts[1] === 'forms') { const fid = safeId(decodeURIComponent(parts[2] || '')); return fid && ['responses', 'publish'].includes(parts[3]) && !parts[4] ? formsApi(req, res, fid, parts[3]) : send(res, 404, { error: 'not found' }); }
   if (parts[1] !== 'files') return send(res, 404, { error: 'not found' });
   const id = parts[2] ? safeId(decodeURIComponent(parts[2])) : null;

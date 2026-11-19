@@ -36,6 +36,7 @@
 | **Note Werkzeug** | OneNote tarzı: defter → bölüm → sayfa, etiketler, kalem/mürekkep, toplantı şablonu, **takvim** (ay görünümü, etkinlik ↔ sayfa bağlantısı, `.ics` içe/dışa aktarma) |
 | **Draw Werkzeug** | El çizimi tarzı beyaz tahta, şekiller, oklar, metin, `.excalidraw` içe/dışa aktarma, PNG / SVG |
 | **PDF Werkzeug** | **PDF Werkstatt** (kırmızı sürüm): düzenleme, OCR, imzalama, koruma, dönüştürme |
+| **Design Werkzeug** | Canva tarzı tasarım stüdyosu: sosyal medya gönderileri, afiş, el ilanı, dergi ve kitap kapağı, broşür (iki kırım, Z kırım, sarmal kırım), davetiye, kartvizit, yılbaşı / doğum günü / tebrik kartı, sticker, sertifika, video. 17 şablon, 16 gömülü yazı tipi, marka kiti, çerçeveler, QR kod, sayfalar, animasyon; stok fotoğraf / illüstrasyon / ikon / müzik (Openverse, Iconify, Pexels, Pixabay, Unsplash, Freesound, Jamendo); PNG, JPG, SVG, PDF, baskı PDF'i (taşma payı + kesim işaretleri), müzikli video |
 | **Formular Werkzeug** | Sürükle-bırak form oluşturucu, sınırsız soru, takvimden gün + saat seçimi, resim ve metin blokları, karşılama ekranı, başlık resmi, renk / arka plan / çerçeve, önizleme/kiosk, link + QR kod, yanıtlar → Excel Werkzeug, `.xlsx` / `.csv` |
 
 Pro motorlar kurulu olduğunda Word / Excel / Slide doğrudan bu motorlarda açılır (ayrı bir “basit görünüm” yoktur).
@@ -55,6 +56,15 @@ verildiğinde otomatik kaydedilir. Motor yoksa yerleşik düzenleyiciler kullan�
 <tr><td><img src="docs/draw-werkzeug.png" alt="Draw Werkzeug"></td><td><img src="docs/note-werkzeug.png" alt="Note Werkzeug"></td></tr>
 <tr><td><img src="docs/slide-werkzeug.png" alt="Slide Werkzeug"></td><td><img src="docs/dashboard-dark.png" alt="Koyu tema"></td></tr>
 </table>
+
+## Design Werkzeug
+
+Canva tarzı tasarım stüdyosu: üstte diğer araçlardaki gibi klasik şerit menü, solda *Şablonlar · Öğeler · Metin · Fotoğraflar · İllüstrasyonlar · İkonlar · Ses · Yüklemeler · Marka · Katmanlar · Kaynaklar* paneli, ortada sayfa, altta sayfa şeridi.
+
+- **Formatlar:** Instagram / Facebook / LinkedIn / X / YouTube / Pinterest, afiş A3–A1, el ilanı A4–A6, dergi, kitap kapağı (sırtlı), iki kırımlı / Z kırımlı / sarmal kırımlı broşür, davetiye, katlanır kart, kartpostal, kartvizit, sticker, sertifika, video 16:9 ve 9:16, özel boyut. Baskı formatlarında 3 mm taşma payı, güvenli alan ve kırım çizgileri gösterilir.
+- **Dışa aktarma:** PNG, JPG, SVG, PDF standart, **PDF baskı** (300 dpi, taşma payı, kesim işaretleri, TrimBox/BleedBox), sayfa animasyonlu ve müzikli **video** (MP4/WebM).
+- **Stok medya:** Openverse ve Iconify anahtarsız çalışır; Pexels, Pixabay, Unsplash, Freesound ve Jamendo için ücretsiz API anahtarı *Ekle → Stok kaynakları* altına girilir. Sunucu modunda anahtarlar `data/stock-keys.json` içinde sunucuda kalır, medya `/api/stock/media` üzerinden alınıp tasarıma gömülür (sonra internetsiz de görünür). Kullanılan her medyanın lisans/kaynak bilgisi *Kaynaklar* panelinde listelenir.
+- Tuval motoru: [Fabric.js](http://fabricjs.com) 5.3 (MIT). Yazı tipleri: Fontsource üzerinden OFL lisanslı (bkz. `public/fonts/LICENSE.txt`).
 
 ## Formular Werkzeug
 

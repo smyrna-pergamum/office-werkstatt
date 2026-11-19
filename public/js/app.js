@@ -7,7 +7,7 @@
   OW.TYPES = {
     word: { ext: 'docx', engine: 'Word Werkzeug Pro' }, excel: { ext: 'xlsx', engine: 'Excel Werkzeug Pro' }, slide: { ext: 'pptx', engine: 'Slide Werkzeug Pro' },
     note: { ext: 'note', engine: null }, draw: { ext: 'excalidraw', engine: null }, pdf: { ext: 'pdf', engine: 'PDF Werkstatt' },
-    form: { ext: 'form', engine: null },
+    form: { ext: 'form', engine: null }, design: { ext: 'design', engine: null },
   };
   const S = OW.settings = Object.assign({ theme: 'system', density: 'comfortable', view: 'grid', userName: '' }, JSON.parse(localStorage.getItem('ow-settings') || '{}'));
   const saveSettings = () => localStorage.setItem('ow-settings', JSON.stringify(S));
@@ -45,7 +45,7 @@
   });
   OW.confirm = (msg) => modal(`<div class="dlg"><h3>${msg}</h3><div class="dlg-btns"><button class="btn ghost" data-x>${t('cancel')}</button><button class="btn danger" data-ok>${t('ok')}</button></div></div>`, (c, close) => { c.querySelector('[data-x]').onclick = () => close(false); c.querySelector('[data-ok]').onclick = () => close(true); });
   OW.alert = (title, html) => modal(`<div class="dlg"><h3>${title}</h3><div class="dlg-body">${html}</div><div class="dlg-btns"><button class="btn primary" data-x>${t('ok')}</button></div></div>`, (c, close) => c.querySelector('[data-x]').onclick = () => close(true));
-  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.2</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Formular Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
+  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.2</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Design Werkzeug · Formular Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
 
   /* command palette (Ctrl+K) */
   OW.palette = function ({ placeholder, items }) {
@@ -177,7 +177,7 @@
   }
 
   /* ---------- Home ---------- */
-  const TOOLCARDS = ['word', 'excel', 'slide', 'note', 'draw', 'pdf', 'form'];
+  const TOOLCARDS = ['word', 'excel', 'slide', 'note', 'draw', 'pdf', 'design', 'form'];
   const toolArt = {
     word: '<div class="art art-doc"><i></i><i></i><i></i><i></i><i></i></div>',
     excel: '<div class="art art-sheet">' + '<i></i>'.repeat(12) + '</div>',
@@ -185,6 +185,7 @@
     note: '<div class="art art-note"><div class="rings"><i></i><i></i><i></i><i></i></div><div class="pg"><i></i><i></i><i></i></div><b class="tab a"></b><b class="tab b"></b><b class="tab c"></b></div>',
     draw: '<div class="art art-draw"><svg viewBox="0 0 120 100"><rect x="10" y="12" width="100" height="78" rx="12" fill="#fff" stroke="#3a2f2a" stroke-width="3"/><rect x="48" y="22" width="30" height="20" rx="3" fill="#b9a7ff" stroke="#3a2f2a" stroke-width="2.5"/><rect x="22" y="58" width="26" height="18" rx="3" fill="#9fe0a9" stroke="#3a2f2a" stroke-width="2.5"/><path d="M84 58l10 10-10 10-10-10z" fill="#ffc46b" stroke="#3a2f2a" stroke-width="2.5"/><path d="M58 44L38 58M70 44l12 12" stroke="#3a2f2a" stroke-width="2.5" fill="none"/><path d="M96 86l14-30 6 3-14 30z" fill="#7C4DDB" stroke="#3a2f2a" stroke-width="2"/></svg><i class="spark"></i></div>',
     pdf: '<div class="art art-pdf"><i></i><i></i><i></i><b>PDF</b></div>',
+    design: '<div class="art art-design"><i class="d1"></i><i class="d2"></i><i class="d3"><b>Aa</b></i><i class="d4"></i></div>',
     form: '<div class="art art-form"><div class="fq"><b></b><i></i></div><div class="fq"><b></b><span class="o on"></span><span class="o"></span></div><div class="fq"><b></b><i></i></div><em>✓</em></div>',
   };
   function renderHome() {
@@ -293,6 +294,7 @@
     if (k === 'slide') { const bg = { werkstatt: 'linear-gradient(135deg,#f3f0ff,#e6ecff)', forest: 'linear-gradient(135deg,#4caf50,#2e7d32)', sunset: 'linear-gradient(135deg,#fff1e6,#ffd9c2)' }[c && c.theme] || '#fff'; return `<div class="tt tt-slide"><div class="sl" style="background:${bg}">${tp.id === 'blank' ? '<b class="ph"></b>' : '<b></b><i></i>'}</div></div>`; }
     if (k === 'note') return `<div class="tt tt-note"><div class="nb"><span></span><span></span><span></span><div><b></b><i></i><i></i></div></div></div>`;
     if (k === 'draw') return `<div class="tt tt-draw">${tp.id === 'blank' ? '' : tp.id === 'flow' ? '<i class="o"></i><i class="r"></i><i class="d"></i>' : tp.id === 'mind' ? '<i class="o big"></i><i class="r a"></i><i class="r b"></i>' : '<i class="col"></i><i class="col"></i><i class="col"></i>'}</div>`;
+    if (k === 'design') { const tp0 = c && c.template && OW.design && OW.design.TEMPLATES.find(x => x.id === c.template), f = OW.design && OW.design.fmt(tp0 ? tp0.format : 'ig-post'), r = f ? f.w / f.h : 1; return `<div class="tt tt-design"><div class="dp" style="width:${r >= 1 ? 120 : 120 * r}px;height:${r >= 1 ? 120 / r : 120}px">${tp0 ? '<b></b><i></i><i></i><u></u>' : ''}</div></div>`; }
     if (k === 'form') { const qs = (c && c.questions || []).slice(0, 3); return `<div class="tt tt-form"><div class="fp" style="--fa:${(c && c.accent) || 'var(--c-form)'}"><b></b>${qs.length ? qs.map(q => ['single', 'multi', 'rating', 'scale'].includes(q.type) ? '<span><i></i><em></em><em></em><em></em></span>' : '<span><i></i><u></u></span>').join('') : '<span><i></i><u></u></span>'}</div></div>`; }
     return '';
   }
@@ -301,7 +303,7 @@
     $('#view-templates').innerHTML = `
       <div class="page-h"><h1>${I('grid', 28)}${t('nav.templates')}</h1></div>
       <p class="muted lead">${t('tpl.lead')}</p>
-      <div class="chips">${['all', 'word', 'excel', 'slide', 'note', 'draw', 'form'].map(ty => `<button class="chip ${tplType === ty ? 'on' : ''}" data-f="${ty}">${ty === 'all' ? t('filter.all') : OW.appGlyph(ty, 16) + t('type.' + ty)}</button>`).join('')}</div>
+      <div class="chips">${['all', 'word', 'excel', 'slide', 'note', 'draw', 'design', 'form'].map(ty => `<button class="chip ${tplType === ty ? 'on' : ''}" data-f="${ty}">${ty === 'all' ? t('filter.all') : OW.appGlyph(ty, 16) + t('type.' + ty)}</button>`).join('')}</div>
       <div class="tpl-grid">${all.map((tp, i) => `<button class="tpl tpl-${tp.type}" data-i="${i}">${tplThumb(tp)}<div class="tpl-meta">${OW.appGlyph(tp.type, 20)}<span>${tp.name}</span></div></button>`).join('')}</div>`;
     document.querySelectorAll('#view-templates .chip').forEach(c => c.onclick = () => { tplType = c.dataset.f; renderTemplates(); });
     document.querySelectorAll('#view-templates .tpl').forEach(b => b.onclick = () => { const tp = all[+b.dataset.i]; OW.createFile(tp.type, { name: tp.id === 'blank' ? undefined : tp.name, content: tp.content }); });
