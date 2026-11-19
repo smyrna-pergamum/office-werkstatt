@@ -1,441 +1,302 @@
-/* Excel Werkzeug – spreadsheets with a formula engine (classic ribbon like Excel for the web) */
-OW.editors.excel = async function (ctx) {
-  const t = ctx.t, I = OW.icon;
-  const COLS = 26, ROWS = 200;
-  const colName = i => String.fromCharCode(65 + i);
-  const colIdx = s => s.charCodeAt(0) - 65;
-  const raw = ctx.file.content && ctx.file.content.sheets ? ctx.file.content : { sheets: [{ name: t('excel.sheet') + '1', cells: (ctx.file.content && ctx.file.content.cells) || {} }], active: 0 };
-  const book = raw; book.sheets.forEach(s => { s.cells = s.cells || {}; s.colW = s.colW || {}; s.charts = s.charts || []; });
-  let sh = book.sheets[book.active || 0];
-  let sel = { r: 0, c: 0, r2: 0, c2: 0 }, editing = null, showFormulas = false, zoom = 100, gridlines = true, freeze = false, filterOn = false;
-  let gridEl, tableEl, fxInput, nameBox, wrapEl, sheetTabs;
-  const undoStack = [], redoStack = [];
+/* Office Werkstatt – tiny offline OOXML engine (no dependencies)
+ * Reads .docx/.xlsx/.pptx (text level) and writes .docx/.xlsx.
+ * Uses the browser's built-in DecompressionStream, so it works without internet. */
+window.OW = window.OW || {};
+(function () {
+  const td = new TextDecoder(), te = new TextEncoder();
 
-  /* ======== formula engine (safe parser, no eval) ======== */
-  const FN = {
-    SUM: a => flat(a).filter(isNum).reduce((x, y) => x + +y, 0),
-    AVERAGE: a => { const n = flat(a).filter(isNum); if (!n.length) throw '#DIV/0!'; return n.reduce((x, y) => x + +y, 0) / n.length; },
-    MIN: a => Math.min(...flat(a).filter(isNum).map(Number)), MAX: a => Math.max(...flat(a).filter(isNum).map(Number)),
-    COUNT: a => flat(a).filter(isNum).length, COUNTA: a => flat(a).filter(v => v !== '' && v != null).length,
-    PRODUCT: a => flat(a).filter(isNum).reduce((x, y) => x * y, 1),
-    MEDIAN: a => { const n = flat(a).filter(isNum).map(Number).sort((x, y) => x - y); const m = n.length >> 1; return n.length % 2 ? n[m] : (n[m - 1] + n[m]) / 2; },
-    IF: a => (truthy(a[0]) ? a[1] : (a.length > 2 ? a[2] : false)),
-    AND: a => flat(a).every(truthy), OR: a => flat(a).some(truthy), NOT: a => !truthy(a[0]),
-    ROUND: a => { const p = Math.pow(10, +a[1] || 0); return Math.round(+a[0] * p) / p; },
-    ABS: a => Math.abs(+a[0]), SQRT: a => Math.sqrt(+a[0]), POWER: a => Math.pow(+a[0], +a[1]), MOD: a => +a[0] % +a[1], INT: a => Math.floor(+a[0]),
-    CONCAT: a => flat(a).join(''), LEN: a => String(a[0]).length, UPPER: a => String(a[0]).toUpperCase(), LOWER: a => String(a[0]).toLowerCase(),
-    TODAY: () => new Date().toLocaleDateString(OW.lang), NOW: () => new Date().toLocaleString(OW.lang),
-    SUMIF: a => { const rng = flat([a[0]]), sum = a.length > 2 ? flat([a[2]]) : rng; return rng.reduce((s, v, i) => s + (matchCrit(v, a[1]) && isNum(sum[i]) ? +sum[i] : 0), 0); },
-    COUNTIF: a => flat([a[0]]).filter(v => matchCrit(v, a[1])).length,
-  };
-  // German / Turkish / Spanish / French aliases so users can type formulas in their own language
-  Object.assign(FN, { SUMME: FN.SUM, MITTELWERT: FN.AVERAGE, ANZAHL: FN.COUNT, ANZAHL2: FN.COUNTA, WENN: FN.IF, RUNDEN: FN.ROUND, UND: FN.AND, ODER: FN.OR, NICHT: FN.NOT, HEUTE: FN.TODAY, JETZT: FN.NOW, SUMMEWENN: FN.SUMIF, ZÄHLENWENN: FN.COUNTIF,
-    TOPLA: FN.SUM, ORTALAMA: FN.AVERAGE, EĞER: FN.IF, YUVARLA: FN.ROUND, BUGÜN: FN.TODAY, SAY: FN.COUNT,
-    SUMA: FN.SUM, PROMEDIO: FN.AVERAGE, SI: FN.IF, REDONDEAR: FN.ROUND, HOY: FN.TODAY, CONTAR: FN.COUNT,
-    SOMME: FN.SUM, MOYENNE: FN.AVERAGE, ARRONDI: FN.ROUND, AUJOURDHUI: FN.TODAY, NB: FN.COUNT });
-  function matchCrit(v, c) { const m = /^(<=|>=|<>|<|>|=)?(.*)$/.exec(String(c)); const op = m[1] || '=', x = m[2]; const a = isNum(v) && isNum(x) ? +v : String(v).toLowerCase(), b = isNum(v) && isNum(x) ? +x : x.toLowerCase(); return { '=': a == b, '<>': a != b, '<': a < b, '>': a > b, '<=': a <= b, '>=': a >= b }[op]; }
-  const isNum = v => v !== '' && v !== null && v !== true && v !== false && !isNaN(+v);
-  const truthy = v => v === true || (isNum(v) && +v !== 0) || (typeof v === 'string' && v.toUpperCase() === 'TRUE');
-  const flat = a => a.flat(Infinity);
-
-  function tokenize(s) {
-    const out = []; let i = 0;
-    const re = /\s*(?:(\d+(?:[.,]\d+)?(?:e[+-]?\d+)?%?)|("(?:[^"]|"")*")|(\$?[A-Z]\$?\d+(?::\$?[A-Z]\$?\d+)?)|([A-ZÄÖÜİĞŞÇa-zäöüığşç][A-ZÄÖÜİĞŞÇa-zäöüığşç0-9.]*)(?=\s*\()|(<=|>=|<>|[-+*/^&=<>(),;:]))/y;
-    while (i < s.length) {
-      re.lastIndex = i; const m = re.exec(s);
-      if (!m) { if (/\s/.test(s[i])) { i++; continue; } throw '#NAME?'; }
-      i = re.lastIndex;
-      if (m[1]) out.push({ k: 'n', v: m[1].endsWith('%') ? parseFloat(m[1].replace(',', '.')) / 100 : parseFloat(m[1].replace(',', '.')) });
-      else if (m[2]) out.push({ k: 's', v: m[2].slice(1, -1).replace(/""/g, '"') });
-      else if (m[3]) out.push({ k: 'r', v: m[3].replace(/\$/g, '') });
-      else if (m[4]) out.push({ k: 'f', v: m[4].toUpperCase() });
-      else out.push({ k: 'o', v: m[5] === ';' ? ',' : m[5] });
-    }
-    return out;
+  async function inflateRaw(u8) {
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new Blob([u8]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
   }
-  function evaluate(src, stack) {
-    const tk = tokenize(src); let p = 0;
-    const peek = () => tk[p], next = () => tk[p++];
-    const expect = v => { const x = next(); if (!x || x.v !== v) throw '#ERROR!'; };
-    function cmp() { let a = cat(); while (peek() && ['=', '<>', '<', '>', '<=', '>='].includes(peek().v)) { const o = next().v, b = cat(); a = { '=': a == b, '<>': a != b, '<': a < b, '>': a > b, '<=': a <= b, '>=': a >= b }[o]; } return a; }
-    function cat() { let a = add(); while (peek() && peek().v === '&') { next(); a = String(a) + String(add()); } return a; }
-    function add() { let a = mul(); while (peek() && (peek().v === '+' || peek().v === '-')) { const o = next().v, b = mul(); a = o === '+' ? num(a) + num(b) : num(a) - num(b); } return a; }
-    function mul() { let a = pow(); while (peek() && (peek().v === '*' || peek().v === '/')) { const o = next().v, b = pow(); if (o === '/' && num(b) === 0) throw '#DIV/0!'; a = o === '*' ? num(a) * num(b) : num(a) / num(b); } return a; }
-    function pow() { let a = unary(); while (peek() && peek().v === '^') { next(); a = Math.pow(num(a), num(unary())); } return a; }
-    function unary() { if (peek() && peek().v === '-') { next(); return -num(unary()); } if (peek() && peek().v === '+') { next(); return num(unary()); } return prim(); }
-    function prim() {
-      const x = next(); if (!x) throw '#ERROR!';
-      if (x.k === 'n' || x.k === 's') return x.v;
-      if (x.k === 'r') { if (x.v.includes(':')) return range(x.v, stack); return cellValue(x.v, stack); }
-      if (x.k === 'f') {
-        expect('('); const args = [];
-        if (peek() && peek().v !== ')') { do { args.push(cmp()); } while (peek() && peek().v === ',' && next()); }
-        expect(')');
-        const f = FN[x.v]; if (!f) throw '#NAME?';
-        return f(args);
+
+  async function readZip(buf) {
+    const u8 = new Uint8Array(buf), dv = new DataView(buf);
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 66000); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error('Not a zip file');
+    const count = dv.getUint16(eocd + 10, true);
+    let p = dv.getUint32(eocd + 16, true);
+    const files = {};
+    for (let n = 0; n < count; n++) {
+      const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+      const nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+      const lho = dv.getUint32(p + 42, true);
+      const name = td.decode(u8.subarray(p + 46, p + 46 + nlen));
+      const start = lho + 30 + dv.getUint16(lho + 26, true) + dv.getUint16(lho + 28, true);
+      files[name] = { method, data: u8.subarray(start, start + csize) };
+      p += 46 + nlen + xlen + clen;
+    }
+    return {
+      names: Object.keys(files),
+      async text(name) {
+        const f = files[name]; if (!f) return null;
+        return td.decode(f.method === 0 ? f.data : await inflateRaw(f.data));
+      },
+    };
+  }
+
+  /* CRC32 + stored ZIP writer */
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = u8 => { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  function writeZip(entries) { // entries: {name: string content}
+    const parts = [], central = []; let offset = 0;
+    for (const [name, content] of Object.entries(entries)) {
+      const nb = te.encode(name), data = content instanceof Uint8Array ? content : te.encode(content), crc = crc32(data);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint32(14, crc, true);
+      h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nb.length, true);
+      parts.push(new Uint8Array(h.buffer), nb, data);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint32(16, crc, true);
+      c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nb.length, true); c.setUint32(42, offset, true);
+      central.push(new Uint8Array(c.buffer), nb);
+      offset += 30 + nb.length + data.length;
+    }
+    const csize = central.reduce((a, b) => a + b.length, 0);
+    const e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, central.length / 2, true); e.setUint16(10, central.length / 2, true);
+    e.setUint32(12, csize, true); e.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, new Uint8Array(e.buffer)]);
+  }
+
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const parseXML = s => new DOMParser().parseFromString(s, 'application/xml');
+  const byTag = (el, tag) => Array.from(el.getElementsByTagName(tag));
+
+  /* ---------- Import ---------- */
+  async function docxToHtml(buf) {
+    const z = await readZip(buf);
+    const doc = parseXML(await z.text('word/document.xml'));
+    let html = '';
+    for (const p of byTag(doc, 'w:p')) {
+      const style = (p.getElementsByTagName('w:pStyle')[0] || { getAttribute: () => '' }).getAttribute('w:val') || '';
+      let inner = '';
+      for (const r of byTag(p, 'w:r')) {
+        let t = byTag(r, 'w:t').map(x => esc(x.textContent)).join('');
+        if (byTag(r, 'w:br').length) t += '<br>';
+        if (!t) continue;
+        if (r.getElementsByTagName('w:b').length) t = `<b>${t}</b>`;
+        if (r.getElementsByTagName('w:i').length) t = `<i>${t}</i>`;
+        if (r.getElementsByTagName('w:u').length) t = `<u>${t}</u>`;
+        inner += t;
       }
-      if (x.v === '(') { const v = cmp(); expect(')'); return v; }
-      throw '#ERROR!';
+      const m = /Heading(\d)|berschrift(\d)|Title/i.exec(style);
+      const tag = m ? (m[1] || m[2] ? 'h' + Math.min(3, +(m[1] || m[2])) : 'h1') : 'p';
+      html += `<${tag}>${inner || '<br>'}</${tag}>`;
     }
-    const num = v => { if (v === '' || v == null) return 0; if (v === true) return 1; if (v === false) return 0; if (isNaN(+v)) throw '#VALUE!'; return +v; };
-    const v = cmp(); if (p < tk.length) throw '#ERROR!'; return v;
+    return html;
   }
-  function range(ref, stack) {
-    const [a, b] = ref.split(':'); const ra = parseRef(a), rb = parseRef(b); const out = [];
-    for (let r = Math.min(ra.r, rb.r); r <= Math.max(ra.r, rb.r); r++) { const row = []; for (let c = Math.min(ra.c, rb.c); c <= Math.max(ra.c, rb.c); c++) row.push(cellValue(colName(c) + (r + 1), stack)); out.push(row); }
-    return out;
-  }
-  const parseRef = ref => { const m = /^([A-Z])(\d+)$/.exec(ref); if (!m) throw '#REF!'; return { c: colIdx(m[1]), r: +m[2] - 1 }; };
-  function cellValue(ref, stack = []) {
-    const cell = sh.cells[ref]; if (!cell || cell.v === undefined || cell.v === '') return '';
-    const v = String(cell.v);
-    if (!v.startsWith('=')) return isNum(v) ? +v : v;
-    if (stack.includes(ref)) throw '#CIRC!';
-    return evaluate(v.slice(1), stack.concat(ref));
-  }
-  function display(ref) {
-    const cell = sh.cells[ref]; if (!cell || cell.v === undefined || cell.v === '') return '';
-    if (showFormulas) return String(cell.v);
-    let v; try { v = cellValue(ref); } catch (e) { return typeof e === 'string' ? e : '#ERROR!'; }
-    if (v === true || v === false) return v ? 'TRUE' : 'FALSE';
-    const s = cell.s || {};
-    if (isNum(v) && v !== '') {
-      const n = +(+v).toPrecision(12), frac = String(n).split('.')[1];
-      const d = s.dec !== undefined ? s.dec : s.fmt === 'currency' ? 2 : s.fmt === 'percent' ? (frac && frac.length > 2 ? 1 : 0) : Math.min(6, frac ? frac.length : 0);
-      const o = { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: !!s.group || s.fmt === 'currency' };
-      if (s.fmt === 'currency') return n.toLocaleString(OW.lang, Object.assign(o, { style: 'currency', currency: 'EUR' }));
-      if (s.fmt === 'percent') return (n * 100).toLocaleString(OW.lang, o) + ' %';
-      if (s.fmt === 'date') { const dt = new Date(Math.round((n - 25569) * 864e5)); return isNaN(dt) ? String(n) : dt.toLocaleDateString(OW.lang); }
-      return n.toLocaleString(OW.lang, o);
+  async function xlsxToCells(buf) {
+    const z = await readZip(buf);
+    const ss = await z.text('xl/sharedStrings.xml');
+    const strings = ss ? byTag(parseXML(ss), 'si').map(si => byTag(si, 't').map(t => t.textContent).join('')) : [];
+    const sheet = parseXML(await z.text('xl/worksheets/sheet1.xml'));
+    const cells = {};
+    for (const c of byTag(sheet, 'c')) {
+      const ref = c.getAttribute('r'), t = c.getAttribute('t');
+      const f = c.getElementsByTagName('f')[0], v = c.getElementsByTagName('v')[0];
+      let val = v ? v.textContent : '';
+      if (t === 's') val = strings[+val] || '';
+      if (t === 'inlineStr') val = byTag(c, 't').map(x => x.textContent).join('');
+      if (f && f.textContent) val = '=' + f.textContent;
+      if (val !== '') cells[ref] = { v: val };
     }
-    return String(v);
+    return cells;
+  }
+  async function pptxToSlides(buf) {
+    const z = await readZip(buf);
+    const names = z.names.filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => +a.match(/\d+/)[0] - +b.match(/\d+/)[0]);
+    const slides = [];
+    for (const n of names) {
+      const x = parseXML(await z.text(n));
+      const paras = byTag(x, 'a:p').map(p => byTag(p, 'a:t').map(t => t.textContent).join('')).filter(Boolean);
+      slides.push({ title: paras[0] || '', body: paras.slice(1).join('\n'), layout: 'title-content', bg: '' });
+    }
+    return slides;
   }
 
-  /* ======== grid rendering ======== */
-  const ref = (r, c) => colName(c) + (r + 1);
-  const range4 = () => ({ r1: Math.min(sel.r, sel.r2), r2: Math.max(sel.r, sel.r2), c1: Math.min(sel.c, sel.c2), c2: Math.max(sel.c, sel.c2) });
-  const eachSel = fn => { const g = range4(); for (let r = g.r1; r <= g.r2; r++) for (let c = g.c1; c <= g.c2; c++) fn(ref(r, c), r, c); };
-
-  function buildGrid() {
-    let html = '<table class="xl-grid"><thead><tr><th class="corner"></th>';
-    for (let c = 0; c < COLS; c++) html += `<th class="ch" data-c="${c}" style="width:${sh.colW[c] || 92}px">${colName(c)}<span class="rs" data-c="${c}"></span></th>`;
-    html += '</tr></thead><tbody>';
-    for (let r = 0; r < ROWS; r++) { html += `<tr data-r="${r}"><th class="rh">${r + 1}</th>`; for (let c = 0; c < COLS; c++) html += `<td data-r="${r}" data-c="${c}"></td>`; html += '</tr>'; }
-    tableEl.innerHTML = html + '</tbody></table>';
-    paintAll();
-  }
-  function paintCell(td) {
-    const r = +td.dataset.r, c = +td.dataset.c, k = ref(r, c), cell = sh.cells[k], s = (cell && cell.s) || {};
-    const txt = display(k); td.textContent = txt;
-    const st = td.style; st.fontWeight = s.b ? '700' : ''; st.fontStyle = s.i ? 'italic' : ''; st.textDecoration = [s.u ? 'underline' : '', s.st ? 'line-through' : ''].join(' ').trim();
-    st.color = s.color || ''; st.background = s.bg || ''; st.fontFamily = s.font || ''; st.fontSize = s.size ? s.size + 'pt' : '';
-    const numeric = txt !== '' && !isNaN(parseFloat(String(txt).replace(/[^\d.,-]/g, '').replace(',', '.'))) && /^[-\d.,\s€%]+$/.test(txt);
-    st.textAlign = s.align || (numeric ? 'right' : ''); st.verticalAlign = s.valign || ''; st.whiteSpace = s.wrap ? 'normal' : '';
-    td.classList.toggle('err', /^#/.test(txt)); td.classList.toggle('bordered', !!s.border);
-    td.colSpan = s.span || 1; td.hidden = !!s.hiddenBy;
-    td.classList.toggle('cf', !!s.cfHit);
-  }
-  function paintAll() {
-    applyCF();
-    tableEl.querySelectorAll('td').forEach(paintCell);
-    tableEl.classList.toggle('nogrid', !gridlines); tableEl.classList.toggle('freeze', freeze);
-    wrapEl.style.setProperty('--zoom', zoom / 100);
-    paintSel(); drawCharts(); applyFilter();
-  }
-  function paintSel() {
-    tableEl.querySelectorAll('.sel,.act').forEach(x => x.classList.remove('sel', 'act'));
-    tableEl.querySelectorAll('th.hl').forEach(x => x.classList.remove('hl'));
-    const g = range4();
-    eachSel((k, r, c) => { const td = cellEl(r, c); if (td) td.classList.add('sel'); });
-    const a = cellEl(sel.r, sel.c); if (a) { a.classList.add('act'); a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
-    for (let c = g.c1; c <= g.c2; c++) tableEl.querySelector(`th.ch[data-c="${c}"]`).classList.add('hl');
-    for (let r = g.r1; r <= g.r2; r++) tableEl.querySelectorAll('tbody tr')[r].firstElementChild.classList.add('hl');
-    nameBox.value = g.r1 === g.r2 && g.c1 === g.c2 ? ref(sel.r, sel.c) : ref(g.r1, g.c1) + ':' + ref(g.r2, g.c2);
-    const cell = sh.cells[ref(sel.r, sel.c)]; if (document.activeElement !== fxInput) fxInput.value = cell ? cell.v : '';
-    ctx.refresh();
-  }
-  const cellEl = (r, c) => tableEl.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
-
-  /* ======== mutations with undo ======== */
-  function snapshot() { undoStack.push(JSON.stringify(sh)); if (undoStack.length > 80) undoStack.shift(); redoStack.length = 0; }
-  function restore(json) { const o = JSON.parse(json); Object.keys(sh).forEach(k => delete sh[k]); Object.assign(sh, o); buildGrid(); ctx.markDirty(); }
-  function setVal(k, v) { if (v === '' || v == null) { if (sh.cells[k]) { delete sh.cells[k].v; if (!sh.cells[k].s) delete sh.cells[k]; } } else (sh.cells[k] = sh.cells[k] || {}).v = v; }
-  function styleSel(fn) { snapshot(); eachSel(k => { const c = sh.cells[k] = sh.cells[k] || {}; c.s = c.s || {}; fn(c.s, k); }); paintAll(); ctx.markDirty(); }
-  const curStyle = () => ((sh.cells[ref(sel.r, sel.c)] || {}).s || {});
-  const toggle = key => { const on = !curStyle()[key]; styleSel(s => { s[key] = on; }); };
-
-  function commit(v) { snapshot(); setVal(ref(sel.r, sel.c), v); paintAll(); ctx.markDirty(); }
-  function startEdit(initial) {
-    if (ctx.readOnly) return;
-    const td = cellEl(sel.r, sel.c); if (!td) return;
-    const k = ref(sel.r, sel.c), cell = sh.cells[k];
-    const inp = document.createElement('input'); inp.className = 'xl-edit';
-    inp.value = initial !== undefined ? initial : (cell ? cell.v : '');
-    const rc = td.getBoundingClientRect(), wr = wrapEl.getBoundingClientRect();
-    Object.assign(inp.style, { left: (rc.left - wr.left + wrapEl.scrollLeft) / (zoom / 100) + 'px', top: (rc.top - wr.top + wrapEl.scrollTop) / (zoom / 100) + 'px', width: Math.max(rc.width / (zoom / 100), 120) + 'px', height: rc.height / (zoom / 100) + 'px' });
-    gridEl.appendChild(inp); inp.focus(); editing = inp;
-    inp.addEventListener('input', () => fxInput.value = inp.value);
-    inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); endEdit(true); move(e.key === 'Tab' ? 0 : (e.shiftKey ? -1 : 1), e.key === 'Tab' ? (e.shiftKey ? -1 : 1) : 0); }
-      else if (e.key === 'Escape') endEdit(false);
-      e.stopPropagation();
-    });
-    inp.addEventListener('blur', () => editing === inp && endEdit(true));
-  }
-  function endEdit(save) { const inp = editing; if (!inp) return; editing = null; if (save) commit(inp.value.trim()); inp.remove(); gridEl.focus(); }
-  function move(dr, dc, extend) {
-    if (extend) { sel.r2 = clamp(sel.r2 + dr, ROWS); sel.c2 = clamp(sel.c2 + dc, COLS); }
-    else { sel.r = clamp(sel.r + dr, ROWS); sel.c = clamp(sel.c + dc, COLS); sel.r2 = sel.r; sel.c2 = sel.c; }
-    paintSel();
-  }
-  const clamp = (v, max) => Math.max(0, Math.min(max - 1, v));
-
-  /* ======== features ======== */
-  function autoSum(fn = 'SUM') {
-    const g = range4();
-    if (g.r1 !== g.r2 || g.c1 !== g.c2) { const target = ref(g.r2 + 1, g.c1); if (g.r2 + 1 < ROWS) { snapshot(); for (let c = g.c1; c <= g.c2; c++) setVal(ref(g.r2 + 1, c), `=${fn}(${ref(g.r1, c)}:${ref(g.r2, c)})`); sel = { r: g.r2 + 1, c: g.c1, r2: g.r2 + 1, c2: g.c1 }; paintAll(); ctx.markDirty(); } return target; }
-    let r = sel.r - 1; while (r >= 0 && isNum(safe(ref(r, sel.c)))) r--;
-    if (r === sel.r - 1) return startEdit(`=${fn}()`);
-    commit(`=${fn}(${ref(r + 1, sel.c)}:${ref(sel.r - 1, sel.c)})`);
-  }
-  const safe = k => { try { return cellValue(k); } catch { return ''; } };
-  function sortSel(dir) {
-    const g = range4(); let r1 = g.r1, r2 = g.r2;
-    if (r1 === r2) { r1 = hasHeader() ? 1 : 0; r2 = Math.max(0, ...Object.keys(sh.cells).filter(k => sh.cells[k].v !== undefined).map(k => +k.slice(1) - 1)); }
-    snapshot();
-    const c1 = g.r1 === g.r2 ? 0 : g.c1, c2 = g.r1 === g.r2 ? COLS - 1 : g.c2;
-    const rows = []; for (let r = r1; r <= r2; r++) { const row = []; for (let c = c1; c <= c2; c++) row.push(sh.cells[ref(r, c)]); rows.push(row); }
-    const key = sel.c - c1;
-    rows.sort((a, b) => { const x = a[key] ? a[key].v : '', y = b[key] ? b[key].v : ''; if (x === '' || x == null) return 1; if (y === '' || y == null) return -1; return (isNum(x) && isNum(y) ? x - y : String(x).localeCompare(String(y), OW.lang)) * dir; });
-    rows.forEach((row, i) => row.forEach((cell, j) => { const k = ref(r1 + i, c1 + j); if (cell) sh.cells[k] = cell; else delete sh.cells[k]; }));
-    paintAll(); ctx.markDirty();
-  }
-  const hasHeader = () => { const v = (sh.cells['A1'] || {}).v; return v && !isNum(v); };
-  function applyFilter() {
-    const header = tableEl.querySelector('tbody tr'); if (!header) return;
-    tableEl.querySelectorAll('tbody tr').forEach(tr => tr.hidden = false);
-    tableEl.querySelectorAll('.flt').forEach(x => x.remove());
-    if (!filterOn || !sh.filter) return;
-    for (let c = 0; c < COLS; c++) { const td = cellEl(0, c); if (td && td.textContent) { const b = document.createElement('span'); b.className = 'flt'; b.innerHTML = I('filter', 11); td.appendChild(b); } }
-    const f = sh.filter;
-    if (f.value) tableEl.querySelectorAll('tbody tr').forEach((tr, r) => { if (r > 0 && display(ref(r, f.c)) !== f.value) tr.hidden = true; });
-  }
-  function filterMenu(c, anchor) {
-    const vals = new Set(); for (let r = 1; r < ROWS; r++) { const v = display(ref(r, c)); if (v) vals.add(v); }
-    OW.popover(anchor, [{ label: t('excel.showAll'), onClick: () => { sh.filter = { c }; applyFilter(); } }, '-', ...Array.from(vals).slice(0, 30).map(v => ({ label: v, checked: sh.filter && sh.filter.value === v && sh.filter.c === c, onClick: () => { sh.filter = { c, value: v }; applyFilter(); } }))]);
-  }
-  function applyCF() {
-    Object.values(sh.cells).forEach(cell => { if (cell.s) delete cell.s.cfHit; });
-    (sh.cf || []).forEach(rule => {
-      const [a, b] = rule.range.split(':'); const ra = parseRef(a), rb = parseRef(b || a);
-      for (let r = ra.r; r <= rb.r; r++) for (let c = ra.c; c <= rb.c; c++) { const k = ref(r, c), v = safe(k); if (isNum(v) && (rule.op === '>' ? +v > rule.x : +v < rule.x)) { const cell = sh.cells[k]; cell.s = cell.s || {}; cell.s.cfHit = true; } }
-    });
-  }
-  function addCF(op) {
-    const g = range4(); const rangeRef = ref(g.r1, g.c1) + ':' + ref(g.r2, g.c2);
-    OW.prompt(op === '>' ? t('excel.cfGreater') : t('excel.cfLess'), '0').then(v => { if (v === null || !isNum(v)) return; sh.cf = (sh.cf || []).concat([{ range: rangeRef, op, x: +v }]); paintAll(); ctx.markDirty(); });
-  }
-  function formatAsTable() {
-    const g = range4(); if (g.r1 === g.r2) return OW.toast(t('excel.selectRange'));
-    snapshot();
-    for (let r = g.r1; r <= g.r2; r++) for (let c = g.c1; c <= g.c2; c++) { const cell = sh.cells[ref(r, c)] = sh.cells[ref(r, c)] || {}; cell.s = cell.s || {}; cell.s.border = true; if (r === g.r1) { cell.s.bg = '#1E9E5A'; cell.s.color = '#ffffff'; cell.s.b = true; } else cell.s.bg = (r - g.r1) % 2 ? '#e8f5ee' : ''; }
-    paintAll(); ctx.markDirty();
-  }
-  function mergeCenter() {
-    const g = range4(); snapshot();
-    const first = sh.cells[ref(g.r1, g.c1)] = sh.cells[ref(g.r1, g.c1)] || {}; first.s = first.s || {};
-    if (first.s.span > 1) { for (let c = g.c1 + 1; c < g.c1 + first.s.span; c++) { const x = sh.cells[ref(g.r1, c)]; if (x && x.s) delete x.s.hiddenBy; } delete first.s.span; }
-    else if (g.c2 > g.c1) { first.s.span = g.c2 - g.c1 + 1; first.s.align = 'center'; for (let c = g.c1 + 1; c <= g.c2; c++) { const x = sh.cells[ref(g.r1, c)] = sh.cells[ref(g.r1, c)] || {}; x.s = x.s || {}; x.s.hiddenBy = ref(g.r1, g.c1); } }
-    paintAll(); ctx.markDirty();
-  }
-  function insertRow(del) {
-    snapshot(); const at = sel.r, nc = {};
-    Object.entries(sh.cells).forEach(([k, v]) => { const m = /^([A-Z])(\d+)$/.exec(k); const r = +m[2] - 1; if (del && r === at) return; nc[m[1] + (r > at || (!del && r === at) ? r + (del ? 0 : 2) : r + 1)] = v; });
-    sh.cells = nc; paintAll(); ctx.markDirty();
-  }
-  function clearSel(what) { snapshot(); eachSel(k => { const c = sh.cells[k]; if (!c) return; if (what !== 'format') delete c.v; if (what !== 'content') delete c.s; if (c.v === undefined && !c.s) delete sh.cells[k]; }); paintAll(); ctx.markDirty(); }
-  function insertChart(kind) {
-    const g = range4(); if (g.r1 === g.r2 && g.c1 === g.c2) return OW.toast(t('excel.selectRange'));
-    sh.charts.push({ range: ref(g.r1, g.c1) + ':' + ref(g.r2, g.c2), kind, x: 520, y: 40 }); drawCharts(); ctx.markDirty();
-  }
-  function drawCharts() {
-    gridEl.querySelectorAll('.xl-chart').forEach(x => x.remove());
-    sh.charts.forEach((ch, idx) => {
-      let data; try { data = range(ch.range, []); } catch { return; }
-      const labels = data.map(r => r.length > 1 ? r[0] : ''), vals = data.map(r => +(r.length > 1 ? r[1] : r[0]) || 0);
-      const max = Math.max(1, ...vals), W = 360, H = 220, bw = (W - 50) / vals.length;
-      const pal = ['#1E9E5A', '#2F6BEA', '#EA6A2A', '#7C4DDB', '#E3A21A', '#D93A32'];
-      let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><line x1="40" y1="10" x2="40" y2="${H - 30}" stroke="currentColor" opacity=".3"/><line x1="40" y1="${H - 30}" x2="${W - 5}" y2="${H - 30}" stroke="currentColor" opacity=".3"/>`;
-      if (ch.kind === 'line') svg += `<polyline fill="none" stroke="${pal[0]}" stroke-width="2.5" points="${vals.map((v, i) => `${45 + i * bw + bw / 2},${H - 30 - v / max * (H - 50)}`).join(' ')}"/>` + vals.map((v, i) => `<circle cx="${45 + i * bw + bw / 2}" cy="${H - 30 - v / max * (H - 50)}" r="3.5" fill="${pal[0]}"/>`).join('');
-      else vals.forEach((v, i) => { const hh = v / max * (H - 50); svg += `<rect x="${45 + i * bw + 4}" y="${H - 30 - hh}" width="${Math.max(4, bw - 8)}" height="${hh}" rx="3" fill="${pal[i % pal.length]}"/>`; });
-      labels.forEach((l, i) => svg += `<text x="${45 + i * bw + bw / 2}" y="${H - 12}" font-size="10" text-anchor="middle" fill="currentColor">${OW.escape(String(l).slice(0, 10))}</text>`);
-      svg += `<text x="34" y="16" font-size="10" text-anchor="end" fill="currentColor">${max.toLocaleString(OW.lang)}</text></svg>`;
-      const el = document.createElement('div'); el.className = 'xl-chart'; el.style.left = ch.x + 'px'; el.style.top = ch.y + 'px';
-      el.innerHTML = `<div class="xc-h"><span>${t('excel.chart')} · ${OW.escape(ch.range)}</span><button title="${t('delete')}">${I('x', 14)}</button></div>${svg}`;
-      el.querySelector('button').onclick = () => { sh.charts.splice(idx, 1); drawCharts(); ctx.markDirty(); };
-      el.querySelector('.xc-h').onpointerdown = e => { const sx = e.clientX - ch.x, sy = e.clientY - ch.y; const mv = ev => { ch.x = ev.clientX - sx; ch.y = ev.clientY - sy; el.style.left = ch.x + 'px'; el.style.top = ch.y + 'px'; }; const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); ctx.markDirty(); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
-      gridEl.appendChild(el);
-    });
-  }
-  function toCSV() { let maxR = 0, maxC = 0; Object.keys(sh.cells).forEach(k => { const p = parseRef(k); if (sh.cells[k].v !== undefined) { maxR = Math.max(maxR, p.r); maxC = Math.max(maxC, p.c); } }); const lines = []; for (let r = 0; r <= maxR; r++) { const row = []; for (let c = 0; c <= maxC; c++) { let v = safe(ref(r, c)); v = String(v); row.push(/[",;\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v); } lines.push(row.join(',')); } return lines.join('\n'); }
-  function renderSheetTabs() {
-    sheetTabs.innerHTML = '';
-    book.sheets.forEach((s, i) => { const b = document.createElement('button'); b.className = 'sheet-tab' + (s === sh ? ' on' : ''); b.textContent = s.name; b.onclick = () => { sh = s; book.active = i; sel = { r: 0, c: 0, r2: 0, c2: 0 }; buildGrid(); renderSheetTabs(); }; b.ondblclick = () => OW.prompt(t('rename'), s.name).then(n => { if (n) { s.name = n; renderSheetTabs(); ctx.markDirty(); } }); sheetTabs.appendChild(b); });
-    const add = document.createElement('button'); add.className = 'sheet-add'; add.innerHTML = I('plus', 16); add.title = t('excel.addSheet');
-    add.onclick = () => { book.sheets.push({ name: t('excel.sheet') + (book.sheets.length + 1), cells: {}, colW: {}, charts: [] }); sh = book.sheets[book.sheets.length - 1]; book.active = book.sheets.length - 1; buildGrid(); renderSheetTabs(); ctx.markDirty(); };
-    sheetTabs.appendChild(add);
-  }
-  function fnMenu() { return ['SUM', 'AVERAGE', 'MIN', 'MAX', 'COUNT', 'IF', 'ROUND', 'SUMIF', 'COUNTIF', 'CONCAT', 'TODAY'].map(f => ({ label: f, onClick: () => ['SUM', 'AVERAGE', 'MIN', 'MAX', 'COUNT'].includes(f) ? autoSum(f) : startEdit(`=${f}(`) })); }
-
-  /* ======== ribbon ======== */
-  const fmtOpts = [{ v: '', l: t('excel.general') }, { v: 'number', l: t('excel.number') }, { v: 'currency', l: t('excel.currency') }, { v: 'percent', l: t('excel.percent') }, { v: 'date', l: t('date') }];
-  const R = [
-    { id: 'start', label: t('tab.home'), groups: [
-      { label: t('undo'), items: [{ t: 'stack', items: [{ icon: 'undo', title: t('undo'), onClick: () => undoStack.length && (redoStack.push(JSON.stringify(sh)), restore(undoStack.pop())) }, { icon: 'redo', title: t('redo'), onClick: () => redoStack.length && (undoStack.push(JSON.stringify(sh)), restore(redoStack.pop())) }] }] },
-      { label: t('clipboard'), items: [{ icon: 'clipboard', big: true, label: t('paste'), onClick: () => pasteText() },
-        { t: 'stack', items: [{ icon: 'scissors', label: t('cut'), onClick: () => { copySel(); clearSel('content'); } }, { icon: 'copy', label: t('copy'), onClick: copySel }, { icon: 'brush', label: t('formatPainter'), onClick: () => { const s = Object.assign({}, curStyle()); OW.toast(t('excel.painterHint')); pendingPaint = s; } }] }] },
-      { label: t('font'), items: [{ t: 'rows', rows: [
-        [{ t: 'select', editable: true, w: 132, options: ['Arial', 'Aptos', 'Calibri', 'Georgia', 'Courier New', 'Verdana'], get: () => curStyle().font || 'Arial', onChange: v => styleSel(s => s.font = v) },
-          { t: 'select', editable: true, w: 68, options: ['8', '9', '10', '11', '12', '14', '16', '18', '24', '36'], get: () => String(curStyle().size || 10), onChange: v => styleSel(s => s.size = +v) },
-          { icon: 'grow', title: t('fontGrow'), onClick: () => styleSel(s => s.size = (s.size || 10) + 1) }, { icon: 'shrink', title: t('fontShrink'), onClick: () => styleSel(s => s.size = Math.max(6, (s.size || 10) - 1)) }],
-        [{ icon: 'bold', title: t('bold'), active: () => curStyle().b, onClick: () => toggle('b') }, { icon: 'italic', title: t('italic'), active: () => curStyle().i, onClick: () => toggle('i') },
-          { icon: 'underline', title: t('underline'), active: () => curStyle().u, onClick: () => toggle('u') }, { icon: 'strike', title: t('strike'), active: () => curStyle().st, onClick: () => toggle('st') },
-          { icon: 'border', title: t('excel.borders'), active: () => curStyle().border, onClick: () => toggle('border') },
-          { t: 'color', icon: 'fill', title: t('fillColor'), value: '#fff3a6', onChange: v => styleSel(s => s.bg = v) },
-          { t: 'color', icon: 'fontColor', title: t('fontColor'), value: '#e03131', onChange: v => styleSel(s => s.color = v) }]] }] },
-      { label: t('alignment'), items: [{ t: 'rows', rows: [
-        [{ icon: 'alignJ', title: t('excel.top'), active: () => curStyle().valign === 'top', onClick: () => styleSel(s => s.valign = 'top') }, { icon: 'alignC', title: t('excel.middle'), active: () => curStyle().valign === 'middle', onClick: () => styleSel(s => s.valign = 'middle') }, { icon: 'alignJ', title: t('excel.bottom'), active: () => curStyle().valign === 'bottom', onClick: () => styleSel(s => s.valign = 'bottom') }, { icon: 'wrap', label: t('excel.wrap'), active: () => curStyle().wrap, onClick: () => toggle('wrap') }],
-        [{ icon: 'alignL', title: t('alignLeft'), active: () => curStyle().align === 'left', onClick: () => styleSel(s => s.align = 'left') }, { icon: 'alignC', title: t('alignCenter'), active: () => curStyle().align === 'center', onClick: () => styleSel(s => s.align = 'center') }, { icon: 'alignR', title: t('alignRight'), active: () => curStyle().align === 'right', onClick: () => styleSel(s => s.align = 'right') }, { icon: 'merge', label: t('excel.merge'), onClick: mergeCenter }]] }] },
-      { label: t('excel.number'), items: [{ t: 'rows', rows: [
-        [{ t: 'select', w: 128, options: fmtOpts, get: () => curStyle().fmt || '', onChange: v => styleSel(s => s.fmt = v) }],
-        [{ icon: 'sigma', title: t('excel.currency'), onClick: () => styleSel(s => s.fmt = 'currency') }, { icon: 'percent', title: t('excel.percent'), onClick: () => styleSel(s => s.fmt = 'percent') },
-          { icon: 'list', title: t('excel.thousands'), onClick: () => styleSel(s => s.group = !s.group) }, { icon: 'plus', title: t('excel.decInc'), onClick: () => styleSel(s => s.dec = Math.min(8, (s.dec || 0) + 1)) }, { icon: 'hr', title: t('excel.decDec'), onClick: () => styleSel(s => s.dec = Math.max(0, (s.dec || 1) - 1)) }]] }] },
-      { label: t('excel.styles'), items: [
-        { t: 'menu', icon: 'layers', label: t('excel.cf'), items: [{ label: t('excel.cfGreater'), onClick: () => addCF('>') }, { label: t('excel.cfLess'), onClick: () => addCF('<') }, '-', { label: t('excel.cfClear'), onClick: () => { sh.cf = []; paintAll(); ctx.markDirty(); } }] },
-        { icon: 'table', label: t('excel.asTable'), onClick: formatAsTable },
-        { t: 'menu', icon: 'palette', label: t('excel.cellStyles'), items: [
-          { label: t('excel.good'), onClick: () => styleSel(s => { s.bg = '#c6efce'; s.color = '#006100'; }) }, { label: t('excel.bad'), onClick: () => styleSel(s => { s.bg = '#ffc7ce'; s.color = '#9c0006'; }) },
-          { label: t('excel.neutral'), onClick: () => styleSel(s => { s.bg = '#ffeb9c'; s.color = '#9c5700'; }) }, { label: t('excel.heading'), onClick: () => styleSel(s => { s.b = true; s.size = 14; s.color = '#1E9E5A'; }) }] }] },
-      { label: t('excel.cells'), items: [{ icon: 'insertRow', label: t('excel.insertRow'), onClick: () => insertRow(false) }, { icon: 'deleteRow', label: t('excel.deleteRow'), onClick: () => insertRow(true) },
-        { t: 'menu', icon: 'layout', label: t('excel.format'), items: [{ label: t('excel.colWidth'), onClick: () => OW.prompt(t('excel.colWidth'), String(sh.colW[sel.c] || 92)).then(v => { if (+v) { sh.colW[sel.c] = +v; buildGrid(); ctx.markDirty(); } }) }, { label: t('excel.autofit'), onClick: () => { delete sh.colW[sel.c]; buildGrid(); ctx.markDirty(); } }] }] },
-      { label: t('editing'), items: [{ t: 'rows', rows: [
-        [{ t: 'menu', icon: 'sigma', label: t('excel.autosum'), items: fnMenu }],
-        [{ t: 'menu', icon: 'eraser', label: t('clear'), items: [{ label: t('excel.clearAll'), onClick: () => clearSel('all') }, { label: t('excel.clearFormats'), onClick: () => clearSel('format') }, { label: t('excel.clearContents'), onClick: () => clearSel('content') }] }]] },
-        { t: 'menu', icon: 'sortAZ', label: t('excel.sortFilter'), items: () => [{ label: t('excel.sortAsc'), onClick: () => sortSel(1) }, { label: t('excel.sortDesc'), onClick: () => sortSel(-1) }, '-', { label: t('excel.filter'), checked: filterOn, onClick: () => { filterOn = !filterOn; sh.filter = filterOn ? (sh.filter || { c: 0 }) : null; applyFilter(); } }] },
-        { icon: 'search', label: t('excel.findSelect'), onClick: findCell }] },
-    ] },
-    { id: 'insert', label: t('tab.insert'), groups: [
-      { label: t('excel.charts'), items: [{ icon: 'grid', big: true, label: t('excel.bar'), onClick: () => insertChart('bar') }, { icon: 'activity', big: true, label: t('excel.line'), onClick: () => insertChart('line') }] },
-      { label: t('excel.functions'), items: [{ t: 'menu', icon: 'sigma', label: t('excel.function'), items: fnMenu }, { icon: 'calendar', label: t('date'), onClick: () => commit(new Date().toLocaleDateString(OW.lang)) }] },
-    ] },
-    { id: 'pagelayout', label: t('tab.pageLayout'), groups: [{ label: t('excel.sheetOptions'), items: [{ icon: 'grid', label: t('excel.gridlines'), active: () => gridlines, onClick: () => { gridlines = !gridlines; paintAll(); } }, { icon: 'print', label: t('bs.print'), onClick: () => window.print() }] }] },
-    { id: 'formulas', label: t('tab.formulas'), groups: [{ label: t('excel.functions'), items: [{ t: 'menu', icon: 'sigma', big: true, label: t('excel.autosum'), items: fnMenu }, { icon: 'eye', big: true, label: t('excel.showFormulas'), active: () => showFormulas, onClick: () => { showFormulas = !showFormulas; paintAll(); } }] }] },
-    { id: 'data', label: t('tab.data'), groups: [
-      { label: t('excel.sortFilter'), items: [{ icon: 'sortAZ', big: true, label: t('excel.sortAsc'), onClick: () => sortSel(1) }, { icon: 'sortAZ', big: true, label: t('excel.sortDesc'), onClick: () => sortSel(-1) }, { icon: 'filter', big: true, label: t('excel.filter'), active: () => filterOn, onClick: () => { filterOn = !filterOn; sh.filter = filterOn ? { c: 0 } : null; applyFilter(); } }] },
-      { label: 'CSV', items: [{ icon: 'upload', big: true, label: t('excel.importCsv'), onClick: importCSV }, { icon: 'download', big: true, label: t('excel.exportCsv'), onClick: () => OW.download(new Blob([toCSV()], { type: 'text/csv' }), OW.safeName(ctx.file.name) + '.csv') }] },
-    ] },
-    { id: 'review', label: t('tab.review'), groups: [{ label: t('editor.comments'), items: [{ icon: 'comment', big: true, label: t('editor.comments'), onClick: () => ctx.root.querySelector('.ed-comments').click() }] }] },
-    { id: 'view', label: t('tab.view'), groups: [
-      { label: t('excel.window'), items: [{ icon: 'layout', big: true, label: t('excel.freeze'), active: () => freeze, onClick: () => { freeze = !freeze; paintAll(); } }, { icon: 'grid', big: true, label: t('excel.gridlines'), active: () => gridlines, onClick: () => { gridlines = !gridlines; paintAll(); } }] },
-      { label: 'Zoom', items: [{ icon: 'zoomOut', big: true, label: t('zoomOut'), onClick: () => { zoom = Math.max(50, zoom - 10); paintAll(); } }, { icon: 'zoomIn', big: true, label: t('zoomIn'), onClick: () => { zoom = Math.min(200, zoom + 10); paintAll(); } }] },
-    ] },
-    { id: 'help', label: t('tab.help'), groups: [{ label: t('tab.help'), items: [{ icon: 'sparkle', big: true, label: t('help.shortcuts'), onClick: () => OW.alert(t('help.shortcuts'), t('excel.shortcuts')) }, { icon: 'app', big: true, label: t('help.about'), onClick: () => OW.about() }] }] },
-  ];
-  let pendingPaint = null;
-
-  function findCell() { OW.prompt(t('find.find'), '').then(v => { if (!v) return; const k = Object.keys(sh.cells).find(k => String(display(k)).toLowerCase().includes(v.toLowerCase())); if (!k) return OW.toast(t('find.none')); const p = parseRef(k); sel = { r: p.r, c: p.c, r2: p.r, c2: p.c }; paintSel(); }); }
-  function copySel() { const g = range4(); const lines = []; for (let r = g.r1; r <= g.r2; r++) { const row = []; for (let c = g.c1; c <= g.c2; c++) row.push((sh.cells[ref(r, c)] || {}).v || ''); lines.push(row.join('\t')); } const txt = lines.join('\n'); clip = txt; navigator.clipboard && navigator.clipboard.writeText(txt).catch(() => {}); }
-  let clip = '';
-  async function pasteText(txt) {
-    if (txt === undefined) { try { txt = await navigator.clipboard.readText(); } catch { txt = clip; } }
-    if (!txt) return; snapshot();
-    txt.replace(/\r/g, '').split('\n').forEach((line, i) => line.split('\t').forEach((v, j) => { if (sel.r + i < ROWS && sel.c + j < COLS) setVal(ref(sel.r + i, sel.c + j), v); }));
-    paintAll(); ctx.markDirty();
-  }
-  function importCSV() {
-    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.csv,text/csv';
-    inp.onchange = async () => { const f = inp.files[0]; if (!f) return; snapshot(); OW.parseCSV(await f.text()).forEach((row, r) => row.forEach((v, c) => { if (r < ROWS && c < COLS) setVal(ref(r, c), v); })); paintAll(); ctx.markDirty(); };
-    inp.click();
-  }
-
-  ctx.exports = [
-    { label: 'Excel (.xlsx)', hint: t('export.xlsxHint'), fn: () => OW.download(OW.ooxml.cellsToXlsx(sh.cells, sh.name), OW.safeName(ctx.file.name) + '.xlsx') },
-    { label: 'CSV (.csv)', fn: () => OW.download(new Blob([toCSV()], { type: 'text/csv' }), OW.safeName(ctx.file.name) + '.csv') },
-    { label: 'PDF', hint: t('export.pdfHint'), fn: () => window.print() },
-  ];
-
-  return {
-    ribbonMode: 'classic',
-    ribbon: () => R,
-    mount(body) {
-      body.innerHTML = `<div class="xl">
-        <div class="xl-fx"><input class="xl-name" spellcheck="false"><span class="xl-fxbtns">${I('x', 14)}${I('check', 14)}<i>fx</i></span><input class="xl-formula" spellcheck="false"></div>
-        <div class="xl-wrap" tabindex="-1"><div class="xl-gridbox" tabindex="0"><div class="xl-table"></div></div></div>
-        <div class="xl-sheets"></div></div>`;
-      nameBox = body.querySelector('.xl-name'); fxInput = body.querySelector('.xl-formula');
-      wrapEl = body.querySelector('.xl-wrap'); gridEl = body.querySelector('.xl-gridbox'); tableEl = body.querySelector('.xl-table'); sheetTabs = body.querySelector('.xl-sheets');
-      buildGrid(); renderSheetTabs();
-
-      let dragging = false;
-      tableEl.addEventListener('mousedown', e => {
-        const flt = e.target.closest('.flt'); if (flt) { e.preventDefault(); return filterMenu(+flt.parentElement.dataset.c, flt); }
-        const rs = e.target.closest('.rs');
-        if (rs) { e.preventDefault(); const c = +rs.dataset.c, th = rs.parentElement, sx = e.clientX, w0 = th.offsetWidth; const mv = ev => { th.style.width = Math.max(30, w0 + ev.clientX - sx) + 'px'; }; const up = () => { sh.colW[c] = th.offsetWidth; removeEventListener('mousemove', mv); removeEventListener('mouseup', up); ctx.markDirty(); }; addEventListener('mousemove', mv); addEventListener('mouseup', up); return; }
-        const ch = e.target.closest('th.ch'); if (ch) { const c = +ch.dataset.c; sel = { r: 0, c, r2: ROWS - 1, c2: c }; paintSel(); return; }
-        const rh = e.target.closest('th.rh'); if (rh) { const r = +rh.parentElement.dataset.r; sel = { r, c: 0, r2: r, c2: COLS - 1 }; paintSel(); return; }
-        const td = e.target.closest('td'); if (!td) return;
-        if (editing) endEdit(true);
-        const r = +td.dataset.r, c = +td.dataset.c;
-        if (fxInput === document.activeElement && fxInput.value.startsWith('=')) { e.preventDefault(); fxInput.value += ref(r, c); return; }
-        if (e.shiftKey) { sel.r2 = r; sel.c2 = c; } else sel = { r, c, r2: r, c2: c };
-        dragging = true; paintSel(); gridEl.focus({ preventScroll: true });
-        if (pendingPaint) { const p = pendingPaint; pendingPaint = null; styleSel(s => Object.assign(s, p)); }
+  /* ---------- Export ---------- */
+  function htmlToDocx(html) {
+    const root = document.createElement('div'); root.innerHTML = html;
+    const runs = (node, fmt = {}) => {
+      let out = '';
+      node.childNodes.forEach(n => {
+        if (n.nodeType === 3) {
+          if (!n.textContent) return;
+          const rp = (fmt.b ? '<w:b/>' : '') + (fmt.i ? '<w:i/>' : '') + (fmt.u ? '<w:u w:val="single"/>' : '') + (fmt.s ? '<w:strike/>' : '');
+          out += `<w:r>${rp ? '<w:rPr>' + rp + '</w:rPr>' : ''}<w:t xml:space="preserve">${esc(n.textContent)}</w:t></w:r>`;
+        } else if (n.nodeType === 1) {
+          const t = n.tagName;
+          if (t === 'BR') { out += '<w:r><w:br/></w:r>'; return; }
+          const f = Object.assign({}, fmt);
+          if (t === 'B' || t === 'STRONG') f.b = 1; if (t === 'I' || t === 'EM') f.i = 1; if (t === 'U') f.u = 1; if (t === 'S' || t === 'STRIKE') f.s = 1;
+          const st = n.style || {}; if (st.fontWeight === 'bold' || +st.fontWeight >= 600) f.b = 1; if (st.fontStyle === 'italic') f.i = 1;
+          const td = (st.textDecoration || '') + ' ' + (st.textDecorationLine || ''); if (td.includes('underline')) f.u = 1; if (td.includes('line-through')) f.s = 1;
+          out += runs(n, f);
+        }
       });
-      tableEl.addEventListener('mouseover', e => { if (!dragging) return; const td = e.target.closest('td'); if (td) { sel.r2 = +td.dataset.r; sel.c2 = +td.dataset.c; paintSel(); } });
-      addEventListener('mouseup', () => dragging = false);
-      tableEl.addEventListener('dblclick', e => { if (e.target.closest('td')) startEdit(); });
-      gridEl.addEventListener('keydown', e => {
-        if (editing) return;
-        const k = e.key, mod = e.ctrlKey || e.metaKey;
-        const nav = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1], Enter: [1, 0], Tab: [0, 1] }[k];
-        if (nav) { e.preventDefault(); return move(e.shiftKey && k === 'Tab' ? 0 : nav[0], e.shiftKey && k === 'Tab' ? -1 : nav[1], e.shiftKey && k.startsWith('Arrow')); }
-        if (mod && k.toLowerCase() === 'c') { copySel(); return; }
-        if (mod && k.toLowerCase() === 'x') { copySel(); clearSel('content'); return; }
-        if (mod && k.toLowerCase() === 'b') { e.preventDefault(); return toggle('b'); }
-        if (mod && k.toLowerCase() === 'i') { e.preventDefault(); return toggle('i'); }
-        if (mod && k.toLowerCase() === 'u') { e.preventDefault(); return toggle('u'); }
-        if (mod && k.toLowerCase() === 'z') { e.preventDefault(); return R[0].groups[0].items[0].items[0].onClick(); }
-        if (mod && k.toLowerCase() === 'y') { e.preventDefault(); return R[0].groups[0].items[0].items[1].onClick(); }
-        if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); return clearSel('content'); }
-        if (k === 'F2') { e.preventDefault(); return startEdit(); }
-        if (k.length === 1 && !mod && !ctx.readOnly) { e.preventDefault(); startEdit(k); }
-      });
-      gridEl.addEventListener('paste', e => { if (editing) return; e.preventDefault(); pasteText(e.clipboardData.getData('text/plain')); });
-      fxInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(fxInput.value.trim()); gridEl.focus(); move(1, 0); } if (e.key === 'Escape') { fxInput.blur(); paintSel(); } });
-      nameBox.addEventListener('keydown', e => { if (e.key === 'Enter') { try { const [a, b] = nameBox.value.toUpperCase().split(':'); const p = parseRef(a), q = parseRef(b || a); sel = { r: p.r, c: p.c, r2: q.r, c2: q.c }; paintSel(); gridEl.focus(); } catch { OW.toast('#REF!'); } } });
-      gridEl.focus();
-    },
-    getContent: () => { book.active = book.sheets.indexOf(sh); return book; },
-    status() {
-      const nums = []; eachSel(k => { const v = safe(k); if (isNum(v) && v !== '') nums.push(+v); });
-      if (nums.length < 2) return { left: t('excel.ready'), right: zoom + ' %' };
-      const sum = nums.reduce((a, b) => a + b, 0), f = n => n.toLocaleString(OW.lang, { maximumFractionDigits: 4 });
-      return { left: `${t('excel.average')}: ${f(sum / nums.length)} &nbsp; ${t('excel.count')}: ${nums.length} &nbsp; ${t('excel.sum')}: ${f(sum)}`, right: zoom + ' %' };
-    },
-    setReadOnly() {},
-  };
-};
-
-/* small CSV parser shared with the importer */
-OW.parseCSV = function (text) {
-  const sep = (text.split('\n')[0].match(/;/g) || []).length > (text.split('\n')[0].match(/,/g) || []).length ? ';' : ',';
-  const rows = []; let row = [], cur = '', q = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (q) { if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
-    else if (ch === '"') q = true; else if (ch === sep) { row.push(cur); cur = ''; }
-    else if (ch === '\n') { row.push(cur.replace(/\r$/, '')); rows.push(row); row = []; cur = ''; } else cur += ch;
+      return out;
+    };
+    let body = '';
+    const block = (el) => {
+      const t = el.tagName;
+      if (t === 'UL' || t === 'OL') { Array.from(el.children).forEach((li, i) => { body += `<w:p><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr><w:r><w:t xml:space="preserve">${t === 'OL' ? (i + 1) + '. ' : '• '}</w:t></w:r>${runs(li)}</w:p>`; }); return; }
+      if (t === 'TABLE') {
+        body += '<w:tbl><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>';
+        el.querySelectorAll('tr').forEach(tr => { body += '<w:tr>'; tr.querySelectorAll('td,th').forEach(td => body += `<w:tc><w:p>${runs(td)}</w:p></w:tc>`); body += '</w:tr>'; });
+        body += '</w:tbl>'; return;
+      }
+      const h = /^H([1-6])$/.exec(t);
+      const align = el.style && el.style.textAlign ? `<w:jc w:val="${{ center: 'center', right: 'right', justify: 'both' }[el.style.textAlign] || 'left'}"/>` : '';
+      const ppr = (h ? `<w:pStyle w:val="Heading${Math.min(3, +h[1])}"/>` : '') + align;
+      body += `<w:p>${ppr ? '<w:pPr>' + ppr + '</w:pPr>' : ''}${runs(el)}</w:p>`;
+    };
+    Array.from(root.childNodes).forEach(n => { if (n.nodeType === 1) block(n); else if (n.textContent.trim()) { const p = document.createElement('p'); p.textContent = n.textContent; block(p); } });
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+    const heading = (n, sz) => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="80"/><w:outlineLvl w:val="${n - 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${sz}"/></w:rPr></w:style>`;
+    return writeZip({
+      '[Content_Types].xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>',
+      '_rels/.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+      'word/_rels/document.xml.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
+      'word/styles.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:pPr><w:spacing w:after="120"/></w:pPr></w:style>${heading(1, 36)}${heading(2, 30)}${heading(3, 26)}</w:styles>`,
+      'word/document.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1134" w:left="1417"/></w:sectPr></w:body></w:document>`,
+    });
   }
-  if (cur || row.length) { row.push(cur); rows.push(row); }
-  return rows;
-};
+  function sheetXml(cells) {
+    const rows = {};
+    for (const [ref, c] of Object.entries(cells || {})) {
+      const m = /^([A-Z]+)(\d+)$/.exec(ref); if (!m || !c || c.v === '' || c.v == null) continue;
+      (rows[m[2]] = rows[m[2]] || []).push([ref, c]);
+    }
+    const colNum = s => s.split('').reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0);
+    let sd = '';
+    Object.keys(rows).map(Number).sort((a, b) => a - b).forEach(r => {
+      sd += `<row r="${r}">`;
+      rows[r].sort((a, b) => colNum(a[0].replace(/\d/g, '')) - colNum(b[0].replace(/\d/g, ''))).forEach(([ref, c]) => {
+        const v = String(c.v);
+        if (v.startsWith('=')) sd += `<c r="${ref}"><f>${esc(v.slice(1))}</f></c>`;
+        else if (v.trim() !== '' && !isNaN(+v) && !(c.s && c.s.text)) sd += `<c r="${ref}"><v>${+v}</v></c>`;
+        else sd += `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
+      });
+      sd += '</row>';
+    });
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sd}</sheetData></worksheet>`;
+  }
+  /* all sheets of a workbook; includes a minimal styles part (required by strict readers) */
+  function sheetsToXlsx(sheets) {
+    sheets = (sheets && sheets.length ? sheets : [{ name: 'Sheet1', cells: {} }]);
+    const used = new Set();
+    const names = sheets.map((sh, i) => { let n = String(sh.name || 'Sheet' + (i + 1)).replace(/[\/?*[\]:]/g, '_').slice(0, 31) || 'Sheet' + (i + 1); while (used.has(n.toLowerCase())) n = (n.slice(0, 28) + '_' + i); used.add(n.toLowerCase()); return n; });
+    const files = {
+      '[Content_Types].xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>',
+      '_rels/.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+      'xl/_rels/workbook.xml.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') +
+        `<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+      'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((n, i) => `<sheet name="${esc(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`,
+      'xl/styles.xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>',
+    };
+    sheets.forEach((sh, i) => { files[`xl/worksheets/sheet${i + 1}.xml`] = sheetXml(sh.cells); });
+    return writeZip(files);
+  }
+  function cellsToXlsx(cells, sheetName = 'Sheet1') { return sheetsToXlsx([{ name: sheetName, cells }]); }
+
+  /* ---------- PPTX writer (slides from Slide Werkzeug) ---------- */
+  function slidesToPptx(deck, themes) {
+    const EMU = 12700, W = 960, H = 540; // 1px = 12700 EMU → 12192000 × 6858000 (16:9)
+    const hex = c => { if (!c) return null; const m = /#([0-9a-f]{6}|[0-9a-f]{3})\b/i.exec(c); if (!m) { const r = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c); return r ? [r[1], r[2], r[3]].map(x => (+x).toString(16).padStart(2, '0')).join('').toUpperCase() : null; } let h = m[1]; if (h.length === 3) h = h.split('').map(x => x + x).join(''); return h.toUpperCase(); };
+    const th = themes[deck.theme] || themes.office;
+    const ink = hex(th.ink) || '1F2430', accent = hex(th.accent) || 'EA6A2A';
+    const files = {}, media = [];
+    const sldIds = [], presRels = [], ctSlides = [];
+    const paraXml = (html, st) => {
+      const box = document.createElement('div'); box.innerHTML = html || '';
+      const sz = Math.round((st.fontSize || 24) * 100); // slide px = pt (1px = 12700 EMU)
+      const col = hex(st.color) || ink;
+      const algn = { center: 'ctr', right: 'r' }[st.align] || 'l';
+      const runs = (node, f = {}) => { let o = ''; node.childNodes.forEach(n => {
+        if (n.nodeType === 3) { if (!n.textContent) return; o += `<a:r><a:rPr lang="de-DE" sz="${sz}" ${f.b ? 'b="1"' : ''} ${f.i ? 'i="1"' : ''} ${f.u ? 'u="sng"' : ''} dirty="0"><a:solidFill><a:srgbClr val="${f.c || col}"/></a:solidFill>${st.font ? `<a:latin typeface="${esc(st.font.split(',')[0].replace(/["']/g, ''))}"/>` : ''}</a:rPr><a:t>${esc(n.textContent)}</a:t></a:r>`; return; }
+        if (n.nodeType !== 1 || /^(UL|OL|LI|P|DIV|H\d|TABLE)$/.test(n.tagName)) return;
+        const g = Object.assign({}, f), t = n.tagName, s2 = n.style || {};
+        if (t === 'B' || t === 'STRONG' || s2.fontWeight === 'bold' || +s2.fontWeight >= 600) g.b = 1; if (t === 'I' || t === 'EM' || s2.fontStyle === 'italic') g.i = 1; if (t === 'U' || (s2.textDecoration || '').includes('underline')) g.u = 1;
+        if (s2.color) g.c = hex(s2.color) || g.c; if (t === 'FONT' && n.color) g.c = hex(n.color) || g.c;
+        if (t === 'BR') { o += '<a:br/>'; return; }
+        o += runs(n, g); }); return o; };
+      const paras = [];
+      const walk = node => node.childNodes.forEach(n => {
+        if (n.nodeType === 1 && (n.tagName === 'UL' || n.tagName === 'OL')) { Array.from(n.children).forEach((li, i) => paras.push(`<a:p><a:pPr marL="342900" indent="-342900" algn="${algn}">${n.tagName === 'OL' ? '<a:buFont typeface="+mj-lt"/><a:buAutoNum type="arabicPeriod"/>' : '<a:buFont typeface="Arial"/><a:buChar char="•"/>'}</a:pPr>${runs(li) || `<a:endParaRPr lang="de-DE" sz="${sz}"/>`}</a:p>`)); return; }
+        if (n.nodeType === 1 && n.tagName === 'TABLE') { n.querySelectorAll('tr').forEach(tr => paras.push(`<a:p><a:pPr algn="${algn}"/><a:r><a:rPr lang="de-DE" sz="${sz}"><a:solidFill><a:srgbClr val="${col}"/></a:solidFill></a:rPr><a:t>${esc(Array.from(tr.children).map(c => c.textContent).join('    '))}</a:t></a:r></a:p>`)); return; }
+        if (n.nodeType === 1 && /^(P|DIV|H\d)$/.test(n.tagName)) { walk(n); if (!n.querySelector('ul,ol,p,div')) paras.push(`<a:p><a:pPr algn="${algn}"/>${runs(n)}</a:p>`); return; }
+      });
+      walk(box);
+      const inline = runs(box);
+      if (inline) paras.unshift(`<a:p><a:pPr algn="${algn}"/>${inline}</a:p>`);
+      return paras.join('') || `<a:p><a:endParaRPr lang="de-DE" sz="${sz}"/></a:p>`;
+    };
+    const geom = { rect: 'roundRect', ellipse: 'ellipse', triangle: 'triangle', arrow: 'rightArrow', star: 'star5' };
+    deck.slides.forEach((sl, i) => {
+      const n = i + 1; let id = 2, rels = '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>';
+      const bgHex = hex(sl.bg) || hex(th.bg) || 'FFFFFF';
+      let sp = '';
+      if (th.deco === 'bar') sp += `<p:sp><p:nvSpPr><p:cNvPr id="${id++}" name="Deco"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${18 * EMU}" cy="${H * EMU}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${accent}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>`;
+      (sl.els || []).forEach(e => {
+        const st = e.style || {}, off = `<a:xfrm><a:off x="${Math.round(e.x * EMU)}" y="${Math.round(e.y * EMU)}"/><a:ext cx="${Math.round(e.w * EMU)}" cy="${Math.round(e.h * EMU)}"/></a:xfrm>`;
+        if (e.type === 'image' && e.src) {
+          const m = /^data:image\/(png|jpe?g|gif);base64,(.*)$/.exec(e.src); if (!m) return;
+          const ext = m[1] === 'jpeg' ? 'jpg' : m[1], bin = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
+          const name = `image${media.length + 1}.${ext}`; media.push(ext); files['ppt/media/' + name] = bin;
+          const rid = 'rId' + (rels.match(/Relationship /g).length + 1);
+          rels += `<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${name}"/>`;
+          sp += `<p:pic><p:nvPicPr><p:cNvPr id="${id++}" name="${name}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>${off}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`;
+          return;
+        }
+        if (e.type === 'shape') {
+          const fill = st.fill === 'accent' || !st.fill ? accent : (hex(st.fill) || accent);
+          const ln = st.stroke && st.stroke !== 'none' ? `<a:ln w="38100"><a:solidFill><a:srgbClr val="${hex(st.stroke)}"/></a:solidFill></a:ln>` : '<a:ln><a:noFill/></a:ln>';
+          sp += `<p:sp><p:nvSpPr><p:cNvPr id="${id++}" name="Shape ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${off}<a:prstGeom prst="${geom[st.shape || 'rect']}"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${fill}"/></a:solidFill>${ln}</p:spPr><p:txBody><a:bodyPr anchor="ctr" rtlCol="0"/><a:lstStyle/>${paraXml(e.html, Object.assign({ align: 'center', color: '#FFFFFF', fontSize: 22 }, st))}</p:txBody></p:sp>`;
+          return;
+        }
+        const fill = st.fill ? `<a:solidFill><a:srgbClr val="${hex(st.fill) || 'FFFFFF'}"/></a:solidFill>` : '<a:noFill/>';
+        sp += `<p:sp><p:nvSpPr><p:cNvPr id="${id++}" name="Text ${id}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr>${off}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>${fill}</p:spPr><p:txBody><a:bodyPr wrap="square" lIns="76200" tIns="50800" rIns="76200" bIns="50800" rtlCol="0"><a:normAutofit/></a:bodyPr><a:lstStyle/>${paraXml(e.html, st)}</p:txBody></p:sp>`;
+      });
+      const transition = { fade: '<p:transition spd="med"><p:fade/></p:transition>', push: '<p:transition spd="med"><p:push dir="l"/></p:transition>', zoom: '<p:transition spd="med"><p:zoom/></p:transition>', flip: '<p:transition spd="med"><p:wipe dir="r"/></p:transition>' }[sl.transition] || '';
+      files[`ppt/slides/slide${n}.xml`] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"${sl.hidden ? ' show="0"' : ''}><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="${bgHex}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${sp}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>${transition}</p:sld>`;
+      if (sl.notes) {
+        rels += `<Relationship Id="rIdN" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide${n}.xml"/>`;
+        files[`ppt/notesSlides/notesSlide${n}.xml`] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:notes xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:sp><p:nvSpPr><p:cNvPr id="2" name="Notes"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>${sl.notes.split('\n').map(l => `<a:p><a:r><a:rPr lang="de-DE"/><a:t>${esc(l)}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp></p:spTree></p:cSld></p:notes>`;
+        files[`ppt/notesSlides/_rels/notesSlide${n}.xml.rels`] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="../notesMasters/notesMaster1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="../slides/slide${n}.xml"/></Relationships>`;
+      }
+      files[`ppt/slides/_rels/slide${n}.xml.rels`] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`;
+      sldIds.push(`<p:sldId id="${255 + n}" r:id="rId${n + 10}"/>`);
+      presRels.push(`<Relationship Id="rId${n + 10}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${n}.xml"/>`);
+      ctSlides.push(`<Override PartName="/ppt/slides/slide${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>` + (sl.notes ? `<Override PartName="/ppt/notesSlides/notesSlide${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/>` : ''));
+    });
+    const hasNotes = deck.slides.some(s => s.notes);
+    const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+    const font = (th.font || 'Aptos').split(',')[0].replace(/["']/g, '');
+    const theme = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Werkstatt"><a:themeElements><a:clrScheme name="OW"><a:dk1><a:srgbClr val="${ink}"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F2430"/></a:dk2><a:lt2><a:srgbClr val="F3F2F1"/></a:lt2><a:accent1><a:srgbClr val="${accent}"/></a:accent1><a:accent2><a:srgbClr val="2F6BEA"/></a:accent2><a:accent3><a:srgbClr val="1E9E5A"/></a:accent3><a:accent4><a:srgbClr val="7C4DDB"/></a:accent4><a:accent5><a:srgbClr val="E3A21A"/></a:accent5><a:accent6><a:srgbClr val="D93A32"/></a:accent6><a:hlink><a:srgbClr val="2F6BEA"/></a:hlink><a:folHlink><a:srgbClr val="7C4DDB"/></a:folHlink></a:clrScheme><a:fontScheme name="OW"><a:majorFont><a:latin typeface="${esc(font)}"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="${esc(font)}"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="OW"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+    const spTreeEmpty = '<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree>';
+    Object.assign(files, {
+      '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="gif" ContentType="image/gif"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${hasNotes ? '<Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/><Override PartName="/ppt/theme/theme2.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' : ''}${ctSlides.join('')}</Types>`,
+      '_rels/.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>',
+      'ppt/presentation.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:presentation ${NS} saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>${hasNotes ? '<p:notesMasterIdLst><p:notesMasterId r:id="rId3"/></p:notesMasterIdLst>' : ''}<p:sldIdLst>${sldIds.join('')}</p:sldIdLst><p:sldSz cx="${W * EMU}" cy="${H * EMU}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`,
+      'ppt/_rels/presentation.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>${hasNotes ? '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="notesMasters/notesMaster1.xml"/>' : ''}${presRels.join('')}</Relationships>`,
+      'ppt/slideMasters/slideMaster1.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster ${NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg>${spTreeEmpty}</p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="4400"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="2400"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:otherStyle></p:txStyles></p:sldMaster>`,
+      'ppt/slideMasters/_rels/slideMaster1.xml.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/></Relationships>',
+      'ppt/slideLayouts/slideLayout1.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout ${NS} type="blank" preserve="1"><p:cSld name="Blank">${spTreeEmpty}</p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`,
+      'ppt/slideLayouts/_rels/slideLayout1.xml.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>',
+      'ppt/theme/theme1.xml': theme,
+    });
+    if (hasNotes) {
+      files['ppt/theme/theme2.xml'] = theme;
+      files['ppt/notesMasters/notesMaster1.xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:notesMaster ${NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg>${spTreeEmpty}</p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/></p:notesMaster>`;
+      files['ppt/notesMasters/_rels/notesMaster1.xml.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme2.xml"/></Relationships>';
+    }
+    return writeZip(files);
+  }
+
+  OW.ooxml = { readZip, writeZip, docxToHtml, xlsxToCells, pptxToSlides, htmlToDocx, cellsToXlsx, sheetsToXlsx, slidesToPptx, esc };
+})();

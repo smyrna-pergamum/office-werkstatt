@@ -120,6 +120,15 @@ window.OW = window.OW || {};
     app: '<path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/>',
     wifiOff: '<path d="M2 8.5a16 16 0 0 1 5-3M22 8.5A16 16 0 0 0 11 4.3M5 12.5a10 10 0 0 1 4-2.2M19 12.5a10 10 0 0 0-3-1.8M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>',
     monitor: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    paragraph: '<path d="M4 6h16M4 10h16M4 14h16M4 18h10"/>',
+    radio: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor"/>',
+    hash: '<path d="M5 9h14M5 15h14M10 4L8 20M16 4l-2 16"/>',
+    phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+    gauge: '<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/><path d="M4 18h2M18 18h2"/>',
+    grip: '<circle cx="9" cy="6" r="1.2" fill="currentColor"/><circle cx="15" cy="6" r="1.2" fill="currentColor"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="18" r="1.2" fill="currentColor"/><circle cx="15" cy="18" r="1.2" fill="currentColor"/>',
+    calGrid: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M7 14h2M11 14h2M15 14h2M7 17.5h2M11 17.5h2"/>',
+    arrowUp: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+    arrowDown: '<path d="M12 5v14M6 13l6 6 6-6"/>',
     server: '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/>',
   };
   OW.icon = function (name, size = 18, cls = '') {
@@ -128,7 +137,7 @@ window.OW = window.OW || {};
   };
   /* Tool tile icons (colored app glyphs like Office) */
   OW.appGlyph = function (type, size = 22) {
-    const letter = { word: 'W', excel: 'X', slide: 'S', note: 'N', draw: 'D', pdf: 'PDF', app: '+' }[type] || '?';
+    const letter = { word: 'W', excel: 'X', slide: 'S', note: 'N', draw: 'D', pdf: 'PDF', form: 'F', app: '+' }[type] || '?';
     const fs = type === 'pdf' ? Math.max(7, Math.round(size * 0.3)) : Math.round(size * 0.55);
     return `<span class="glyph glyph-${type}" style="width:${size}px;height:${size}px;font-size:${fs}px">${letter}</span>`;
   };

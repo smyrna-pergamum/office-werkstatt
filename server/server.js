@@ -20,6 +20,8 @@ const isLoopback = h => /^(127\.\d+\.\d+\.\d+|localhost|::1|\[::1\])$/i.test(Str
 const VERSION = process.env.OW_VERSION || (() => { try { return require(path.join(__dirname, '..', 'package.json')).version; } catch { return 'unknown'; } })();
 const MAX_BODY = (+process.env.MAX_MB || 150) * 1024 * 1024;
 fs.mkdirSync(path.join(DATA, 'files'), { recursive: true });
+fs.mkdirSync(path.join(DATA, 'forms'), { recursive: true });
+const FORM = require(path.join(ROOT, 'js', 'form-core.js')); // Formular Werkzeug: shared validation + Excel table builder
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.wasm': 'application/wasm', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.map': 'application/json', '.txt': 'text/plain; charset=utf-8', '.pdf': 'application/pdf' };
@@ -43,17 +45,90 @@ function authorized(req) {
   return eq(u, USER) && eq(p, PASS);
 }
 
-function readBody(req) {
+function readBody(req, max = MAX_BODY) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
-    req.on('data', c => { size += c.length; if (size > MAX_BODY) { reject(new Error('too large')); req.destroy(); } else chunks.push(c); });
+    req.on('data', c => { size += c.length; if (size > max) { reject(new Error('too large')); req.destroy(); } else chunks.push(c); });
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8'))); req.on('error', reject);
   });
+}
+
+
+/* ---------- Formular Werkzeug ----------
+ * data/forms/<id>.html            published page (public: /f/<id>)
+ * data/forms/<id>.json            { accepting, publishedAt, labels }
+ * data/forms/<id>.responses.jsonl one answer per line (public POST, team GET/DELETE)
+ * Every new answer also refreshes the linked Excel Werkzeug table (content.excelId of the form file). */
+const formPath = (id, ext) => path.join(DATA, 'forms', id + ext);
+const readJSON = p => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
+const readResponses = id => { try { return fs.readFileSync(formPath(id, '.responses.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; } };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' };
+const sendC = (res, code, body) => { res.writeHead(code, Object.assign({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, CORS)); res.end(JSON.stringify(body)); };
+const hits = new Map(); // tiny per-IP rate limit for the public endpoint
+function limited(req) {
+  const ip = req.socket.remoteAddress || '?', now = Date.now(), h = (hits.get(ip) || []).filter(x => now - x < 60000);
+  h.push(now); hits.set(ip, h); if (hits.size > 5000) hits.clear();
+  return h.length > (+process.env.OW_FORM_RATE || 30);
+}
+function syncFormExcel(id) {
+  const file = readJSON(fileOf(id)); if (!file || !file.content || !file.content.excelId) return;
+  const xid = safeId(file.content.excelId); if (!xid) return;
+  const x = readJSON(fileOf(xid)); if (!x || x.trashed) return;
+  const meta = readJSON(formPath(id, '.json')) || {}, labels = meta.labels || {};
+  const src = r => Object.assign({}, r, { src: r.src && labels['src.' + r.src] ? labels['src.' + r.src] : r.src || '' });
+  const all = FORM.mergeResponses(file.content.responses, readResponses(id)).map(src);
+  x.content = FORM.syncExcelContent(x.content, file.content, id, all, labels); x.modified = Date.now(); delete x.proExt; delete x.size;
+  const tmp = fileOf(xid) + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(x)); fs.renameSync(tmp, fileOf(xid));
+}
+async function formsPublic(req, res, id) {
+  if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
+  if (req.method !== 'POST') return sendC(res, 405, { error: 'method not allowed' });
+  const meta = readJSON(formPath(id, '.json')), file = readJSON(fileOf(id));
+  if (!meta || !file || !file.content || file.trashed) return sendC(res, 404, { error: 'not found' });
+  if (meta.accepting === false || file.content.accepting === false) return sendC(res, 410, { error: 'closed' });
+  if (limited(req)) return sendC(res, 429, { error: 'too many requests' });
+  let body; try { body = JSON.parse(await readBody(req, 64 * 1024)); } catch { return sendC(res, 400, { error: 'bad request' }); }
+  const v = FORM.validate(file.content, body && body.answers);
+  if (v.errors.length) return sendC(res, 422, { error: 'invalid', fields: v.errors });
+  const rid = typeof body.id === 'string' && /^[a-z0-9]{6,24}$/i.test(body.id) ? body.id : FORM.uid() + FORM.uid();
+  if (readResponses(id).some(r => r.id === rid)) return sendC(res, 200, { ok: true, duplicate: true });
+  const rec = { id: rid, at: Date.now(), answers: v.answers, src: body.src === 'kiosk' ? 'kiosk' : 'web' };
+  fs.appendFileSync(formPath(id, '.responses.jsonl'), JSON.stringify(rec) + '\n');
+  try { syncFormExcel(id); } catch (e) { console.error('excel sync', e); }
+  sendC(res, 200, { ok: true });
+}
+async function formsApi(req, res, id, what) {
+  if (what === 'responses') {
+    if (req.method === 'GET') return send(res, 200, readResponses(id));
+    if (req.method === 'DELETE') { try { fs.unlinkSync(formPath(id, '.responses.jsonl')); } catch { /* none */ } try { syncFormExcel(id); } catch { /* ignore */ } return send(res, 200, { ok: true }); }
+  }
+  if (what === 'publish') {
+    if (req.method === 'GET') { const m = readJSON(formPath(id, '.json')); return send(res, 200, m && fs.existsSync(formPath(id, '.html')) ? m : null); }
+    if (req.method === 'PUT') {
+      try {
+        const b = JSON.parse(await readBody(req, 40 * 1024 * 1024)); // pages may contain images
+        if (typeof b.html !== 'string' || !/^<!DOCTYPE html>/i.test(b.html)) return send(res, 400, { error: 'bad page' });
+        const meta = { accepting: b.accepting !== false, publishedAt: Date.now(), labels: b.labels && typeof b.labels === 'object' ? b.labels : {} };
+        fs.writeFileSync(formPath(id, '.html'), b.html); fs.writeFileSync(formPath(id, '.json'), JSON.stringify(meta));
+        try { syncFormExcel(id); } catch { /* ignore */ }
+        return send(res, 200, meta);
+      } catch (e) { return send(res, 400, { error: String(e.message || e) }); }
+    }
+    if (req.method === 'DELETE') { for (const x of ['.html', '.json']) { try { fs.unlinkSync(formPath(id, x)); } catch { /* none */ } } return send(res, 200, { ok: true }); }
+  }
+  send(res, 405, { error: 'method not allowed' });
+}
+function formPage(req, res, id) {
+  const meta = readJSON(formPath(id, '.json')), file = readJSON(fileOf(id)), p = formPath(id, '.html');
+  const page = (code, html) => { res.writeHead(code, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' }); res.end(html); };
+  if (!meta || !file || file.trashed || !fs.existsSync(p)) return page(404, '<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="font-family:system-ui;text-align:center;padding:60px">404</body>');
+  page(200, fs.readFileSync(p));
 }
 
 async function api(req, res, parts) {
   if (parts[1] === 'health') return send(res, 200, { ok: true, name: 'office-werkstatt', version: VERSION });
   if (parts[1] === 'engines') { const o = {}; for (const t of ['word', 'excel', 'slide', 'pdf']) o[t] = fs.existsSync(path.join(ROOT, 'engines', t, 'index.html')); return send(res, 200, o); }
+  if (parts[1] === 'forms') { const fid = safeId(decodeURIComponent(parts[2] || '')); return fid && ['responses', 'publish'].includes(parts[3]) && !parts[4] ? formsApi(req, res, fid, parts[3]) : send(res, 404, { error: 'not found' }); }
   if (parts[1] !== 'files') return send(res, 404, { error: 'not found' });
   const id = parts[2] ? safeId(decodeURIComponent(parts[2])) : null;
   if (parts[2] && !id) return send(res, 400, { error: 'bad id' });
@@ -114,9 +189,14 @@ function hostAllowed(req) {
 }
 const server = http.createServer(async (req, res) => {
   if (!hostAllowed(req)) { res.writeHead(421, { 'Content-Type': 'text/plain' }); return res.end('misdirected request'); }
-  if (!authorized(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Office Werkstatt"' }); return res.end('auth required'); }
   let urlPath; try { urlPath = new URL(req.url, 'http://x').pathname; } catch { return send(res, 400, 'bad request', 'text/plain'); }
   const parts = urlPath.split('/').filter(Boolean);
+  /* public, no password: published forms (/f/<id>) and sending an answer to them */
+  try {
+    if (parts[0] === 'f' && parts.length === 2 && req.method === 'GET') { const fid = safeId(decodeURIComponent(parts[1])); return fid ? formPage(req, res, fid) : send(res, 404, 'not found', 'text/plain'); }
+    if (parts[0] === 'api' && parts[1] === 'forms' && parts[3] === 'responses' && parts.length === 4 && (req.method === 'POST' || req.method === 'OPTIONS')) { const fid = safeId(decodeURIComponent(parts[2])); return fid ? await formsPublic(req, res, fid) : sendC(res, 404, { error: 'not found' }); }
+  } catch (e) { console.error(e); return send(res, 500, { error: 'server error' }); }
+  if (!authorized(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Office Werkstatt"' }); return res.end('auth required'); }
   try { if (parts[0] === 'api') return await api(req, res, parts); serveStatic(req, res, urlPath); }
   catch (e) { console.error(e); send(res, 500, { error: 'server error' }); }
 });

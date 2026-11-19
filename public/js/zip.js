@@ -177,7 +177,7 @@ window.OW = window.OW || {};
       rows[r].sort((a, b) => colNum(a[0].replace(/\d/g, '')) - colNum(b[0].replace(/\d/g, ''))).forEach(([ref, c]) => {
         const v = String(c.v);
         if (v.startsWith('=')) sd += `<c r="${ref}"><f>${esc(v.slice(1))}</f></c>`;
-        else if (v.trim() !== '' && !isNaN(+v)) sd += `<c r="${ref}"><v>${+v}</v></c>`;
+        else if (v.trim() !== '' && !isNaN(+v) && !(c.s && c.s.text)) sd += `<c r="${ref}"><v>${+v}</v></c>`;
         else sd += `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
       });
       sd += '</row>';

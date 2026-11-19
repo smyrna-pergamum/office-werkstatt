@@ -1,7 +1,7 @@
 /* ===================== Office Werkstatt – shell ===================== */
 :root {
   --c-app: #6B5CF0; --c-app-2: #8B7CF8; --c-app-ink: #2A2470;
-  --c-word: #2F6BEA; --c-excel: #1E9E5A; --c-slide: #EA6A2A; --c-note: #7C4DDB; --c-draw: #E3A21A; --c-pdf: #D93A32;
+  --c-word: #2F6BEA; --c-excel: #1E9E5A; --c-slide: #EA6A2A; --c-note: #7C4DDB; --c-draw: #E3A21A; --c-pdf: #D93A32; --c-form: #0FA3B1;
   --bg: #F5F6FC; --bg-2: #EEF0FA; --panel: #ffffff; --panel-2: #F8F9FD; --line: #E4E7F2; --line-2: #D5D9E8;
   --ink: #161A33; --ink-2: #555B78; --ink-3: #8A90AA; --hover: #F1F0FE; --sel: #E9E6FF;
   --shadow: 0 1px 2px rgba(22, 26, 51, .05), 0 8px 24px rgba(22, 26, 51, .06);
@@ -132,8 +132,8 @@ html[data-theme="dark"] .hero-art .cloud { background: linear-gradient(180deg, #
 .tool-pdf { background: linear-gradient(140deg, #FFECEA, #FFD2CD); }
 .tool-app { background: linear-gradient(140deg, #F0EEFF, #E2DCFF); }
 .tools .tool { min-height: 210px; }
-.tools { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "w x s" "n d p"; }
-.tool-word { grid-area: w; } .tool-excel { grid-area: x; } .tool-slide { grid-area: s; } .tool-note { grid-area: n; } .tool-draw { grid-area: d; } .tool-pdf { grid-area: p; } .tool-app { grid-area: a; }
+.tools { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "w x s" "n d p" "f f f"; }
+.tool-word { grid-area: w; } .tool-excel { grid-area: x; } .tool-slide { grid-area: s; } .tool-note { grid-area: n; } .tool-draw { grid-area: d; } .tool-pdf { grid-area: p; } .tool-form { grid-area: f; } .tool-app { grid-area: a; }
 html[data-theme="dark"] .tool { border-color: rgba(255,255,255,.06); filter: saturate(.9); }
 html[data-theme="dark"] .tool-word { background: linear-gradient(140deg, #1B2747, #203566); }
 html[data-theme="dark"] .tool-excel { background: linear-gradient(140deg, #16302A, #1B4636); }
@@ -343,12 +343,12 @@ html[data-theme="dark"] .toast { background: #ECEEF8; color: #161A33; }
   body.nav-open .scrim { display: block; position: fixed; inset: 0; z-index: 25; background: rgba(15, 18, 32, .4); }
   .only-mobile { display: grid; }
   .searchbox kbd, .lang-switch .globe { display: none; }
-  .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "w x" "s n" "d p"; }
+  .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "w x" "s n" "d p" "f f"; }
   .rd { min-width: 0; font-size: 12px; }
   .list-tools { align-items: stretch; } .lt-right { flex-wrap: wrap; } .mini-search input { width: 120px; }
 }
 @media (max-width: 520px) {
-  .tools { grid-template-columns: 1fr; grid-template-areas: "w" "x" "s" "n" "d" "p"; }
+  .tools { grid-template-columns: 1fr; grid-template-areas: "w" "x" "s" "n" "d" "p" "f"; }
   .tool { min-height: 170px; }
   .topbar { gap: 8px; } .searchbox .ph { font-size: 14px; } .avatar { width: 36px; height: 36px; }
   .top-actions .icon-btn#btnBell { display: none; }
@@ -377,3 +377,23 @@ html[data-theme="dark"] .ownapp { background: linear-gradient(140deg, #221F40, #
 .rb-warn { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; margin: 0 4px 0 -2px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #8A5300; background: #FFF1D6; border: 1px solid #F5C66B; white-space: nowrap; flex: none; cursor: help; }
 .rb-warn.off { color: #fff; background: #D97706; border-color: #D97706; }
 html[data-theme="dark"] .rb-warn { color: #FFD48A; background: #3A2A0E; border-color: #7A5714; }
+
+/* ---------------- Formular Werkzeug (dashboard) ---------------- */
+.glyph-form { background: linear-gradient(145deg, #2CC4D1, #0B7F8A); }
+.tool-form { background: linear-gradient(140deg, #E2F7F8, #C6EEF1); }
+.tools .tool-form { min-height: 180px; }
+.tool-form .tool-text { max-width: 60%; }
+html[data-theme="dark"] .tool-form { background: linear-gradient(140deg, #13303A, #17434C); }
+.fc-form .fthumb { background: linear-gradient(140deg, #E2F7F8, #C9EFF2); }
+.art-form { position: absolute; right: 26px; top: 50%; bottom: auto; transform: translateY(-50%) rotate(-3deg); width: 170px; padding: 14px; border-radius: 12px; background: #fff; box-shadow: 0 10px 24px rgba(15,163,177,.25); border-top: 8px solid var(--c-form); display: flex; flex-direction: column; gap: 9px; }
+.art-form .fq { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.art-form .fq b { flex: 0 0 100%; height: 6px; width: 60%; max-width: 60%; border-radius: 3px; background: #9FDCE2; }
+.art-form .fq i { flex: 1; height: 12px; border-bottom: 2px solid #C9E9EC; }
+.art-form .o { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #9FDCE2; } .art-form .o.on { background: var(--c-form); border-color: var(--c-form); }
+.art-form em { position: absolute; right: -14px; bottom: -14px; width: 40px; height: 40px; border-radius: 50%; background: var(--c-form); color: #fff; font: 800 20px/40px var(--font-display); text-align: center; font-style: normal; box-shadow: 0 6px 14px rgba(15,163,177,.4); }
+@media (max-width: 520px) { .art-form { width: 120px; right: 16px; } }
+
+.tt-form .fp { width: 120px; background: #fff; border-radius: 6px; border-top: 6px solid var(--fa); box-shadow: 0 4px 14px rgba(0,0,0,.1); padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+.tt-form .fp b { height: 7px; width: 65%; border-radius: 3px; background: var(--fa); opacity: .8; }
+.tt-form .fp span { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; } .tt-form .fp span i { flex: 0 0 100%; height: 4px; width: 50%; max-width: 50%; border-radius: 2px; background: #C9D3E8; }
+.tt-form .fp u { flex: 1; height: 8px; border-bottom: 1.5px solid #D5DAE6; } .tt-form .fp em { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #B9C2D6; }

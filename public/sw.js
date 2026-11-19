@@ -3,12 +3,13 @@ const CACHE = 'office-werkstatt-v1.2.0';
 const CORE = ['./', './index.html', './manifest.webmanifest', './css/app.css', './css/editors.css',
   './js/icons.js', './js/i18n.js', './js/store.js', './js/sanitize.js', './js/desktop.js', './js/zip.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
   './js/editors/word.js', './js/editors/excel.js', './js/editors/slide.js', './js/editors/note.js', './js/editors/note-calendar.js', './js/editors/draw.js', './js/editors/pdf.js', './js/editors/pro.js',
+  './js/qrcode.js', './js/form-core.js', './js/editors/form.js',
   './assets/logo.svg', './assets/icon-192.png', './assets/icon-512.png', './engines/engines.js'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
-  if (e.request.method !== 'GET' || u.origin !== location.origin || u.pathname.includes('/api/')) return;
+  if (e.request.method !== 'GET' || u.origin !== location.origin || u.pathname.includes('/api/') || /\/f\/[^/]+$/.test(u.pathname)) return;
   // engines are large and only change with an app update (new CACHE name): cache on first use, never re-download.
   // app shell: cache first, refresh in background.
   const engine = u.pathname.includes('/engines/');
