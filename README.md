@@ -6,13 +6,14 @@
 
 <p align="center">
   <b>Bütünleşik, internetsiz çalışan ofis paketi</b> – tarayıcıda, masaüstünde ve kendi sunucunuzda.<br>
-  Word · Excel · Slide · Note · Draw · PDF · Design · Formular Werkzeug — tek pencerede.
+  Word · Excel · Slide · Note · Draw · PDF · Design · Formular · <b>AI</b> Werkzeug — tek pencerede, yerleşik yapay zekâ ajanıyla.
 </p>
 
 <p align="center">
   <a href="https://github.com/smyrna-pergamum/office-werkstatt/releases/latest"><b>⬇ Windows kurulum dosyası (çevrimdışı)</b></a>
   &nbsp;·&nbsp; <a href="#hızlı-başlangıç">Hızlı başlangıç</a>
   &nbsp;·&nbsp; <a href="#özellikler">Özellikler</a>
+  &nbsp;·&nbsp; <a href="#yz-ajanı-ai-werkzeug">YZ ajanı</a>
   &nbsp;·&nbsp; <a href="#english">English</a>
   &nbsp;·&nbsp; <a href="#deutsch">Deutsch</a>
 </p>
@@ -32,11 +33,12 @@
 |---|---|
 | **Word Werkzeug** | **Word Werkzeug Pro** (tam motor) — belgeler `.docx` olarak kitaplıkta saklanır |
 | **Excel Werkzeug** | **Excel Werkzeug Pro** (tam motor) — `.xlsx`, çoklu sayfa, formüller |
-| **Slide Werkzeug** | **Slide Werkzeug Pro** (tam motor) — `.pptx` içe aktarma, sunum |
+| **Slide Werkzeug** | **Slide Werkzeug Pro** (tam motor) — `.pptx`, yerleşik **OpenDocument** (`.odp .otp .fodp .odg`) kaydetme ve açma, 5 dilli arayüz |
 | **Note Werkzeug** | OneNote tarzı: defter → bölüm → sayfa, etiketler, kalem/mürekkep, toplantı şablonu, **takvim** (ay görünümü, etkinlik ↔ sayfa bağlantısı, `.ics` içe/dışa aktarma) |
 | **Draw Werkzeug** | Not ve beyin fırtınası panosu (sonsuz tuval): not kartları, yapışkan notlar, şekiller, bağlantılar, zihin haritası, çerçeveler, kalem; klasik şerit; şablonlar; PNG / SVG / `.excalidraw` |
 | **PDF Werkzeug** | **PDF Werkstatt** (kırmızı sürüm): düzenleme, OCR, imzalama, koruma, dönüştürme |
 | **Design Werkzeug** | Canva tarzı tasarım stüdyosu: sosyal medya gönderileri, afiş, el ilanı, dergi ve kitap kapağı, broşür (iki kırım, Z kırım, sarmal kırım), davetiye, kartvizit, yılbaşı / doğum günü / tebrik kartı, sticker, sertifika, video. 17 şablon, 16 gömülü yazı tipi, marka kiti, çerçeveler, QR kod, sayfalar, animasyon; stok fotoğraf / illüstrasyon / ikon / müzik (Openverse, Iconify, Pexels, Pixabay, Unsplash, Freesound, Jamendo); PNG, JPG, SVG, PDF, baskı PDF'i (taşma payı + kesim işaretleri), müzikli video |
+| **AI Werkzeug** | Yerleşik yapay zekâ ajanı: her Werkzeug'da yan panel ve tam sayfa; belge üzerinde çalışır, internette araştırır, yeni belgeler oluşturur (bkz. [YZ ajanı](#yz-ajanı-ai-werkzeug)) |
 | **Formular Werkzeug** | Sürükle-bırak form oluşturucu, sınırsız soru, takvimden gün + saat seçimi, resim ve metin blokları, karşılama ekranı, başlık resmi, renk / arka plan / çerçeve, önizleme/kiosk, link + QR kod, yanıtlar → Excel Werkzeug, `.xlsx` / `.csv` |
 
 Pro motorlar kurulu olduğunda Word / Excel / Slide doğrudan bu motorlarda açılır (ayrı bir “basit görünüm” yoktur).
@@ -46,16 +48,45 @@ verildiğinde otomatik kaydedilir. Motor yoksa yerleşik düzenleyiciler kullan�
 - **Office tarzı arayüz:** başlık çubuğu, sekmeler (Datei / Start / Einfügen …), şerit, Kommentare, Aufholen, Bearbeiten / Anzeigen, Teilen, Datei arka planı, otomatik kayıt, Alt+M komut araması.
 - **Ana sayfa:** karşılama alanı, oluşturma butonları, son dosyalar, hızlı başlangıç, sürükle-bırak yükleme, Ctrl+K arama.
 - **Kitaplık:** Dosyalarım, şablon galerisi, Paylaşılanlar, Favoriler, Çöp kutusu (geri yükleme), yedekleme / geri yükleme.
-- **5 dil:** Türkçe, Deutsch, English, Español, Français — dil seçimi editör menülerini ve tam motorları da değiştirir.
+- **5 dil:** Türkçe, Deutsch, English, Español, Français — dil seçimi editör menülerini, tam motorları (Word, Excel, Slide) ve PDF Werkstatt'ı da değiştirir.
 - **Açık / koyu tema**, responsive tasarım (masaüstü, tablet, mobil).
 - **Eigene App:** kendi web uygulamanızı *Ayarlar → Eigene App* altına ekleyin.
-- **Tamamen çevrimdışı:** hiçbir CDN veya harici istek yok. Yalnızca *Diktieren* (sesle yazdırma) tarayıcının çevrimiçi hizmetini kullanır; butonun yanında uyarı vardır.
+- **Tamamen çevrimdışı:** hiçbir CDN veya harici istek yok. İnternet yalnızca istendiğinde kullanılır: YZ ajanının internet araştırması (Ayarlar'dan kapatılabilir), stok medya ve *Diktieren* (sesle yazdırma).
 
 <table>
 <tr><td><img src="docs/excel-werkzeug-pro.png" alt="Excel Werkzeug Pro"></td><td><img src="docs/pdf-werkzeug.png" alt="PDF Werkzeug"></td></tr>
 <tr><td><img src="docs/draw-werkzeug.png" alt="Draw Werkzeug"></td><td><img src="docs/note-werkzeug.png" alt="Note Werkzeug"></td></tr>
 <tr><td><img src="docs/slide-werkzeug.png" alt="Slide Werkzeug"></td><td><img src="docs/dashboard-dark.png" alt="Koyu tema"></td></tr>
 </table>
+
+## YZ ajanı (AI Werkzeug)
+
+Her Werkzeug'un başlık çubuğundaki **YZ** düğmesi yanda ajan panelini açar; ana sayfadaki **AI Werkzeug** kartı tam sayfa çalışır.
+Panel tek bir **ajandır**: ne istediğinizi yazarsınız, ajan işi kendisi yapar.
+
+**Yapay zekâ motorları** (Ayarlar › Yapay zeka)
+- **Yerleşik motor** ([llama.cpp](https://github.com/ggml-org/llama.cpp)) – Ollama veya başka bir program gerekmez. Model listesinden (Qwen 2.5 1.5B / 7B / 14B, Llama 3.2 3B) tek tıkla indirilir; ekran kartı varsa onu, yoksa işlemciyi kullanır. Tamamen internetsiz çalışır.
+- **Ollama** (aynı bilgisayarda, `http://127.0.0.1:11434`).
+- **OpenAI standardındaki her API** (`/v1/chat/completions`: OpenAI, OpenRouter, Mistral, Groq, LM Studio, vLLM …) – kendi API anahtarınızla.
+
+**Agent Bridge – ajan nasıl çalışır** (tasarım: [`agent-bridge/`](agent-bridge/), uygulamada `public/js/agent-bridge.js`)
+
+```
+istek → yapay zekâ → okuma araçları (belge, kitaplık, internet) → değişiklik PLANI
+      → doğrulama (izin verilen araçlar, şema) → önizleme → onay → tek işlem (transaction) → geri al
+```
+
+- **Okur:** açık belgeyi, kitaplıktaki dosyaları ve **interneti** (arama + sayfa okuma; kaynaklar bağlantı olarak verilir) kendiliğinden okur.
+- **Planlar:** belgeye doğrudan dokunmaz; tüm değişiklikleri tek bir plan olarak hazırlar. Yalnızca açık Werkzeug'un araç kaydındaki araçlar kullanılabilir, parametreler her aracın şemasına göre denetlenir; `$result:N` ile önceki adımın sonucu (ör. yeni slaydın kimliği) sonraki adımda kullanılır. En fazla 50 adım.
+- **Önizleme ve onay:** plan panelde adım adım gösterilir – *Uygula* / *Reddet* (Ayarlar'dan kapatılabilir).
+- **Tek işlem:** onaylanan plan tek seferde uygulanır; bir adım başarısız olursa belge plandan önceki hâline döner. Önizlemeden sonra belge elle değiştirildiyse plan uygulanmaz.
+- **Geri al:** bitmiş bir plan *Ajanın değişikliklerini geri al* ile tek adımda geri alınır.
+- **Werkzeug'lar:** Word (yazma, stiller, tüm şerit komutları), Excel (hücreler, formüller), Slide (slaytlar, metinler), Note, Draw (yapışkan notlar, zihin haritası), Design, Formular; kitaplıkta yeni Word / Excel / Slide / Note / Formular belgeleri.
+
+**İnternet araştırması:** varsayılan olarak açık (panelde **+ › İnternet araştırması** veya Ayarlar'dan kapatılır).
+Arama sırayla isteğe bağlı kendi **SearXNG** sunucunuz, Bing, DuckDuckGo ve Wikipedia ile yapılır – biri yanıt vermezse sıradaki denenir.
+İstekler Office Werkstatt sunucusu (`/api/ai/*`) üzerinden gider; yerel ağ adresleri engellenir, web sayfalarındaki metin talimat olarak değil yalnızca veri olarak işlenir.
+API anahtarları yalnızca tarayıcıda / masaüstü uygulamasında saklanır ve yalnızca ayarlanan API'ye gönderilir.
 
 ## Design Werkzeug
 
@@ -124,7 +155,10 @@ node scripts/fetch-engines.js word pdf   # yalnızca seçilenler
 ## Klasör yapısı
 ```
 public/              web uygulaması (index.html, css/, js/, assets/, manifest, service worker)
-  js/editors/        word · excel · slide · note · draw · pdf
+  js/editors/        word · excel · slide · note · draw · pdf · design · form · ai
+  js/ai.js           YZ ajanı: motorlar, araçlar, panel, ayarlar
+  js/agent-bridge.js Agent Bridge: araç kaydı, plan doğrulama, transaction, geri alma
+  js/odf.js          OpenDocument sunu (.odp/.otp/.fodp/.odg) okuma/yazma
   js/zip.js          OOXML motoru (.docx/.xlsx/.pptx okuma, .docx/.xlsx/.pptx yazma)
   js/i18n.js         5 dilli sözlük
   js/editors/pro.js  Word/Excel/Slide Werkzeug Pro köprüsü (açma, kaydetme, otomatik kayıt)
@@ -132,6 +166,9 @@ public/              web uygulaması (index.html, css/, js/, assets/, manifest, 
   js/desktop.js      masaüstü: yazdırma yönlendirmesi
   engines/           tam motorlar + engines.js + apps.js (Eigene App)
 server/server.js     bağımlılıksız Node sunucusu + REST API (/api/files, /api/engines)
+server/ai.js         YZ: API köprüsü, web araması, sayfa okuma · server/llm.js: yerleşik llama.cpp motoru
+agent-bridge/        Agent Bridge başvuru paketi (V1–V4, testlerle: npm test)
+engines-src/         motorların derleme notları ve yamaları (ör. Slide arayüz çevirisi)
 desktop/             Electron kabuğu, yazdırma önizlemesi, çevrimdışı NSIS kurulum betiği
 scripts/             motor kurulum / derleme betikleri
 ```
@@ -140,26 +177,23 @@ scripts/             motor kurulum / derleme betikleri
 
 ## English
 **Office Werkstatt** is an integrated, fully offline office suite for the browser, the desktop (Windows/macOS/Linux) and your own server:
-Word, Excel, Slide, Note, Draw and PDF tools with an Office-style ribbon, 5 interface languages (TR/DE/EN/ES/FR), light/dark theme and
-responsive layout. Download the offline Windows installer from **Releases**, or run `node server/server.js`.
+Word, Excel, Slide, Note, Draw, PDF, Design, Form and **AI** Werkzeug with an Office-style ribbon, 5 interface languages (TR/DE/EN/ES/FR),
+light/dark theme and responsive layout.
+The built-in **AI agent** (local llama.cpp engine, Ollama or any OpenAI-compatible API) reads your document, your library and the internet,
+prepares every change as a plan of whitelisted tools, shows it for approval and applies it as one transaction that is rolled back on failure
+and can be undone in one step (Agent Bridge, see `agent-bridge/`).
+Download the offline Windows installer from **Releases**, or run `node server/server.js`.
 
 ## Deutsch
 **Office Werkstatt** ist eine integrierte Office-Suite, die komplett ohne Internet läuft – im Browser, auf dem Desktop und auf dem eigenen Server:
-Word-, Excel-, Slide-, Note-, Draw- und PDF-Werkzeug mit Menüband im Office-Stil, 5 Sprachen, hellem/dunklem Design und responsivem Layout.
+Word-, Excel-, Slide-, Note-, Draw-, PDF-, Design-, Formular- und **KI**-Werkzeug mit Menüband im Office-Stil, 5 Sprachen, hellem/dunklem Design und responsivem Layout.
+Der eingebaute **KI-Agent** (lokale llama.cpp-Engine, Ollama oder jede OpenAI-kompatible API) liest Dokument, Bibliothek und Internet,
+plant jede Änderung, zeigt den Plan zur Freigabe und wendet ihn als eine Transaktion an – mit Rücknahme bei Fehlern und Rückgängig in einem Schritt.
 Den Offline-Installer für Windows gibt es unter **Releases**; Server-Start mit `node server/server.js`.
 
 ## Lisans
 Office Werkstatt: [MIT](LICENSE) © Süleyman Akbulut.
 Yerleşik motorlar kendi lisanslarını korur; lisans metinleri ilgili klasörlerdedir:
 `public/engines/word|excel|slide/LICENSE-*` (MIT veya Apache-2.0), `public/engines/pdf/LICENSE` (AGPL-3.0).
+Slide arayüz çevirileri (DE/FR/ES): [storytold/craft-i18n](https://github.com/storytold/craft-i18n) (MIT veya Apache-2.0). Yerleşik YZ motoru: llama.cpp (MIT, lisans metni kurulumla gelir).
 PDF Werkstatt içindeki bileşenler (PDF.js, pdf-lib, MuPDF, Tesseract.js …) için `public/engines/pdf/LICENSE`.
-
-## AI Werkzeug (KI / YZ)
-
-An assistant in every Werkzeug (AI button in the title bar) and as its own Werkzeug.
-
-- **Engines:** [Ollama](https://ollama.com) on the same computer (default `http://127.0.0.1:11434`, private and offline) or any API in the OpenAI standard (`/v1/chat/completions`, e.g. OpenAI, OpenRouter, Mistral, Groq, LM Studio, vLLM). Settings › AI.
-- **Chat:** questions and internet research (web search + reading pages, answers with source links).
-- **Agent:** an agent inside the open document – Word (write, styles, every ribbon command), Excel (cells, formulas), Slide (slides, texts), Note, Draw (sticky notes, mind maps), Design, Formular.
-- **Library:** list/read files and create new documents.
-- Requests go through the Office Werkstatt server (`/api/ai/*`), so there are no CORS problems; the web tools refuse local-network addresses. API keys stay in the browser/desktop app and are only sent to the configured API.
