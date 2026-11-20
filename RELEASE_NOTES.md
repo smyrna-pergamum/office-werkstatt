@@ -1,3 +1,8 @@
+## Office Werkstatt 1.3.1
+
+### Düzeltmeler
+- Word / Excel / Slide: üst çubuk artık diğer Werkzeug'larla aynı düzende (dil, tema ve kullanıcı sağda).
+
 ## Office Werkstatt 1.3.0
 
 ### Draw Werkzeug – not ve beyin fırtınası panosu

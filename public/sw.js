@@ -1,5 +1,5 @@
 /* Office Werkstatt – service worker: caches the whole app so it runs without internet */
-const CACHE = 'office-werkstatt-v1.3.0';
+const CACHE = 'office-werkstatt-v1.3.1';
 const CORE = ['./', './index.html', './manifest.webmanifest', './css/app.css', './css/editors.css',
   './js/icons.js', './js/i18n.js', './js/store.js', './js/sanitize.js', './js/desktop.js', './js/zip.js', './js/legacy-ppt.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
   './js/editors/word.js', './js/editors/excel.js', './js/editors/slide.js', './js/editors/note.js', './js/editors/note-calendar.js', './js/editors/draw.js', './js/editors/pdf.js', './js/editors/pro.js',
