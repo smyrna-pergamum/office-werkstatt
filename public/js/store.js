@@ -90,7 +90,7 @@ window.OW = window.OW || {};
       return a.map(f => { const m = Object.assign({}, f); delete m.content; return m; });
     },
     get: id => backend.get(id),
-    put(f) { f.modified = Date.now(); return backend.put(f); },
+    put(f, o) { if (!(o && o.keep)) f.modified = Date.now(); return backend.put(f); }, // {keep:true}: moving does not count as editing
     remove: id => backend.remove(id),
     uid: () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
   };

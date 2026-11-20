@@ -325,19 +325,80 @@ OW.proEditors = OW.proEditors || {};
         }
         return false;
       }
-      /* follow the Office Werkstatt light / dark theme (the engines have their own setting) */
-      let themeCmd;
+      /* follow the Office Werkstatt light / dark theme. Slide's view.dark and Excel's view.darkMode only toggle
+         (the `on` value is ignored), so the current state is read first */
+      const parse = x => typeof x === 'string' ? JSON.parse(x) : x;
       async function syncTheme() {
         try {
-          if (themeCmd === undefined) {
-            const c = await api().commands(), list = Array.isArray(c) ? c : (c.commands || c);
-            const pick = re => list.find(x => re.test(x.id));
-            themeCmd = (pick(/^view\.interfaceTheme$/) || pick(/^view\.theme$/) || pick(/^view\.dark$/) || pick(/^(app|ui)\.(interfaceTheme|theme|appearance|colorScheme)$/i) || {}).id || null;
+          const on = document.documentElement.dataset.theme === 'dark';
+          if (type === 'word') await exec('view.interfaceTheme', { value: on ? 'dark' : 'light' });
+          else {
+            const ui = (parse(await api().uiInspect()) || {}).ui || {};
+            if (type === 'slide' && (ui.brightness === 'dark') !== on) await exec('view.dark');
+            if (type === 'excel' && (ui.systemTheme || !!ui.dark !== on)) { const r = parse(await exec('view.darkMode')); if (r && r.on !== on) await exec('view.darkMode'); }
           }
-          const isDark = document.documentElement.dataset.theme === 'dark';
-          if (themeCmd) await exec(themeCmd, themeCmd === 'view.dark' ? { on: isDark } : { value: isDark ? 'dark' : 'light' });
           nudge();
         } catch (e) { console.warn('theme', e); }
+        recover(400);
+      }
+      /* Excel and Slide draw their own light/dark switch in their title bar (Word: its own search box, see COVER). Office Werkstatt has one switch
+         (top right), so the engine's switch is covered. It is painted into the canvas (no DOM element): find it in
+         a screenshot of the title bar – the 4th control from the right (switch · comments · Share/Present · search) –
+         and lay a patch of title-bar colour over it that also swallows the clicks. */
+      /* Word draws its own search box there as well (search box · avatar): Office Werkstatt's search (Alt+M) replaces it */
+      const COVER = { excel: { nth: 3, min: 8, max: 44 }, slide: { nth: 3, min: 8, max: 44 }, word: { nth: 1, min: 120, max: 460, thr: 18 } }[type];   // thr: the box is filled a shade lighter than the bar
+      const HAS_SWITCH = !!COVER;
+      let cover = null, coverAt = null, coverTimer = 0, watch = 0, lastTry = 0;
+      async function locateSwitch() {
+        const a = api(); if (!a || !a.screenshot) return null;
+        const shot = parse(await a.screenshot()), b64 = shot && (shot.data || shot.base64 || (typeof shot === 'string' ? shot : null));
+        if (!b64) return null;
+        const img = new Image(); img.src = 'data:image/png;base64,' + b64.replace(/^data:[^,]*,/, ''); await img.decode();
+        const w = img.width, k = w / W.innerWidth, y0 = Math.round(6 * k), y1 = Math.round(30 * k);
+        const c = document.createElement('canvas'); c.width = w; c.height = y1;
+        const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, y0, w, y1 - y0).data, rows = y1 - y0, px = (x, y) => (y * w + x) * 4;
+        const bi = px(w - Math.max(2, Math.round(3 * k)), 0), bg = [d[bi], d[bi + 1], d[bi + 2]];
+        const ink = x => { for (let y = 0; y < rows; y++) { const i = px(x, y); if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > (COVER.thr || 60)) return true; } return false; };
+        const gap = Math.round(9 * k), stop = Math.round(w * 0.5), parts = [];
+        let end = -1, start = -1, blank = 0;
+        for (let x = w - 1; x >= stop && parts.length <= COVER.nth; x--) {
+          if (ink(x)) { if (end < 0) end = x; start = x; blank = 0; }
+          else if (end >= 0 && ++blank >= gap) { parts.push([start, end]); end = -1; }
+        }
+        if (end >= 0 && parts.length <= COVER.nth) parts.push([start, end]);
+        const p = parts[COVER.nth]; if (!p) return null;
+        const wd = (p[1] - p[0] + 1) / k; if (wd < COVER.min || wd > COVER.max) return null;   // not what we look for: leave the bar alone
+        return { left: p[0] / k, right: (p[1] + 1) / k, bg: `rgb(${bg.join(',')})` };
+      }
+      async function coverSwitch() {
+        if (!HAS_SWITCH || !ready || !api()) return;
+        let at = null; try { at = await locateSwitch(); } catch (e) { console.warn('theme switch', e); }
+        if (!at) { if (cover) cover.style.display = 'none'; return; }
+        if (!cover || !cover.isConnected) {
+          cover = W.document.createElement('div'); cover.id = 'ow-theme-cover';
+          cover.style.cssText = 'position:fixed;top:2px;height:34px;z-index:5;cursor:default;';
+          ['pointerdown', 'pointerup', 'pointermove', 'mousedown', 'mouseup', 'mousemove', 'click', 'dblclick', 'contextmenu', 'wheel', 'touchstart', 'touchend']
+            .forEach(ev => cover.addEventListener(ev, e => { e.stopPropagation(); if (!/move$/.test(ev)) e.preventDefault(); }, { passive: false }));
+          W.document.body.appendChild(cover);
+        }
+        coverAt = at;
+        Object.assign(cover.style, { left: (at.left - 4) + 'px', width: (at.right - at.left + 8) + 'px', background: at.bg, display: '' });
+      }
+      function recover(ms = 350) { if (!HAS_SWITCH) return; clearTimeout(coverTimer); coverTimer = setTimeout(coverSwitch, ms); }
+      /* no title bar during a slide show or on the File screen: the patch must not cover anything there */
+      function watchScreens() {
+        if (!HAS_SWITCH) return;
+        W.addEventListener('resize', () => recover());
+        clearInterval(watch);
+        watch = setInterval(async () => {
+          if (!api() || !frame.isConnected) return;
+          let st = null; try { st = parse(await api().uiInspect()); } catch { return; }
+          const away = !!(st && (st.backstage || st.showing || st.animPreview || (st.ui && st.ui.backstage === true)));
+          if (away) { if (cover) cover.style.display = 'none'; return; }
+          // back on the normal view, or not found yet (e.g. Word starts on its File screen): look again, at most every 3 s
+          if ((!cover || cover.style.display === 'none') && Date.now() - lastTry > 3000) { lastTry = Date.now(); recover(0); }
+        }, 1000);
       }
       /* Word: no "Developer" tab – an "Advanced" tab instead, which also holds the Zotero / citation tools */
       const ADV = { tr: ['Gelişmiş', 'Denetimler'], de: ['Erweitert', 'Steuerelemente'], en: ['Advanced', 'Controls'], es: ['Avanzado', 'Controles'], fr: ['Avancé', 'Contrôles'] };
@@ -406,7 +467,7 @@ OW.proEditors = OW.proEditors || {};
             if (!W) return;
             hookEngine();
             ready = await waitLoaded();
-            if (ready) { syncTheme(); setupRibbon(); try { await handOver(); } catch (e) { console.error(e); OW.toast(t('pro.openFailed'), 'warn'); } }
+            if (ready) { syncTheme(); watchScreens(); setupRibbon(); try { await handOver(); } catch (e) { console.error(e); OW.toast(t('pro.openFailed'), 'warn'); } }
             const l = body.querySelector('.pro-loading'); if (l) l.remove();
             try { frame.focus(); } catch { /* ignore */ }
           }, { once: true });
@@ -417,10 +478,17 @@ OW.proEditors = OW.proEditors || {};
           return file.content;
         },
         status: () => ({ left: OW.TYPES[type].engine, right: '' }),
+        /* the title-bar search (Alt+M) lists the engine's own commands */
+        async commands() {
+          let list = []; try { list = parse(await api().commands()); list = Array.isArray(list) ? list : (list.commands || []); } catch { return []; }
+          return list.filter(c => c && c.id && c.label && c.enabled !== false && ((c.menu && c.menu.length) || c.location))
+            .map(c => ({ label: c.label, hint: c.location || c.menu.join(' › '), icon: 'bolt',
+              onClick: () => { try { frame.focus(); } catch { /* ignore */ } exec(c.id).then(nudge).catch(e => OW.toast(OW.escape(c.label) + ': ' + OW.escape(String((e && e.message) || e)), 'warn')); } }));
+        },
         onTheme: () => { if (ready) syncTheme(); },
         print() { exec('file.print').catch(() => OW.toast(t('unsupported'))); },
         saveAs: () => saveAsFlow(),
-        destroy() { auto.splice(0).forEach(j => j.rej && j.rej(new Error('closed'))); },
+        destroy() { clearInterval(watch); clearTimeout(coverTimer); auto.splice(0).forEach(j => j.rej && j.rej(new Error('closed'))); },
       };
     };
   }

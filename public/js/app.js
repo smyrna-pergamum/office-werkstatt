@@ -11,7 +11,7 @@
   };
   const S = OW.settings = Object.assign({ theme: 'system', density: 'comfortable', view: 'grid', userName: '' }, JSON.parse(localStorage.getItem('ow-settings') || '{}'));
   const saveSettings = () => localStorage.setItem('ow-settings', JSON.stringify(S));
-  let files = [], route = 'home', filter = 'all', query = '', tplType = 'all';
+  let files = [], folders = [], cwd = null, route = 'home', filter = 'all', query = '', tplType = 'all';
   OW.engines = {};
 
   /* ---------- theme ---------- */
@@ -88,11 +88,56 @@
   const fmtSize = b => !b ? '' : b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 
   /* ---------- files ---------- */
-  async function load() { files = await OW.store.list(); $('#trashCount').textContent = files.filter(f => f.trashed).length || ''; }
+  async function load() { const all = await OW.store.list(); folders = all.filter(f => f.type === 'folder'); files = all.filter(f => f.type !== 'folder'); $('#trashCount').textContent = files.filter(f => f.trashed).length || ''; }
   OW.refresh = async () => { await load(); render(); };
+
+  /* ---------- folders (My files) ----------
+   * A folder is a store entry { type:'folder', name, folder:<parent id|null> }; files point to their folder with f.folder.
+   * Works the same in the browser (IndexedDB) and on the server (one JSON per entry). */
+  const folderById = id => id ? folders.find(x => x.id === id) : null;
+  const parentOf = it => (it && it.folder && folderById(it.folder)) ? it.folder : null; // missing folder → root
+  const byName = (a, b) => a.name.localeCompare(b.name, OW.lang, { numeric: true });
+  function folderPath(id) { const out = []; let x = folderById(id), n = 0; while (x && n++ < 64) { out.unshift(x); x = folderById(parentOf(x)); } return out; }
+  const countIn = id => files.filter(f => !f.trashed && parentOf(f) === id).length + folders.filter(x => parentOf(x) === id).length;
+  const folderRoute = id => id ? 'files?f=' + id : 'files';
+  async function newFolder() {
+    const n = await OW.prompt(t('folder.new'), t('folder.untitled')); if (!n || !n.trim()) return;
+    await OW.store.put({ id: OW.store.uid(), type: 'folder', name: n.trim(), folder: cwd, created: Date.now(), modified: Date.now() });
+    OW.toast(t('folder.created')); OW.refresh();
+  }
+  async function moveTo(id, target) {
+    target = target || null;
+    const it = files.find(x => x.id === id) || folderById(id); if (!it || parentOf(it) === target) return;
+    if (it.type === 'folder' && (target === id || folderPath(target).some(x => x.id === id))) return OW.toast(t('folder.cantMove'), 'warn');
+    const o = await OW.store.get(id); o.folder = target; await OW.store.put(o, { keep: true });
+    await OW.refresh(); OW.toast(t('folder.moved', { name: OW.escape(target ? folderById(target).name : t('nav.files')) }));
+  }
+  function pickFolder(exclude) {
+    const tree = [], walk = (pid, d) => folders.filter(x => parentOf(x) === pid && x.id !== exclude).sort(byName).forEach(x => { tree.push([x, d]); walk(x.id, d + 1); });
+    walk(null, 1);
+    return modal(`<div class="dlg"><h3>${t('folder.moveTo')}</h3><div class="fold-pick"><button data-fid="">${I('home', 16)}<span>${t('nav.files')}</span></button>${tree.map(([x, d]) => `<button data-fid="${x.id}" style="padding-left:${12 + d * 20}px">${I('folder', 16)}<span>${OW.escape(x.name)}</span></button>`).join('')}</div>
+      ${tree.length ? '' : `<p class="muted small">${t('folder.noneYet')}</p>`}<div class="dlg-btns"><button class="btn ghost" data-x>${t('cancel')}</button></div></div>`, (c, close) => {
+      c.querySelectorAll('[data-fid]').forEach(b => b.onclick = () => close(b.dataset.fid));
+      c.querySelector('[data-x]').onclick = () => close(null);
+    });
+  }
+  function folderMenu(x, anchor) {
+    OW.popover(anchor, [
+      { icon: 'arrowRight', label: t('open'), onClick: () => go(folderRoute(x.id)) },
+      { icon: 'pen', label: t('rename'), onClick: () => OW.prompt(t('rename'), x.name).then(async n => { if (!n || !n.trim()) return; const o = await OW.store.get(x.id); o.name = n.trim(); await OW.store.put(o); OW.refresh(); }) },
+      { icon: 'folder', label: t('folder.moveTo'), onClick: () => pickFolder(x.id).then(v => v !== null && moveTo(x.id, v)) },
+      '-',
+      { icon: 'trash', label: t('folder.delete'), danger: true, onClick: () => OW.confirm(t('folder.confirmDelete', { name: OW.escape(x.name) })).then(async ok => {
+        if (!ok) return; const p = parentOf(x);
+        for (const it of files.concat(folders).filter(y => y.folder === x.id)) { const o = await OW.store.get(it.id); if (o) { o.folder = p; await OW.store.put(o, { keep: true }); } }
+        await OW.store.remove(x.id); OW.toast(t('folder.deleted'));
+        if (cwd === x.id) go(folderRoute(p)); else OW.refresh();
+      }) },
+    ], { alignRight: true });
+  }
   function untitled(type) { const base = t('untitled.' + type); const n = files.filter(f => f.name.startsWith(base)).length; return n ? `${base} ${n + 1}` : base; }
   OW.createFile = async function (type, opts = {}) {
-    const f = { id: OW.store.uid(), type, name: opts.name || untitled(type), content: opts.content !== undefined ? JSON.parse(JSON.stringify(opts.content)) : null, created: Date.now(), modified: Date.now(), favorite: false, shared: false, trashed: false };
+    const f = { id: OW.store.uid(), type, name: opts.name || untitled(type), content: opts.content !== undefined ? JSON.parse(JSON.stringify(opts.content)) : null, created: Date.now(), modified: Date.now(), favorite: false, shared: false, trashed: false, folder: route === 'files' && folderById(cwd) ? cwd : null };
     if (opts.blob) { f.content = opts.blob; f.size = opts.blob.size; if (opts.proExt) f.proExt = opts.proExt; }
     await OW.store.put(f); await load();
     if (opts.noOpen) return f;
@@ -101,7 +146,7 @@
   async function openFile(id, fresh) {
     const f = await OW.store.get(id); if (!f) return OW.toast(t('file.notFound'));
     if (f.trashed) return OW.toast(t('file.inTrash'));
-    OW.lastRoute = route; history.replaceState(null, '', '#/edit/' + id);
+    OW.lastRoute = route === 'files' && cwd ? folderRoute(cwd) : route; history.replaceState(null, '', '#/edit/' + id);
     OW.openEditor(f, { fresh });
   }
   OW.openFile = openFile;
@@ -123,6 +168,7 @@
       { icon: 'arrowRight', label: t('open'), onClick: () => openFile(f.id) },
       { icon: 'pen', label: t('rename'), onClick: () => OW.prompt(t('rename'), f.name).then(n => n && update(f.id, { name: n.trim() })) },
       { icon: 'copy', label: t('duplicate'), onClick: () => duplicate(f.id) },
+      { icon: 'folder', label: t('folder.moveTo'), onClick: () => pickFolder().then(v => v !== null && moveTo(f.id, v)) },
       { icon: 'star', label: f.favorite ? t('fav.remove') : t('fav.add'), onClick: () => update(f.id, { favorite: !f.favorite }) },
       { icon: 'users', label: f.shared ? t('share.unshare') : t('share.markShared'), onClick: () => update(f.id, { shared: !f.shared }) },
       { icon: 'download', label: t('download'), onClick: () => downloadFile(f.id) },
@@ -172,7 +218,7 @@
     const h = location.hash.replace(/^#\/?/, '') || 'home';
     if (h.startsWith('edit/')) { if ($('#editorHost').hidden) openFile(h.slice(5)); return; }
     if (!$('#editorHost').hidden && OW.closeEditor) OW.closeEditor();
-    route = h.split('?')[0]; query = ''; render(); closeSidebar();
+    route = h.split('?')[0]; cwd = route === 'files' ? new URLSearchParams(h.split('?')[1] || '').get('f') : null; query = ''; render(); closeSidebar();
   }
   function render() {
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.route === route));
@@ -241,7 +287,7 @@
     $('#dropzone').onclick = () => $('#filePicker').click();
   }
   function rowHTML(f) {
-    const loc = (f.shared ? t('nav.shared') : t('nav.files')) + ' / ' + t('type.' + f.type);
+    const loc = [f.shared ? t('nav.shared') : t('nav.files')].concat(folderPath(parentOf(f)).map(x => OW.escape(x.name))).join(' / ') + ' · ' + t('type.' + f.type);
     return `<div class="row" data-open="${f.id}">${OW.appGlyph(f.type, 30)}<div class="rn"><b>${OW.escape(f.name)}<small class="ext">.${OW.TYPES[f.type].ext}</small></b><small>${loc}</small></div>
       ${f.favorite ? `<span class="fav on">${I('star', 16)}</span>` : ''}<span class="rd">${when(f.trashed ? f.trashedAt || f.modified : f.modified)}</span><button class="icon-btn sm more" data-menu="${f.id}" aria-label="${t('more')}">${I('more')}</button></div>`;
   }
@@ -262,14 +308,20 @@
     if (route === 'favorites') list = list.filter(f => f.favorite);
     if (filter !== 'all') list = list.filter(f => f.type === filter);
     if (query) list = list.filter(f => f.name.toLowerCase().includes(query.toLowerCase()));
+    if (route === 'files' && cwd && !folderById(cwd)) cwd = null;
+    const inFolders = route === 'files' && !query; // a search on My files looks through every folder
+    if (inFolders) list = list.filter(f => parentOf(f) === cwd);
+    const subs = inFolders ? folders.filter(x => parentOf(x) === cwd).sort(byName) : [];
+    const crumbs = route === 'files' && cwd ? `<nav class="crumbs">${[{ id: '', name: t('nav.files') }].concat(folderPath(cwd)).map((x, i, a) => i === a.length - 1 ? `<b>${I('folder', 16)}${OW.escape(x.name)}</b>` : `<a href="#/${folderRoute(x.id)}" data-drop="${x.id}">${i ? '' : I('home', 16)}${OW.escape(x.name)}</a>`).join(I('chevronRight', 14))}</nav>` : '';
     const sortBy = S.sort || 'modified';
     list.sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name, OW.lang) : sortBy === 'type' ? a.type.localeCompare(b.type) : b.modified - a.modified);
     if (route === 'recent') list = list.slice(0, 30);
-    const emptyMsg = { trash: t('empty.trash'), shared: t('empty.shared'), favorites: t('empty.favorites') }[route] || t('empty.files');
+    const emptyMsg = { trash: t('empty.trash'), shared: t('empty.shared'), favorites: t('empty.favorites') }[route] || (cwd ? t('folder.empty') : t('empty.files'));
+    const curName = cwd ? folderById(cwd).name : '';
     $('#view-list').innerHTML = `
-      <div class="page-h"><h1>${I(ic, 28)}${title}</h1>
+      ${crumbs}<div class="page-h"><h1>${I(ic, 28)}${cwd ? OW.escape(curName) : title}</h1>
         <div class="page-acts">
-          ${route === 'trash' ? `<button class="btn danger" id="emptyTrash" ${list.length ? '' : 'disabled'}>${I('trash', 16)}<span>${t('trash.empty')}</span></button>` : `<button class="btn" id="btnUpload">${I('upload', 16)}<span>${t('upload')}</span></button><button class="btn primary" id="btnNew2">${I('plus', 16)}<span>${t('new')}</span></button>`}
+          ${route === 'trash' ? `<button class="btn danger" id="emptyTrash" ${list.length ? '' : 'disabled'}>${I('trash', 16)}<span>${t('trash.empty')}</span></button>` : `${route === 'files' ? `<button class="btn" id="btnFolder">${I('folder', 16)}<span>${t('folder.new')}</span></button>` : ''}<button class="btn" id="btnUpload">${I('upload', 16)}<span>${t('upload')}</span></button><button class="btn primary" id="btnNew2">${I('plus', 16)}<span>${t('new')}</span></button>`}
         </div></div>
       <div class="list-tools">
         <div class="chips">${['all', ...Object.keys(OW.TYPES)].map(ty => `<button class="chip ${filter === ty ? 'on' : ''}" data-f="${ty}">${ty === 'all' ? t('filter.all') : OW.appGlyph(ty, 16) + t('type.' + ty)}</button>`).join('')}</div>
@@ -279,11 +331,13 @@
           <div class="seg"><button data-v="grid" class="${S.view === 'grid' ? 'on' : ''}" title="${t('view.grid')}">${I('grid', 16)}</button><button data-v="list" class="${S.view === 'list' ? 'on' : ''}" title="${t('view.list')}">${I('list', 16)}</button></div>
         </div></div>
       ${route === 'trash' && list.length ? `<p class="muted note-trash">${I('trash', 14)} ${t('trash.hint')}</p>` : ''}
-      ${list.length ? (S.view === 'grid'
-        ? `<div class="file-grid">${list.map(f => `<div class="fcard fc-${f.type}" data-open="${f.id}"><div class="fthumb">${OW.appGlyph(f.type, 44)}<span class="fext">.${OW.TYPES[f.type].ext}</span>${f.shared ? `<span class="badge">${I('users', 12)}</span>` : ''}</div><div class="fmeta"><b title="${OW.escape(f.name)}">${OW.escape(f.name)}</b><small>${when(f.trashed ? f.trashedAt || f.modified : f.modified)}${f.size ? ' · ' + fmtSize(f.size) : ''}</small></div>${route !== 'trash' ? `<button class="fav-t ${f.favorite ? 'on' : ''}" data-id="${f.id}" title="${t('fav.add')}">${I('star', 16)}</button>` : ''}<button class="icon-btn sm more" data-menu="${f.id}">${I('more')}</button></div>`).join('')}</div>`
-        : `<div class="card"><div class="rows">${list.map(rowHTML).join('')}</div></div>`)
+      ${list.length || subs.length ? (S.view === 'grid'
+        ? `<div class="file-grid">${subs.map(x => `<div class="fcard fc-folder" data-folder="${x.id}" data-drop="${x.id}" data-drag="${x.id}" draggable="true"><div class="fthumb">${I('folder', 56)}</div><div class="fmeta"><b title="${OW.escape(x.name)}">${OW.escape(x.name)}</b><small>${t('folder.items', { n: countIn(x.id) })}</small></div><button class="icon-btn sm more" data-fmenu="${x.id}">${I('more')}</button></div>`).join('')}${list.map(f => `<div class="fcard fc-${f.type}" data-open="${f.id}"><div class="fthumb">${OW.appGlyph(f.type, 44)}<span class="fext">.${OW.TYPES[f.type].ext}</span>${f.shared ? `<span class="badge">${I('users', 12)}</span>` : ''}</div><div class="fmeta"><b title="${OW.escape(f.name)}">${OW.escape(f.name)}</b><small>${when(f.trashed ? f.trashedAt || f.modified : f.modified)}${f.size ? ' · ' + fmtSize(f.size) : ''}</small></div>${route !== 'trash' ? `<button class="fav-t ${f.favorite ? 'on' : ''}" data-id="${f.id}" title="${t('fav.add')}">${I('star', 16)}</button>` : ''}<button class="icon-btn sm more" data-menu="${f.id}">${I('more')}</button></div>`).join('')}</div>`
+        : `<div class="card"><div class="rows">${subs.map(x => `<div class="row row-folder" data-folder="${x.id}" data-drop="${x.id}" data-drag="${x.id}" draggable="true"><span class="fold-ic">${I('folder', 26)}</span><div class="rn"><b>${OW.escape(x.name)}</b><small>${t('folder.items', { n: countIn(x.id) })}</small></div><span class="rd">${when(x.modified)}</span><button class="icon-btn sm more" data-fmenu="${x.id}">${I('more')}</button></div>`).join('')}${list.map(rowHTML).join('')}</div></div>`)
         : `<div class="empty">${I(ic, 48)}<h3>${emptyMsg}</h3>${route !== 'trash' ? `<button class="btn primary" id="emptyNew">${I('plus', 16)}<span>${t('new')}</span></button>` : ''}</div>`}`;
     bindCommon($('#view-list'));
+    if (route === 'files') bindFolders($('#view-list'));
+    if ($('#btnFolder')) $('#btnFolder').onclick = newFolder;
     document.querySelectorAll('#view-list .chip').forEach(c => c.onclick = () => { filter = c.dataset.f; renderList(); });
     document.querySelectorAll('#view-list .seg button').forEach(b => b.onclick = () => { S.view = b.dataset.v; saveSettings(); renderList(); });
     $('#sortSel').onchange = e => { S.sort = e.target.value; saveSettings(); renderList(); };
@@ -292,6 +346,23 @@
     if ($('#btnNew2')) $('#btnNew2').onclick = e => createMenu(e.currentTarget);
     if ($('#emptyNew')) $('#emptyNew').onclick = e => createMenu(e.currentTarget);
     if ($('#emptyTrash')) $('#emptyTrash').onclick = () => OW.confirm(t('trash.confirmAll')).then(async ok => { if (!ok) return; for (const f of files.filter(x => x.trashed)) await OW.store.remove(f.id); OW.refresh(); OW.toast(t('trash.emptied')); });
+  }
+
+  /* folder cards: open, menu, drag files/folders onto a folder or a breadcrumb to move them */
+  function bindFolders(root) {
+    root.querySelectorAll('[data-folder]').forEach(el => el.onclick = e => { if (e.target.closest('[data-fmenu]')) return; go(folderRoute(el.dataset.folder)); });
+    root.querySelectorAll('[data-fmenu]').forEach(b => b.onclick = e => { e.stopPropagation(); folderMenu(folderById(b.dataset.fmenu), b); });
+    root.querySelectorAll('[data-open]').forEach(el => { el.draggable = true; el.dataset.drag = el.dataset.open; });
+    const MIME = 'application/x-ow-item';
+    root.querySelectorAll('[data-drag]').forEach(el => {
+      el.addEventListener('dragstart', e => { e.dataTransfer.setData(MIME, el.dataset.drag); e.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging'); });
+      el.addEventListener('dragend', () => { el.classList.remove('dragging'); root.querySelectorAll('.drop-on').forEach(x => x.classList.remove('drop-on')); });
+    });
+    root.querySelectorAll('[data-drop]').forEach(el => {
+      el.addEventListener('dragover', e => { if (!e.dataTransfer.types.includes(MIME)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; el.classList.add('drop-on'); });
+      el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('drop-on'); });
+      el.addEventListener('drop', e => { const id = e.dataTransfer.getData(MIME); if (!id) return; e.preventDefault(); el.classList.remove('drop-on'); if (id !== el.dataset.drop) moveTo(id, el.dataset.drop || null); });
+    });
   }
 
   /* ---------- Templates ---------- */

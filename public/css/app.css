@@ -418,3 +418,16 @@ html[data-theme="dark"] .tool-design { background: linear-gradient(140deg, #3B1A
 .tt-design .dp b { height: 10px; width: 70%; background: #D6338A; border-radius: 3px; } .tt-design .dp i { height: 5px; background: #C9D3E8; border-radius: 3px; } .tt-design .dp u { position: absolute; right: -10px; bottom: -10px; width: 46px; height: 46px; border-radius: 50%; background: #FFD43B; }
 @media (max-width: 520px) { .art-design { transform: translateY(-50%) scale(.7); right: 0; } }
 :root { --c-design: #D6338A; }
+
+/* folders on My files */
+.crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: -4px 0 10px; font-size: 14px; color: var(--ink-3); }
+.crumbs a, .crumbs b { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; color: inherit; text-decoration: none; }
+.crumbs a:hover { background: var(--hover); color: var(--ink); } .crumbs b { color: var(--ink); font-weight: 600; }
+.fc-folder .fthumb { background: linear-gradient(140deg, #FFF4D6, #FFE7A8); color: #E0A21B; }
+.fc-folder .fthumb svg { fill: #F7C948; stroke: #D9961A; }
+.row-folder .fold-ic { width: 30px; display: grid; place-items: center; color: #D9961A; } .row-folder .fold-ic svg { fill: #F7C948; }
+.drop-on { outline: 2px dashed var(--c-app); outline-offset: 2px; background: color-mix(in srgb, var(--c-app) 10%, transparent) !important; }
+.dragging { opacity: .45; }
+.fold-pick { display: flex; flex-direction: column; gap: 2px; max-height: 50vh; overflow: auto; margin: 6px 0 4px; }
+.fold-pick button { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 0; border-radius: 10px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.fold-pick button:hover { background: var(--hover); } .fold-pick button svg { color: #D9961A; flex: none; }

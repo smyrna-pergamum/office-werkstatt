@@ -349,7 +349,9 @@ OW.editors = OW.editors || {};
       show('info');
     }
 
-    function commandSearch() {
+    async function commandSearch() {
+      // full engines (Word/Excel/Slide Pro) list their own commands
+      if (instance.commands) { const cmds = await instance.commands(); return OW.palette({ placeholder: t('editor.searchTools'), items: q => cmds.filter(x => (x.label + ' ' + x.hint).toLowerCase().includes(q.toLowerCase())).slice(0, 14) }); }
       const all = [];
       instance.ribbon().forEach(tab => tab.groups.forEach(g => g.items.forEach(function w(it) { if (it.t === 'stack') return it.items.forEach(w); if (it.t === 'rows') return it.rows.forEach(r => r.forEach(w)); if ((it.label || it.title) && it.onClick) all.push({ label: it.label || it.title, icon: it.icon, tab: tab.label, onClick: it.onClick }); })));
       OW.palette({ placeholder: t('editor.searchTools'), items: q => all.filter(x => x.label.toLowerCase().includes(q.toLowerCase())).slice(0, 12).map(x => ({ icon: x.icon, label: x.label, hint: x.tab, onClick: () => { x.onClick(); ctx.refresh(); } })) });

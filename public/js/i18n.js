@@ -137,6 +137,18 @@ empty.files | No files here yet | Hier gibt es noch keine Dateien | Burada henü
 empty.trash | The trash is empty | Der Papierkorb ist leer | Çöp kutusu boş | La papelera está vacía | La corbeille est vide
 empty.shared | No shared files | Keine geteilten Dateien | Paylaşılan dosya yok | No hay archivos compartidos | Aucun fichier partagé
 empty.favorites | Mark files with ★ to see them here | Markieren Sie Dateien mit ★, um sie hier zu sehen | Burada görmek için dosyaları ★ ile işaretleyin | Marca archivos con ★ para verlos aquí | Marquez des fichiers avec ★ pour les voir ici
+folder.new | New folder | Neuer Ordner | Yeni klasör | Nueva carpeta | Nouveau dossier
+folder.untitled | New folder | Neuer Ordner | Yeni klasör | Nueva carpeta | Nouveau dossier
+folder.created | Folder created | Ordner erstellt | Klasör oluşturuldu | Carpeta creada | Dossier créé
+folder.moveTo | Move to folder… | In Ordner verschieben… | Klasöre taşı… | Mover a carpeta… | Déplacer vers un dossier…
+folder.moved | Moved to “{name}” | Nach „{name}“ verschoben | “{name}” klasörüne taşındı | Movido a «{name}» | Déplacé vers « {name} »
+folder.cantMove | A folder cannot be moved into itself | Ein Ordner kann nicht in sich selbst verschoben werden | Klasör kendi içine taşınamaz | Una carpeta no puede moverse dentro de sí misma | Un dossier ne peut pas être déplacé dans lui-même
+folder.delete | Delete folder | Ordner löschen | Klasörü sil | Eliminar carpeta | Supprimer le dossier
+folder.confirmDelete | Delete the folder “{name}”? Its contents move up one level. | Ordner „{name}“ löschen? Der Inhalt wird eine Ebene nach oben verschoben. | “{name}” klasörü silinsin mi? İçindekiler bir üst klasöre taşınır. | ¿Eliminar la carpeta «{name}»? Su contenido sube un nivel. | Supprimer le dossier « {name} » ? Son contenu remonte d’un niveau.
+folder.deleted | Folder deleted | Ordner gelöscht | Klasör silindi | Carpeta eliminada | Dossier supprimé
+folder.empty | This folder is empty | Dieser Ordner ist leer | Bu klasör boş | Esta carpeta está vacía | Ce dossier est vide
+folder.items | {n} items | {n} Elemente | {n} öğe | {n} elementos | {n} éléments
+folder.noneYet | No folders yet – create one with “New folder”. | Noch keine Ordner – erstellen Sie einen mit „Neuer Ordner“. | Henüz klasör yok – “Yeni klasör” ile oluşturun. | Aún no hay carpetas: crea una con «Nueva carpeta». | Aucun dossier – créez-en un avec « Nouveau dossier ».
 fav.add | Add to favorites | Zu Favoriten | Favorilere ekle | Añadir a favoritos | Ajouter aux favoris
 fav.remove | Remove from favorites | Aus Favoriten entfernen | Favorilerden çıkar | Quitar de favoritos | Retirer des favoris
 trash.move | Move to trash | In den Papierkorb | Çöp kutusuna taşı | Mover a la papelera | Mettre à la corbeille

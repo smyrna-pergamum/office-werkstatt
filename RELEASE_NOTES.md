@@ -1,3 +1,13 @@
+## Office Werkstatt 1.3.2
+
+### Yenilikler
+- **Dosyalarım'da klasörler:** yeni klasör, iç içe klasörler, yol çubuğu, sürükle-bırak ve "Klasöre taşı…" ile taşıma, yeniden adlandırma, silme (içerik bir üst klasöre geçer).
+- **Word / Excel / Slide:** üst çubukta diğer Werkzeug'lar gibi arama (Alt + M); motorun kendi komutlarını bulur ve çalıştırır. Word'ün kendi arama kutusu kaldırıldı (tek arama).
+
+### Düzeltmeler
+- Tek tema düğmesi: Excel ve Slide motorlarının kendi açık/koyu düğmesi kaldırıldı; Office Werkstatt'ın düğmesi motorları da değiştirir.
+- Slide / Excel temaya artık doğru uyar (önceden ters dönebiliyordu).
+
 ## Office Werkstatt 1.3.1
 
 ### Düzeltmeler
