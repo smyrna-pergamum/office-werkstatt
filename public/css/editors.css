@@ -303,6 +303,8 @@ html[data-theme="dark"] .dr-wrap { background: #121212; }
 
 /* full engines (Word/Excel/Slide Werkzeug Pro, PDF Werkstatt): the engine's own menus are the only menus */
 .ed.ed-engine .ed-tabs, .ed.ed-engine .ribbon, .ed.ed-engine .ed-status, .ed.ed-engine .ed-search { display: none !important; }
+/* same title bar as the other Werkzeuge: language, theme and user on the right (the engine has its own search) */
+.ed.ed-engine .ed-tright { margin-left: auto; }
 .pro-host { position: relative; flex: 1; min-height: 0; }
 .pro-host .pro-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; z-index: 1; background: var(--panel); }
 .pro-loading { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--panel); color: var(--ink-2); font-size: 14px; }
