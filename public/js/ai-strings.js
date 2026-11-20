@@ -2,7 +2,7 @@
 OW.addStrings(`
 type.ai | AI | KI | YZ | IA | IA
 tool.ai.name | AI Werkzeug | KI Werkzeug | YZ Werkzeug | IA Werkzeug | IA Werkzeug
-tool.ai.desc | Your assistant: research on the internet, write, plan and work in every Werkzeug – locally with Ollama or with your own API. | Ihr Assistent: im Internet recherchieren, schreiben, planen und in jedem Werkzeug mitarbeiten – lokal mit Ollama oder mit Ihrer eigenen API. | Asistanınız: internette araştırır, yazar, planlar ve her Werkzeug'da çalışır – Ollama ile yerel ya da kendi API'nizle. | Tu asistente: investiga en internet, escribe, planifica y trabaja en cada Werkzeug, en local con Ollama o con tu propia API. | Votre assistant : recherche sur Internet, rédaction, planification et travail dans chaque Werkzeug – en local avec Ollama ou avec votre propre API.
+tool.ai.desc | Your AI agent: researches on the internet, writes, plans and works in every Werkzeug – with the built-in engine, Ollama or your own API. | Ihr KI-Agent: recherchiert im Internet, schreibt, plant und arbeitet in jedem Werkzeug – mit der eingebauten Engine, Ollama oder Ihrer eigenen API. | YZ ajanınız: internette araştırır, yazar, planlar ve her Werkzeug'da çalışır – yerleşik motorla, Ollama ile ya da kendi API'nizle. | Tu agente de IA: investiga en internet, escribe, planifica y trabaja en cada Werkzeug, con el motor integrado, Ollama o tu propia API. | Votre agent IA : recherche sur Internet, rédaction, planification et travail dans chaque Werkzeug – avec le moteur intégré, Ollama ou votre propre API.
 create.ai | New AI chat | Neuer KI-Chat | Yeni YZ sohbeti | Nuevo chat de IA | Nouveau chat IA
 untitled.ai | AI chat | KI-Chat | YZ sohbeti | Chat de IA | Chat IA
 ai.button | AI | KI | YZ | IA | IA
