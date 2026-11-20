@@ -203,7 +203,7 @@ dz.tpl.newCourse | New course | Neuer Kurs | Yeni kurs | Nuevo curso | Nouveau c
 dz.tpl.germanForAll | German for everyone | Deutsch für alle | Herkes için Almanca | Alemán para todos | L’allemand pour tous
 dz.tpl.registerNow | Register now: | Jetzt anmelden: | Hemen kaydolun: | Inscríbete ya: | Inscrivez-vous :
 dz.tpl.quote | Every language is a new window to the world. | Jede Sprache ist ein neues Fenster zur Welt. | Her dil dünyaya açılan yeni bir penceredir. | Cada idioma es una nueva ventana al mundo. | Chaque langue est une nouvelle fenêtre sur le monde.
-dz.tpl.quoteAuthor | Januam team | Januam-Team | Januam ekibi | Equipo Januam | Équipe Januam
+dz.tpl.quoteAuthor | smyrna-pergamum team | smyrna-pergamum-Team | smyrna-pergamum ekibi | Equipo smyrna-pergamum | Équipe smyrna-pergamum
 dz.tpl.event | Summer festival | Sommerfest | Yaz şenliği | Fiesta de verano | Fête d’été
 dz.tpl.dateLine | Sat, 12 July · 3 pm | Sa., 12. Juli · 15 Uhr | Cmt, 12 Temmuz · 15:00 | Sáb 12 julio · 15 h | Sam. 12 juillet · 15 h
 dz.tpl.placeLine | Darmstadt · Free entry | Darmstadt · Eintritt frei | Darmstadt · Giriş ücretsiz | Darmstadt · Entrada libre | Darmstadt · Entrée libre
@@ -219,7 +219,7 @@ dz.tpl.bookTitle | The long way home | Der lange Weg nach Hause | Eve giden uzun
 dz.tpl.bookSub | A novel | Roman | Roman | Novela | Roman
 dz.tpl.author | Author name | Autorenname | Yazar adı | Nombre del autor | Nom de l’auteur
 dz.tpl.contact | Contact | Kontakt | İletişim | Contacto | Contact
-dz.tpl.contactText | Januam e.V.\\nDarmstadt\\ninfo@januam.org\\nwww.januam.org | Januam e.V.\\nDarmstadt\\ninfo@januam.org\\nwww.januam.org | Januam e.V.\\nDarmstadt\\ninfo@januam.org\\nwww.januam.org | Januam e.V.\\nDarmstadt\\ninfo@januam.org\\nwww.januam.org | Januam e.V.\\nDarmstadt\\ninfo@januam.org\\nwww.januam.org
+dz.tpl.contactText | smyrna-pergamum e.V.\\nDarmstadt\\ninfo@smyrna-pergamum.org\\nwww.smyrna-pergamum.org | smyrna-pergamum e.V.\\nDarmstadt\\ninfo@smyrna-pergamum.org\\nwww.smyrna-pergamum.org | smyrna-pergamum e.V.\\nDarmstadt\\ninfo@smyrna-pergamum.org\\nwww.smyrna-pergamum.org | smyrna-pergamum e.V.\\nDarmstadt\\ninfo@smyrna-pergamum.org\\nwww.smyrna-pergamum.org | smyrna-pergamum e.V.\\nDarmstadt\\ninfo@smyrna-pergamum.org\\nwww.smyrna-pergamum.org
 dz.tpl.aboutUs | About us | Über uns | Hakkımızda | Sobre nosotros | À propos
 dz.tpl.lorem | Write a few sentences about your offer here. Short paragraphs are easier to read on folded flyers. | Schreiben Sie hier ein paar Sätze über Ihr Angebot. Kurze Absätze lesen sich auf Faltflyern besser. | Buraya teklifiniz hakkında birkaç cümle yazın. Katlanır broşürlerde kısa paragraflar daha kolay okunur. | Escribe aquí unas frases sobre tu oferta. | Écrivez ici quelques phrases sur votre offre.
 dz.tpl.panel1 | Our courses | Unsere Kurse | Kurslarımız | Nuestros cursos | Nos cours
@@ -230,7 +230,7 @@ dz.tpl.inviteTitle | Let’s celebrate! | Lasst uns feiern! | Hadi kutlayalım! 
 dz.tpl.rsvp | Please let us know\\nif you can come. | Bitte gebt uns Bescheid,\\nob ihr kommen könnt. | Lütfen gelip gelemeyeceğinizi\\nbize bildirin. | Confírmanos\\nsi puedes venir. | Merci de nous dire\\nsi vous venez.
 dz.tpl.cardName | Firstname Lastname | Vorname Nachname | Ad Soyad | Nombre Apellido | Prénom Nom
 dz.tpl.cardRole | Course coordination | Kurskoordination | Kurs koordinasyonu | Coordinación | Coordination
-dz.tpl.cardContact | +49 000 000000\\nname@januam.org | +49 000 000000\\nname@januam.org | +49 000 000000\\nname@januam.org | +49 000 000000\\nname@januam.org | +49 000 000000\\nname@januam.org
+dz.tpl.cardContact | +49 000 000000\\nname@smyrna-pergamum.org | +49 000 000000\\nname@smyrna-pergamum.org | +49 000 000000\\nname@smyrna-pergamum.org | +49 000 000000\\nname@smyrna-pergamum.org | +49 000 000000\\nname@smyrna-pergamum.org
 dz.tpl.happyNewYear | Happy New Year | Frohes neues Jahr | Mutlu yıllar | Feliz Año Nuevo | Bonne année
 dz.tpl.newYearWish | Health, happiness and success for the new year | Gesundheit, Glück und Erfolg im neuen Jahr | Yeni yılda sağlık, mutluluk ve başarı | Salud, felicidad y éxito | Santé, bonheur et réussite
 dz.tpl.cardBack | Dear …,\\n\\n | Liebe/r …,\\n\\n | Sevgili …,\\n\\n | Querido/a …,\\n\\n | Cher/Chère …,\\n\\n

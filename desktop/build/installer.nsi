@@ -10,9 +10,9 @@ SetCompressor /SOLID lzma
 Name "${APP}"
 OutFile "${OUTFILE}"
 InstallDir "$LOCALAPPDATA\Programs\${APP}"
-InstallDirRegKey HKCU "Software\Januam\OfficeWerkstatt" "InstallDir"
+InstallDirRegKey HKCU "Software\smyrna-pergamum\OfficeWerkstatt" "InstallDir"
 RequestExecutionLevel user
-BrandingText "Office Werkstatt ${VERSION} · Januam"
+BrandingText "Office Werkstatt ${VERSION} · smyrna-pergamum"
 !define MUI_ICON "${ICON}"
 !define MUI_UNICON "${ICON}"
 !define MUI_ABORTWARNING
@@ -33,10 +33,10 @@ BrandingText "Office Werkstatt ${VERSION} · Januam"
 
 VIProductVersion "${VERSION}.0"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${APP}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "Januam"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "smyrna-pergamum"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "${APP} Setup"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© Januam"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© smyrna-pergamum"
 
 Function .onInit
   !insertmacro MUI_LANGDLL_DISPLAY
@@ -87,10 +87,10 @@ Section "Office Werkstatt" SecMain
   !insertmacro Assoc "excalidraw" "Draw Werkzeug"
   !insertmacro Assoc "owdoc" "Office Werkstatt"
   WriteRegStr HKCU "Software\Classes\Applications\${EXE}" "FriendlyAppName" "${APP}"
-  WriteRegStr HKCU "Software\Januam\OfficeWerkstatt" "InstallDir" "$INSTDIR"
+  WriteRegStr HKCU "Software\smyrna-pergamum\OfficeWerkstatt" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${REGKEY}" "DisplayName" "${APP}"
   WriteRegStr HKCU "${REGKEY}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKCU "${REGKEY}" "Publisher" "Januam"
+  WriteRegStr HKCU "${REGKEY}" "Publisher" "smyrna-pergamum"
   WriteRegStr HKCU "${REGKEY}" "DisplayIcon" "$INSTDIR\${EXE}"
   WriteRegStr HKCU "${REGKEY}" "UninstallString" '"$INSTDIR\Uninstall Office Werkstatt.exe"'
   WriteRegDWORD HKCU "${REGKEY}" "NoModify" 1
@@ -128,7 +128,7 @@ Section "Uninstall"
   !insertmacro Unassoc "owdoc"
   DeleteRegKey HKCU "Software\Classes\Applications\${EXE}"
   DeleteRegKey HKCU "${REGKEY}"
-  DeleteRegKey HKCU "Software\Januam\OfficeWerkstatt"
+  DeleteRegKey HKCU "Software\smyrna-pergamum\OfficeWerkstatt"
   RMDir /r "$INSTDIR"
   ; documents in %APPDATA%\Office Werkstatt are kept on purpose
 SectionEnd

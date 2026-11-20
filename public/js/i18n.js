@@ -183,7 +183,7 @@ tpl.blankDeck | Blank presentation | Leere Präsentation | Boş sunum | Presenta
 tpl.blankNotebook | Blank notebook | Leeres Notizbuch | Boş not defteri | Cuaderno en blanco | Bloc-notes vierge
 tpl.blankBoard | Blank whiteboard | Leeres Whiteboard | Boş beyaz tahta | Pizarra en blanco | Tableau blanc vierge
 tpl.letter | Letter | Brief | Mektup | Carta | Lettre
-tpl.letter.sender | Januam e.V. · Street 1 · 64283 Darmstadt | Januam e.V. · Straße 1 · 64283 Darmstadt | Januam e.V. · Cadde 1 · 64283 Darmstadt | Januam e.V. · Calle 1 · 64283 Darmstadt | Januam e.V. · Rue 1 · 64283 Darmstadt
+tpl.letter.sender | smyrna-pergamum e.V. · Street 1 · 64283 Darmstadt | smyrna-pergamum e.V. · Straße 1 · 64283 Darmstadt | smyrna-pergamum e.V. · Cadde 1 · 64283 Darmstadt | smyrna-pergamum e.V. · Calle 1 · 64283 Darmstadt | smyrna-pergamum e.V. · Rue 1 · 64283 Darmstadt
 tpl.letter.recipient | Recipient name<br>Street<br>Postcode City | Name Empfänger<br>Straße<br>PLZ Ort | Alıcı adı<br>Adres<br>Posta kodu Şehir | Nombre del destinatario<br>Calle<br>CP Ciudad | Nom du destinataire<br>Rue<br>CP Ville
 tpl.letter.subject | Subject | Betreff | Konu | Asunto | Objet
 tpl.letter.salutation | Dear Sir or Madam, | Sehr geehrte Damen und Herren, | Sayın ilgili, | Estimados señores: | Madame, Monsieur,

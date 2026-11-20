@@ -53,7 +53,7 @@
       tx('@dz.tpl.newCourse', .08, .1, .84, .045, { font: 'Montserrat', weight: 700, color: '#ffffff', ls: 200, upper: true }),
       tx('@dz.tpl.germanForAll', .08, .2, .84, .11, { font: 'Montserrat', weight: 700, color: '#ffffff', lh: 1.05 }),
       rc(.08, .52, .5, .085, '#FFD43B', { rx: .04 }), tx('A1 · A2 · B1', .08, .535, .5, .045, { font: 'Montserrat', weight: 700, color: '#1B1F3B', align: 'center' }),
-      tx('@dz.tpl.registerNow', .08, .78, .84, .04, { font: 'Inter', color: '#ffffff' }), tx('www.januam.org', .08, .85, .84, .045, { font: 'Inter', weight: 700, color: '#ffffff' }),
+      tx('@dz.tpl.registerNow', .08, .78, .84, .04, { font: 'Inter', color: '#ffffff' }), tx('www.smyrna-pergamum.org', .08, .85, .84, .045, { font: 'Inter', weight: 700, color: '#ffffff' }),
     ] }], { cat: 'social' }),
     T('quote-post', 'ig-post', [{ bg: '#FFF8EC', els: [
       tx('“', .08, .02, .3, .35, { font: 'Playfair Display', weight: 700, color: '#EA6A2A' }),
@@ -78,7 +78,7 @@
       tx('@dz.tpl.posterText', .08, .73, .84, .03, { font: 'Inter', color: '#C9CEE6', lh: 1.4 }),
       tx('@dz.tpl.dateLine', .08, .85, .55, .04, { font: 'Montserrat', weight: 700, color: '#FFD43B' }),
       tx('@dz.tpl.placeLine', .08, .9, .55, .028, { font: 'Inter', color: '#ffffff' }),
-      { t: 'qr', x: .74, y: .83, w: .18, text: 'https://www.januam.org' },
+      { t: 'qr', x: .74, y: .83, w: .18, text: 'https://www.smyrna-pergamum.org' },
     ] }], { cat: 'print' }),
     T('course-flyer', 'flyer-a5', [{ bg: '#ffffff', els: [
       rc(0, 0, 1, .38, '#0FA3B1'), ci(.75, -.15, .6, '#ffffff', { opacity: .12 }),
@@ -86,7 +86,7 @@
       tx('@dz.tpl.germanForAll', .08, .13, .84, .1, { font: 'Montserrat', weight: 700, color: '#ffffff', lh: 1.05 }),
       fr(.08, .42, .84, .25, { shape: 'rounded' }),
       tx('@dz.tpl.flyerList', .08, .7, .84, .038, { font: 'Inter', color: '#1B1F3B', lh: 1.6 }),
-      rc(0, .9, 1, .1, '#1B1F3B'), tx('www.januam.org', .08, .925, .84, .04, { font: 'Inter', weight: 700, color: '#ffffff', align: 'center' }),
+      rc(0, .9, 1, .1, '#1B1F3B'), tx('www.smyrna-pergamum.org', .08, .925, .84, .04, { font: 'Inter', weight: 700, color: '#ffffff', align: 'center' }),
     ] }], { cat: 'print' }),
     T('magazine-cover', 'magazine', [{ bg: '#ffffff', els: [
       fr(0, 0, 1, 1, { shape: 'rect' }),
@@ -109,7 +109,7 @@
         tx('@dz.tpl.lorem', .37, .16, .27, .014, { font: 'Inter', color: '#1B1F3B', lh: 1.6 }),
         rc(2 / 3, 0, 1 / 3, 1, '#0FA3B1'), fr(.7, .1, .27, .4, { shape: 'rounded' }),
         tx('@dz.tpl.germanForAll', .7, .56, .27, .04, { font: 'Montserrat', weight: 700, color: '#ffffff', lh: 1.05 }),
-        tx('www.januam.org', .7, .88, .27, .016, { font: 'Inter', weight: 700, color: '#ffffff' }),
+        tx('www.smyrna-pergamum.org', .7, .88, .27, .016, { font: 'Inter', weight: 700, color: '#ffffff' }),
       ] },
       { bg: '#ffffff', els: [
         tx('@dz.tpl.panel1', .03, .08, .27, .025, { font: 'Montserrat', weight: 700, color: '#1B1F3B' }), tx('@dz.tpl.lorem', .03, .16, .27, .014, { font: 'Inter', color: '#5A607F', lh: 1.6 }),
@@ -127,10 +127,10 @@
         tx('@dz.tpl.inviteTitle', .1, .25, .8, .13, { font: 'Dancing Script', weight: 700, color: '#1B1F3B', align: 'center', lh: 1 }),
         tx('@dz.tpl.dateLine', .1, .62, .8, .05, { font: 'Inter', weight: 700, color: '#1B1F3B', align: 'center' }), tx('@dz.tpl.placeLine', .1, .7, .8, .04, { font: 'Inter', color: '#5A607F', align: 'center' }),
       ] },
-      { bg: '#FFF8EC', els: [tx('@dz.tpl.rsvp', .1, .4, .8, .045, { font: 'Inter', color: '#1B1F3B', align: 'center', lh: 1.5 }), { t: 'qr', x: .35, y: .6, w: .3, text: 'https://www.januam.org' }] },
+      { bg: '#FFF8EC', els: [tx('@dz.tpl.rsvp', .1, .4, .8, .045, { font: 'Inter', color: '#1B1F3B', align: 'center', lh: 1.5 }), { t: 'qr', x: .35, y: .6, w: .3, text: 'https://www.smyrna-pergamum.org' }] },
     ], { cat: 'print' }),
     T('bizcard', 'bizcard', [
-      { bg: '#1B1F3B', els: [tx('Januam', .1, .3, .8, .12, { font: 'Montserrat', weight: 700, color: '#ffffff', align: 'center' }), rc(.42, .6, .16, .012, '#0FA3B1'), tx('www.januam.org', .1, .68, .8, .045, { font: 'Inter', color: '#C9CEE6', align: 'center' })] },
+      { bg: '#1B1F3B', els: [tx('smyrna-pergamum', .1, .3, .8, .12, { font: 'Montserrat', weight: 700, color: '#ffffff', align: 'center' }), rc(.42, .6, .16, .012, '#0FA3B1'), tx('www.smyrna-pergamum.org', .1, .68, .8, .045, { font: 'Inter', color: '#C9CEE6', align: 'center' })] },
       { bg: '#ffffff', els: [rc(0, 0, .03, 1, '#0FA3B1'), tx('@dz.tpl.cardName', .1, .14, .8, .075, { font: 'Montserrat', weight: 700, color: '#1B1F3B' }), tx('@dz.tpl.cardRole', .1, .3, .8, .045, { font: 'Inter', color: '#0FA3B1' }), tx('@dz.tpl.cardContact', .1, .55, .8, .04, { font: 'Inter', color: '#1B1F3B', lh: 1.5 })] },
     ], { cat: 'print' }),
     T('newyear-card', 'postcard', [
@@ -153,7 +153,7 @@
       tx('@dz.tpl.congratsWish', .15, .58, .7, .035, { font: 'Lora', color: '#1B1F3B', align: 'center', lh: 1.4 }),
     ] }], { cat: 'print' }),
     T('sticker', 'sticker-round', [{ bg: '#FFD43B', els: [
-      ci(.5, .5, .86, '#1B1F3B'), tx('@dz.tpl.sticker', .15, .32, .7, .13, { font: 'Bebas Neue', color: '#FFD43B', align: 'center', lh: .95 }), tx('Januam', .15, .66, .7, .07, { font: 'Montserrat', weight: 700, color: '#ffffff', align: 'center' }),
+      ci(.5, .5, .86, '#1B1F3B'), tx('@dz.tpl.sticker', .15, .32, .7, .13, { font: 'Bebas Neue', color: '#FFD43B', align: 'center', lh: .95 }), tx('smyrna-pergamum', .15, .66, .7, .07, { font: 'Montserrat', weight: 700, color: '#ffffff', align: 'center' }),
     ] }], { cat: 'print' }),
     T('certificate', 'certificate', [{ bg: '#ffffff', els: [
       rc(.03, .04, .94, .92, null, { stroke: '#0FA3B1', sw: .004 }), rc(.045, .065, .91, .87, null, { stroke: '#C9A27A', sw: .0015 }),

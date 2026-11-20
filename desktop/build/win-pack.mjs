@@ -28,7 +28,7 @@ if (fs.existsSync(ico)) {
 const vi = ResEdit.Resource.VersionInfo.fromEntries(res.entries)[0] || ResEdit.Resource.VersionInfo.createEmpty();
 const [a, b, c] = pkg.version.split('.').map(Number);
 vi.setFileVersion(a, b, c, 0, 1033); vi.setProductVersion(a, b, c, 0, 1033);
-vi.setStringValues({ lang: 1033, codepage: 1200 }, { FileDescription: 'Office Werkstatt', ProductName: 'Office Werkstatt', CompanyName: 'Januam', LegalCopyright: '© Januam', OriginalFilename: 'Office Werkstatt.exe', InternalName: 'Office Werkstatt' });
+vi.setStringValues({ lang: 1033, codepage: 1200 }, { FileDescription: 'Office Werkstatt', ProductName: 'Office Werkstatt', CompanyName: 'smyrna-pergamum', LegalCopyright: '© smyrna-pergamum', OriginalFilename: 'Office Werkstatt.exe', InternalName: 'Office Werkstatt' });
 vi.outputToResourceEntries(res.entries);
 res.outputResource(pe);
 fs.writeFileSync(exe, Buffer.from(pe.generate()));
