@@ -1,3 +1,40 @@
+## Office Werkstatt 1.4.0
+
+### Yeni: AI Werkzeug (KI / YZ)
+- **Yerleşik yapay zekâ motoru** (llama.cpp): Ollama gerekmez. Ayarlar › Yapay zeka › Yerleşik: model listesi (Qwen 2.5 1.5B / 7B / 14B, Llama 3.2 3B) tek tıkla indirilir; motor mümkünse ekran kartını, değilse işlemciyi kullanır, ilk soruda kendiliğinden başlar.
+- **Yerleşik yapay zekâ:** bu bilgisayardaki **Ollama** ile (ücretsiz, gizli, internetsiz çalışır) ya da **OpenAI standardındaki herhangi bir API** ile (OpenAI, OpenRouter, Mistral, Groq, LM Studio …). Ayarlar › Yapay zeka: adres, API anahtarı, model; Ollama modelleri doğrudan buradan indirilebilir.
+- **Her Werkzeug'da YZ düğmesi** (üst çubuk): yanda sohbet paneli açılır – **Sohbet** ve **Ajan** sekmeleri, model seçimi, dosya/belge ekleme, sesli giriş.
+- **Ajan modu:** yapay zekâ açık belgede doğrudan çalışır ve yazar:
+  - Word: içerik yazar/değiştirir, stil uygular, tüm şerit komutlarını kullanabilir
+  - Excel: hücre okur/yazar, formül girer, şerit komutları
+  - Slide: slayt ekler, metinleri değiştirir, şerit komutları
+  - Note: sayfa okur/yazar, yeni sayfa açar · Draw: yapışkan notlar, not kartları, zihin haritası · Design: metin, arka plan, sayfa · Formular: başlık, açıklama, sorular
+- **İnternet araştırması:** web araması ve sayfa okuma, sonuçlar kaynak bağlantılarıyla (yerel ağ adresleri engellenir).
+- **Kitaplık:** dosyaları listeleyip okuyabilir, yeni Word / Excel / Slide / Note / Formular belgeleri oluşturabilir.
+- **AI Werkzeug** (ana sayfadaki yeni kart): tam sayfa sohbet; her sohbet kitaplıkta bir belge olarak saklanır.
+
+### Slide: OpenDocument biçimleri (yerleşik)
+- **.odp, .otp, .fodp, .odg** olarak kaydetme ve açma – ek program gerekmez (metin, biçimlendirme, madde işaretleri, şekiller, döndürme, resimler, çizgiler, tablolar, arka planlar).
+- Slide şablonları Slide Werkzeug Pro'da artık içerikleriyle açılır (önceden boş açılıyordu).
+- Bilgisayarda LibreOffice kuruluysa ayrıca .ppt / .pps / .pot / .uop ile Excel .xls / .ods ve Word .doc da kaydedilebilir.
+
+### Diğer
+- **Slide / Excel:** motorun kendi *Dosya › Farklı Kaydet* sayfası yerine Office Werkstatt'ın Farklı Kaydet penceresi açılır – "Kaydet" ile aynı tüm biçimler; *.deckcraft artık görünmez.
+- **PDF Werkstatt:** arayüz Fransızca ve İspanyolca da kullanılabilir.
+- **Slide Werkzeug Pro:** arayüz artık Türkçe, Almanca, Fransızca ve İspanyolca (önceden yalnızca İngilizce).
+- **YZ Ajanı – Agent Bridge (V1–V4 tasarımı):** Sohbet/Ajan ayrımı kaldırıldı, panel tek bir ajandır. Ajan belgeyi, kitaplığı ve interneti kendisi okur; değişiklikleri bir **plan** olarak hazırlar (yalnızca izin verilen araçlar, parametreler şemaya göre denetlenir, `$result:N` ile önceki adımların sonuçları kullanılır). Plan önizlenir ve onaylanınca **tek işlem** olarak uygulanır: bir adım başarısız olursa her şey geri alınır, önizlemeden sonra belge elle değiştirildiyse uygulanmaz, bitmiş bir plan tek tıkla geri alınır. Ayarlar'dan önizleme kapatılabilir. Başvuru paketi depoda `agent-bridge/` klasöründe.
+- **İnternet araştırması:** ajan gerektiğinde kendiliğinden arar ve sayfaları okur (varsayılan olarak açık). Arama artık birden çok motorla çalışır (Bing, DuckDuckGo, Wikipedia; isteğe bağlı kendi SearXNG sunucunuz) – biri yanıt vermezse sıradaki denenir.
+
+## Office Werkstatt 1.3.3
+
+### Değişiklikler
+- **Word / Excel:** "Otomatik Kaydet" düğmesi gizlendi; Office Werkstatt her zaman kendisi kaydeder (düzenlemeden kısa süre sonra ve kapatırken).
+- **Dil seçimi:** üst çubukta tek düğme (🌐 + geçerli dil); tıklayınca tüm diller açılır.
+- **Slide:** motorun kendi Kaydet / Farklı Kaydet düğmesi artık ".deckcraft" indirmez; Office Werkstatt'ın Farklı Kaydet penceresi açılır (.werkzeug ve tüm PowerPoint biçimleri, PDF, PNG, JPEG …).
+
+### Düzeltmeler
+- Ana sayfa: araç kartlarındaki yazılar (Form, Draw, PDF, Note …) dar pencerelerde artık resimlerin altında kalmaz.
+
 ## Office Werkstatt 1.3.2
 
 ### Yenilikler

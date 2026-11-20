@@ -53,6 +53,7 @@
         <span data-icon="search"></span><span class="ph" data-i18n="search.placeholder"></span><kbd>Ctrl + K</kbd>
       </button>
       <div class="top-actions">
+        <button class="ai-top" id="btnAI" data-i18n-title="ai.open"><span data-icon="sparkle"></span><span data-i18n="ai.button"></span></button>
         <div class="lang-switch" id="langSwitch"></div>
         <button class="icon-btn" id="btnTheme" data-i18n-title="theme.toggle"><span data-icon="moon"></span></button>
         <button class="icon-btn has-dot" id="btnBell" data-i18n-title="notifications"><span data-icon="bell"></span></button>
@@ -75,7 +76,7 @@
 <div class="drop-overlay" id="dropOverlay" hidden>
   <div class="drop-card"><span data-icon="upload"></span><h2 data-i18n="drop.title"></h2><p data-i18n="drop.hint"></p></div>
 </div>
-<input type="file" id="filePicker" multiple hidden accept=".docx,.docm,.dotx,.dotm,.doc,.dot,.odt,.ott,.fodt,.rtf,.txt,.md,.markdown,.html,.htm,.xml,.xlsx,.xlsm,.xltx,.xltm,.xls,.xlsb,.ods,.csv,.tsv,.pptx,.pptm,.ppsx,.ppsm,.potx,.potm,.ppt,.werkzeug,.wordcraft,.gridcraft,.deckcraft,.pdf,.excalidraw,.json,.owdoc,image/*">
+<input type="file" id="filePicker" multiple hidden accept=".docx,.docm,.dotx,.dotm,.doc,.dot,.odt,.ott,.fodt,.rtf,.txt,.md,.markdown,.html,.htm,.xml,.xlsx,.xlsm,.xltx,.xltm,.xls,.xlsb,.ods,.csv,.tsv,.pptx,.pptm,.ppsx,.ppsm,.potx,.potm,.ppt,.pps,.pot,.odp,.otp,.odg,.fodp,.uop,.xlt,.ots,.fods,.uos,.uot,.wps,.werkzeug,.wordcraft,.gridcraft,.deckcraft,.pdf,.excalidraw,.json,.owdoc,image/*">
 
 <div class="modal" id="modal" hidden><div class="modal-card" id="modalCard"></div></div>
 <div class="toasts" id="toasts"></div>
@@ -87,6 +88,7 @@
 <script src="js/desktop.js"></script>
 <script src="js/zip.js"></script>
 <script src="js/legacy-ppt.js"></script>
+<script src="js/odf.js"></script>
 <script src="js/templates.js"></script>
 <script src="js/editor-shell.js"></script>
 <script src="js/editors/word.js"></script>
@@ -104,6 +106,10 @@
 <script src="js/stock-core.js"></script>
 <script src="js/editors/design-strings.js"></script>
 <script src="js/editors/design.js"></script>
+<script src="js/ai-strings.js"></script>
+<script src="js/agent-bridge.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/editors/ai.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

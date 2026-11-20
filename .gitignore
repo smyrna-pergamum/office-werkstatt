@@ -2,3 +2,5 @@ node_modules/
 desktop/dist/
 data/
 *.log
+desktop/build/llm/
+desktop/build/converter/

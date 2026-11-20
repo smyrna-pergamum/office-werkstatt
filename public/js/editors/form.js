@@ -621,7 +621,31 @@ OW.editors.form = async function (ctx) {
     { label: 'CSV (.csv) – ' + t('form.tab.responses'), fn: dlCsv },
   ];
 
+  /* AI Werkzeug: build the form */
+  const AIT = OW.aiTool;
+  const aiAdapter = {
+    label: t('type.form') + ' (Formular Werkzeug)',
+    suggestions: [t('ai.f.s1'), t('ai.f.s2'), t('ai.f.s3')],
+    describe: () => JSON.stringify({ title: F.title, description: F.desc, thanks: F.thanks, questions: F.questions.map(q => ({ id: q.id, type: q.type, label: q.label, options: q.options, required: q.required })) }).slice(0, 12000),
+    tools: [
+      AIT('read_form', 'Read the form: title, description and all questions (with ids).'),
+      AIT('set_form_info', 'Set the title, the description shown on top and/or the thank-you text.', { title: { type: 'string' }, description: { type: 'string' }, thanks: { type: 'string' } }),
+      AIT('add_questions', 'Add questions at the end (or after a question id). types: short, long, single, multi, dropdown, number, date, email, phone, rating, scale, yesno, section (heading), text (info text).', { questions: { type: 'array', items: { type: 'object', properties: { type: { type: 'string' }, label: { type: 'string' }, options: { type: 'array', items: { type: 'string' } }, required: { type: 'boolean' }, description: { type: 'string' } } } }, after: { type: 'string' } }, ['questions']),
+      AIT('update_question', 'Change a question by id.', { id: { type: 'string' }, label: { type: 'string' }, options: { type: 'array', items: { type: 'string' } }, required: { type: 'boolean' } }, ['id']),
+      AIT('delete_question', 'Delete a question by id.', { id: { type: 'string' } }, ['id']),
+    ],
+    async run(n, a) {
+      if (n === 'read_form') return aiAdapter.describe();
+      if (n === 'set_form_info') { if (a.title != null) F.title = String(a.title); if (a.description != null) F.desc = String(a.description); if (a.thanks != null) F.thanks = String(a.thanks); renderCanvas(); changed(); return { ok: true }; }
+      if (n === 'add_questions') { const qs = OW.aiFormQuestions(a.questions); const i = a.after ? qIndex(a.after) + 1 : F.questions.length; F.questions.splice(i > 0 ? i : F.questions.length, 0, ...qs); setView('build'); renderCanvas(); changed(); return { added: qs.map(q => q.id) }; }
+      if (n === 'update_question') { const q = F.questions[qIndex(a.id)]; if (!q) return { error: 'no such question' }; if (a.label != null) q.label = String(a.label); if (Array.isArray(a.options)) q.options = a.options.map(String); if (a.required != null) q.required = !!a.required; renderCanvas(); changed(); return { ok: true }; }
+      if (n === 'delete_question') { delQ(a.id); return { ok: true }; }
+    },
+    async insert(m) { const lines = m.split('\n').map(x => x.replace(/^\s*([-*•]|\d+[.)])\s+/, '').replace(/[*_#`]/g, '').trim()).filter(Boolean); F.questions.push(...OW.aiFormQuestions(lines.map(l => ({ type: 'short', label: l })))); setView('build'); renderCanvas(); changed(); },
+  };
+
   return {
+    ai: aiAdapter,
     ribbonMode: 'simplified',
     ribbon: () => R,
     mount(body) {

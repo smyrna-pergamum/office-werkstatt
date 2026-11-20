@@ -1,0 +1,195 @@
+--- a/crates/epaint/src/text/fonts.rs
++++ b/crates/epaint/src/text/fonts.rs
+@@ -438,8 +438,15 @@
+     ///
+     /// The implementation uses memoization so repeated calls are cheap.
+     #[inline]
+-    pub fn layout_job(&mut self, job: LayoutJob) -> Arc<Galley> {
++    pub fn layout_job(&mut self, mut job: LayoutJob) -> Arc<Galley> {
+         *self.used_since_begin_pass = true;
++        if job.sections.len() == 1
++            && job.sections[0].byte_range == <crate::text::ByteRange as crate::text::ByteRangeExt>::full(&job.text)
++            && let Some(t) = crate::text::translate::translate(&job.text)
++        {
++            job.text = t.into_owned();
++            job.sections[0].byte_range = <crate::text::ByteRange as crate::text::ByteRangeExt>::full(&job.text);
++        }
+         let allow_split_paragraphs = true; // Optimization for editing text with many paragraphs.
+         self.galley_cache.layout(
+             self.fonts,
+--- a/crates/epaint/src/text/mod.rs
++++ b/crates/epaint/src/text/mod.rs
+@@ -20,6 +20,7 @@
+ mod styled_metrics;
+ mod text_layout;
+ mod text_layout_types;
++pub mod translate;
+ mod unicode;
+ 
+ pub use {
+--- a/crates/egui/src/widgets/text_edit/builder.rs
++++ b/crates/egui/src/widgets/text_edit/builder.rs
+@@ -591,6 +591,11 @@
+         };
+ 
+         let layouter = layouter.unwrap_or(&mut default_layouter);
++        // Office Werkstatt: what the user types is never translated
++        let mut untranslated_layouter = |ui: &Ui, text: &dyn TextBuffer, w: f32| {
++            epaint::text::translate::untranslated(|| layouter(ui, text, w))
++        };
++        let layouter: &mut dyn FnMut(&Ui, &dyn TextBuffer, f32) -> Arc<Galley> = &mut untranslated_layouter;
+ 
+         let min_inner_height = (desired_height_rows.at_least(1) as f32) * line_height;
+ 
+--- a/crates/epaint/src/text/translate.rs
++++ b/crates/epaint/src/text/translate.rs
+@@ -0,0 +1,149 @@
++//! Office Werkstatt: interface translation at text layout.
++//!
++//! The app hands over a table of English interface text and its translation once at start
++//! ([`set_translations`]). Every single-section layout job whose whole text is a key (or matches a
++//! key with `{name}` placeholders) is laid out in the translation. Text edits opt out with
++//! [`untranslated`], so typed text is never changed.
++
++use std::borrow::Cow;
++use std::cell::Cell;
++use std::collections::HashMap;
++use std::sync::{Mutex, OnceLock};
++
++struct Pattern {
++    /// Literal pieces between placeholders: `pieces.len() == names.len() + 1`.
++    pieces: Vec<String>,
++    names: Vec<String>,
++    translation: String,
++}
++
++struct Table {
++    exact: HashMap<String, String>,
++    patterns: Vec<Pattern>,
++    memo: Mutex<HashMap<String, Option<String>>>,
++}
++
++static TABLE: OnceLock<Table> = OnceLock::new();
++
++thread_local! {
++    static OFF: Cell<u32> = const { Cell::new(0) };
++}
++
++/// Installs the translations (English → translation). Only the first call counts.
++pub fn set_translations(rows: impl IntoIterator<Item = (String, String)>) {
++    let mut exact = HashMap::new();
++    let mut patterns = Vec::new();
++    for (en, tr) in rows {
++        if en.is_empty() || tr.is_empty() || en == tr {
++            continue;
++        }
++        if en.contains('{') {
++            if let Some(p) = parse_pattern(&en, &tr) {
++                patterns.push(p);
++            }
++        }
++        exact.insert(en, tr);
++    }
++    // longer literal text first, so the most specific pattern wins
++    patterns.sort_by_key(|p| std::cmp::Reverse(p.pieces.iter().map(|s| s.len()).sum::<usize>()));
++    let _ = TABLE.set(Table { exact, patterns, memo: Mutex::new(HashMap::new()) });
++}
++
++fn parse_pattern(en: &str, tr: &str) -> Option<Pattern> {
++    let mut pieces = Vec::new();
++    let mut names = Vec::new();
++    let mut rest = en;
++    while let Some(open) = rest.find('{') {
++        let close = rest[open..].find('}')? + open;
++        let name = &rest[open + 1..close];
++        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
++            return None;
++        }
++        pieces.push(rest[..open].to_owned());
++        names.push(name.to_owned());
++        rest = &rest[close + 1..];
++    }
++    pieces.push(rest.to_owned());
++    if names.is_empty() || pieces.iter().all(|p| p.trim().is_empty()) {
++        return None;
++    }
++    // two placeholders side by side can't be told apart
++    if pieces[1..pieces.len() - 1].iter().any(|p| p.is_empty()) {
++        return None;
++    }
++    Some(Pattern { pieces, names, translation: tr.to_owned() })
++}
++
++fn match_pattern(p: &Pattern, text: &str) -> Option<String> {
++    let first = &p.pieces[0];
++    let mut rest = text.strip_prefix(first.as_str())?;
++    let mut values = Vec::with_capacity(p.names.len());
++    for (i, _) in p.names.iter().enumerate() {
++        let next = &p.pieces[i + 1];
++        let last = i + 1 == p.names.len();
++        let at = if last {
++            if !rest.ends_with(next.as_str()) {
++                return None;
++            }
++            rest.len() - next.len()
++        } else {
++            rest.find(next.as_str())?
++        };
++        let value = &rest[..at];
++        if value.is_empty() || value.contains('\n') {
++            return None;
++        }
++        values.push(value);
++        rest = &rest[at + next.len()..];
++    }
++    if !rest.is_empty() {
++        return None;
++    }
++    let mut out = p.translation.clone();
++    for (name, value) in p.names.iter().zip(values) {
++        out = out.replace(&format!("{{{name}}}"), value);
++    }
++    Some(out)
++}
++
++/// The translation of `text`, if there is one and translation is on.
++pub fn translate(text: &str) -> Option<Cow<'static, str>> {
++    let table = TABLE.get()?;
++    if OFF.with(|o| o.get()) > 0 || text.is_empty() || text.len() > 400 {
++        return None;
++    }
++    if let Some(t) = table.exact.get(text) {
++        return Some(Cow::Owned(t.clone()));
++    }
++    // "Label…" / "Label:" variants of a known label
++    for suffix in ['…', ':'] {
++        if let Some(base) = text.strip_suffix(suffix) {
++            if let Some(t) = table.exact.get(base) {
++                if !t.ends_with(suffix) {
++                    return Some(Cow::Owned(format!("{t}{suffix}")));
++                }
++            }
++        }
++    }
++    if !text.chars().any(|c| c.is_alphabetic()) {
++        return None;
++    }
++    let mut memo = table.memo.lock().ok()?;
++    if let Some(hit) = memo.get(text) {
++        return hit.clone().map(Cow::Owned);
++    }
++    let hit = table.patterns.iter().find_map(|p| match_pattern(p, text));
++    if memo.len() > 20_000 {
++        memo.clear();
++    }
++    memo.insert(text.to_owned(), hit.clone());
++    hit.map(Cow::Owned)
++}
++
++/// Runs `f` with translation off (text the user types or edits).
++pub fn untranslated<R>(f: impl FnOnce() -> R) -> R {
++    OFF.with(|o| o.set(o.get() + 1));
++    let r = f();
++    OFF.with(|o| o.set(o.get().saturating_sub(1)));
++    r
++}

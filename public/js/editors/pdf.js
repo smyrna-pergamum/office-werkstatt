@@ -39,7 +39,7 @@ OW.editors.pdf = async function (ctx) {
     } catch { /* cross-origin (file://) */ }
   }
   function mountEngine() {
-    try { localStorage.setItem('pdf-workshop.language', ['tr', 'de', 'en'].includes(OW.lang) ? OW.lang : 'en'); } catch {}
+    try { localStorage.setItem('pdf-workshop.language', ['tr', 'de', 'en', 'fr', 'es'].includes(OW.lang) ? OW.lang : 'en'); } catch {}
     holder.innerHTML = '<iframe class="pdf-engine" title="PDF Werkstatt"></iframe>';
     frame = holder.querySelector('iframe');
     let started = false;
@@ -101,7 +101,7 @@ OW.editors.pdf = async function (ctx) {
     status: () => ({ left: hasEngine ? 'PDF Werkstatt · ' + t('pdf.engineActive') : t('pdf.builtinViewer'), right: blob ? (blob.size / 1048576).toFixed(2) + ' MB' : '' }),
     onTheme: themeFrame,
     setLanguage(l) {
-      try { localStorage.setItem('pdf-workshop.language', ['tr', 'de', 'en'].includes(l) ? l : 'en'); const P = frame && frame.contentWindow.__pdfWorkshop; if (P && P.applyLanguage) { P.applyLanguage(['tr', 'de', 'en'].includes(l) ? l : 'en'); return true; } } catch { /* reload instead */ }
+      try { localStorage.setItem('pdf-workshop.language', ['tr', 'de', 'en', 'fr', 'es'].includes(l) ? l : 'en'); const P = frame && frame.contentWindow.__pdfWorkshop; if (P && P.applyLanguage) { P.applyLanguage(['tr', 'de', 'en', 'fr', 'es'].includes(l) ? l : 'en'); return true; } } catch { /* reload instead */ }
       return false;
     },
     destroy() { if (url) URL.revokeObjectURL(url); },

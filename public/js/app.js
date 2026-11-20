@@ -7,7 +7,7 @@
   OW.TYPES = {
     word: { ext: 'docx', engine: 'Word Werkzeug Pro' }, excel: { ext: 'xlsx', engine: 'Excel Werkzeug Pro' }, slide: { ext: 'pptx', engine: 'Slide Werkzeug Pro' },
     note: { ext: 'note', engine: null }, draw: { ext: 'excalidraw', engine: null }, pdf: { ext: 'pdf', engine: 'PDF Werkstatt' },
-    form: { ext: 'form', engine: null }, design: { ext: 'design', engine: null },
+    form: { ext: 'form', engine: null }, design: { ext: 'design', engine: null }, ai: { ext: 'aichat', engine: null },
   };
   const S = OW.settings = Object.assign({ theme: 'system', density: 'comfortable', view: 'grid', userName: '' }, JSON.parse(localStorage.getItem('ow-settings') || '{}'));
   const saveSettings = () => localStorage.setItem('ow-settings', JSON.stringify(S));
@@ -48,7 +48,7 @@
   });
   OW.confirm = (msg) => modal(`<div class="dlg"><h3>${msg}</h3><div class="dlg-btns"><button class="btn ghost" data-x>${t('cancel')}</button><button class="btn danger" data-ok>${t('ok')}</button></div></div>`, (c, close) => { c.querySelector('[data-x]').onclick = () => close(false); c.querySelector('[data-ok]').onclick = () => close(true); });
   OW.alert = (title, html) => modal(`<div class="dlg"><h3>${title}</h3><div class="dlg-body">${html}</div><div class="dlg-btns"><button class="btn primary" data-x>${t('ok')}</button></div></div>`, (c, close) => c.querySelector('[data-x]').onclick = () => close(true));
-  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.3</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Design Werkzeug · Formular Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
+  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.3</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Design Werkzeug · Formular Werkzeug · AI Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
 
   /* command palette (Ctrl+K) */
   OW.palette = function ({ placeholder, items }) {
@@ -186,7 +186,10 @@
       const ext = (file.name.split('.').pop() || '').toLowerCase(), name = file.name.replace(/\.[^.]+$/, '');
       try {
         // every format a Werkzeug Pro engine reads goes to it unchanged (no lossy conversion)
-        let proType = ['word', 'excel', 'slide'].find(ty => OW.engines && OW.engines[ty] && OW.proOpenTypes && OW.proOpenTypes(ty).includes(ext) && ext !== 'ppt' && ext !== 'werkzeug');
+        // formats only the converter (LibreOffice) reads: kept as they are, converted when opened
+        const convType = OW.CONV_OPEN && ['slide', 'excel', 'word'].find(ty => OW.CONV_OPEN[ty].includes(ext));
+        let proType = ['word', 'excel', 'slide'].find(ty => OW.engines && OW.engines[ty] && OW.proOpenTypes && OW.proOpenTypes(ty).includes(ext) && ext !== 'ppt' && ext !== 'werkzeug' && !(convType === ty && !OW.converter));
+        if (!proType && convType && OW.engines && OW.engines[convType] && await OW.checkConverter()) proType = convType;
         if (ext === 'werkzeug') { proType = OW.werkzeugType ? await OW.werkzeugType(file) : null; if (!proType) { OW.toast(t('import.unsupported', { name: OW.escape(file.name) }), 'warn'); continue; } }
         if (ext === 'pdf') last = await OW.createFile('pdf', { name, blob: file, noOpen: true });
         // with the Werkzeug Pro engines the original file is kept as it is (no lossy conversion)
@@ -231,7 +234,7 @@
   }
 
   /* ---------- Home ---------- */
-  const TOOLCARDS = ['word', 'excel', 'slide', 'note', 'draw', 'pdf', 'design', 'form'];
+  const TOOLCARDS = ['word', 'excel', 'slide', 'note', 'draw', 'pdf', 'design', 'form', 'ai'];
   const toolArt = {
     word: '<div class="art art-doc"><i></i><i></i><i></i><i></i><i></i></div>',
     excel: '<div class="art art-sheet">' + '<i></i>'.repeat(12) + '</div>',
@@ -240,6 +243,7 @@
     draw: '<div class="art art-draw"><svg viewBox="0 0 120 100"><rect x="10" y="12" width="100" height="78" rx="12" fill="#fff" stroke="#3a2f2a" stroke-width="3"/><rect x="48" y="22" width="30" height="20" rx="3" fill="#b9a7ff" stroke="#3a2f2a" stroke-width="2.5"/><rect x="22" y="58" width="26" height="18" rx="3" fill="#9fe0a9" stroke="#3a2f2a" stroke-width="2.5"/><path d="M84 58l10 10-10 10-10-10z" fill="#ffc46b" stroke="#3a2f2a" stroke-width="2.5"/><path d="M58 44L38 58M70 44l12 12" stroke="#3a2f2a" stroke-width="2.5" fill="none"/><path d="M96 86l14-30 6 3-14 30z" fill="#7C4DDB" stroke="#3a2f2a" stroke-width="2"/></svg><i class="spark"></i></div>',
     pdf: '<div class="art art-pdf"><i></i><i></i><i></i><b>PDF</b></div>',
     design: '<div class="art art-design"><i class="d1"></i><i class="d2"></i><i class="d3"><b>Aa</b></i><i class="d4"></i></div>',
+    ai: `<div class="art art-ai"><span class="ai-orb">${OW.aiLogo()}</span><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>`,
     form: '<div class="art art-form"><div class="fq"><b></b><i></i></div><div class="fq"><b></b><span class="o on"></span><span class="o"></span></div><div class="fq"><b></b><i></i></div><em>✓</em></div>',
   };
   function renderHome() {
@@ -429,6 +433,7 @@
           <ul class="eng-list">${(window.OW_APPS || []).map((a, i) => `<li>${OW.appGlyph('app', 22)}<span><b>${OW.escape(a.name)}</b><small>${OW.escape(a.url)}</small></span><button class="btn sm" data-app="${i}">${t('open')}</button></li>`).join('') || `<li class="muted">${t('ownapp.none')}</li>`}</ul>
           <details class="howto"><summary>${t('ownapp.howtoTitle')}</summary><p>${t('tool.app.howto')}</p></details>
         </div>
+        ${OW.aiSettingsCard()}
         <div class="card set wide">
           <h2>${I('app', 20)}${t('set.engines')}</h2>
           <p class="muted">${t('set.enginesText')}</p>
@@ -436,6 +441,7 @@
         </div>
       </div>`;
     document.querySelectorAll('[data-app]').forEach(b => b.onclick = () => openOwnApp(window.OW_APPS[+b.dataset.app]));
+    OW.bindAiSettings($('#view-settings'));
     document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S.theme = b.dataset.v; saveSettings(); applyTheme(); renderSettings(); });
     document.querySelectorAll('#densSeg button').forEach(b => b.onclick = () => { S.density = b.dataset.v; saveSettings(); document.body.dataset.density = S.density; renderSettings(); });
     document.querySelectorAll('#viewSeg button').forEach(b => b.onclick = () => { S.view = b.dataset.v; saveSettings(); renderSettings(); });
@@ -456,9 +462,9 @@
   /* ---------- top bar ---------- */
   function renderLang() {
     const box = $('#langSwitch');
-    box.innerHTML = `<span class="globe">${I('globe', 18)}</span>` + ['tr', 'de', 'en'].map(c => `<button data-l="${c}" class="${OW.lang === c ? 'on' : ''}">${c.toUpperCase()}</button>`).join('') + `<button class="more-l ${['es', 'fr'].includes(OW.lang) ? 'on' : ''}" title="${t('set.language')}">${['es', 'fr'].includes(OW.lang) ? OW.lang.toUpperCase() : I('chevronDown', 14)}</button>`;
-    box.querySelectorAll('[data-l]').forEach(b => b.onclick = () => OW.setLang(b.dataset.l));
-    box.querySelector('.more-l').onclick = e => OW.popover(e.currentTarget, OW.LANGS.map(l => ({ label: OW.escape(l.name), noPad: true, checked: OW.lang === l.code, onClick: () => OW.setLang(l.code) })), { alignRight: true });
+    // one button (globe + current language); the full list opens beside it
+    box.innerHTML = `<button class="lang-cur" title="${t('set.language')}" aria-haspopup="menu">${I('globe', 18)}<span>${OW.lang.toUpperCase()}</span>${I('chevronDown', 14)}</button>`;
+    box.querySelector('.lang-cur').onclick = e => OW.popover(e.currentTarget, OW.LANGS.map(l => ({ label: `${l.flag} ${OW.escape(l.name)}`, noPad: true, checked: OW.lang === l.code, onClick: () => OW.setLang(l.code) })), { alignRight: true });
   }
   OW.onLang = async () => {
     OW.applyI18n(document); renderLang(); netPill(); storagePill();
@@ -475,7 +481,7 @@
   /* ---------- engines detection (engines/<type>/index.html) ---------- */
   async function detectEngines() {
     // 1) Office Werkstatt server / desktop app: ask the server which engines/<type>/index.html exist
-    if (OW.store.mode === 'server') { try { OW.engines = await (await fetch('api/engines', { cache: 'no-store' })).json(); return; } catch { /* fall through */ } }
+    if (OW.store.mode === 'server') { OW.checkConverter && OW.checkConverter(); try { OW.engines = await (await fetch('api/engines', { cache: 'no-store' })).json(); return; } catch { /* fall through */ } }
     // 2) static hosting or file:// – read the registry written by scripts/fetch-engines
     return new Promise(res => { const s = document.createElement('script'); s.src = 'engines/engines.js'; s.onload = () => { OW.engines = window.OW_ENGINES || {}; res(); }; s.onerror = () => res(); document.head.appendChild(s); });
   }
@@ -502,6 +508,7 @@
     $('#btnCreate').onclick = e => createMenu(e.currentTarget);
     $('#btnSearch').onclick = globalSearch;
     $('#btnTheme').onclick = OW.toggleTheme;
+    $('#btnAI').onclick = () => OW.aiDock($('#app'), () => null);   // dashboard: chat, research and new documents
     $('#btnMenu').onclick = () => document.body.classList.toggle('nav-open');
     $('#scrim').onclick = closeSidebar;
     $('#btnBell').onclick = e => { e.currentTarget.classList.remove('has-dot'); OW.popover(e.currentTarget, [{ header: t('notifications') }, { icon: 'sparkle', label: t('notif.welcome') }, { icon: navigator.onLine ? 'cloudOk' : 'wifiOff', label: t('notif.offline') }, { icon: 'upload', label: t('notif.drop') }], { alignRight: true }); };

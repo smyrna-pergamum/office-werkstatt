@@ -759,7 +759,46 @@ window.OW = window.OW || {};
       { label: 'Excalidraw (.excalidraw)', hint: t('export.excalidrawHint'), fn: () => OW.download(new Blob([toExcalidraw()], { type: 'application/json' }), OW.safeName(ctx.file.name) + '.excalidraw') },
     ];
 
+    /* AI Werkzeug: put ideas on the board (to the right of what is there) */
+    const AIT = OW.aiTool, COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'];
+    const freeX = () => els.length ? Math.max(...els.map(e => (e.x || 0) + (e.w || 0))) + 120 : 0;
+    const topY = () => els.length ? Math.min(...els.map(e => e.y || 0)) : 0;
+    const plainOf = h => { const d = document.createElement('div'); d.innerHTML = OW.sanitizeHTML(h || ''); return d.innerText.trim(); };
+    const aiAdapter = {
+      label: t('type.draw') + ' (Draw Werkzeug)',
+      suggestions: [t('ai.d.s1'), t('ai.d.s2'), t('ai.d.s3')],
+      describe: () => 'Board elements with text:\n' + els.filter(e => e.html).slice(0, 200).map(e => `- ${e.type}${e.parent ? ' (child of ' + e.parent + ')' : ''} [${e.id}]: ${plainOf(e.html).slice(0, 200)}`).join('\n'),
+      tools: [
+        AIT('read_board', 'Read the texts on the board (sticky notes, notes, shapes, mind map topics).'),
+        AIT('add_sticky_notes', 'Add sticky notes in a grid (brainstorming, ideas, pros/cons …).', { notes: { type: 'array', items: { type: 'string' } }, color: { type: 'string', enum: COLORS }, title: { type: 'string', description: 'optional heading above the notes' } }, ['notes']),
+        AIT('add_note_card', 'Add a note card with formatted text (Markdown).', { markdown: { type: 'string' } }, ['markdown']),
+        AIT('add_mind_map', 'Add a mind map: a central topic with branches and optional sub-branches.', { center: { type: 'string' }, branches: { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, children: { type: 'array', items: { type: 'string' } } } } } }, ['center', 'branches']),
+      ],
+      async run(n, a) {
+        if (n === 'read_board') return aiAdapter.describe();
+        snap(); const x0 = freeX(), y0 = topY(), added = [];
+        if (n === 'add_sticky_notes') {
+          let y = y0;
+          if (a.title) { const h = { id: uid(), type: 'text', x: x0, y, w: 400, h: 40, html: escHTML(a.title), fs: 28, color: 'ink' }; els.push(h); added.push(h); y += 70; }
+          (a.notes || []).slice(0, 60).forEach((txt, i) => { const e = { id: uid(), type: 'sticky', x: x0 + (i % 4) * 230, y: y + Math.floor(i / 4) * 230, w: 200, h: 200, color: COLORS.includes(a.color) ? a.color : COLORS[i % COLORS.length], html: escHTML(String(txt)), fs: 18 }; els.push(e); added.push(e); });
+        }
+        if (n === 'add_note_card') { const e = { id: uid(), type: 'note', x: x0, y: y0, w: 420, h: 200, html: OW.sanitizeHTML(OW.mdToHtml(a.markdown || '')), color: 'white', fs: 15 }; els.push(e); added.push(e); }
+        if (n === 'add_mind_map') {
+          const r = { id: uid(), type: 'mind', x: x0, y: y0 + 200, w: 200, h: 56, html: escHTML(a.center || ''), color: 'purple', root: true }; els.push(r); added.push(r);
+          (a.branches || []).slice(0, 12).forEach((b, i) => {
+            const k = { id: uid(), type: 'mind', x: 0, y: 0, w: 170, h: 44, html: escHTML(b.topic || b.title || String(b)), color: ['blue', 'green', 'orange', 'pink', 'yellow'][i % 5], parent: r.id }; els.push(k); added.push(k);
+            (b.children || []).slice(0, 10).forEach(c => { const g = { id: uid(), type: 'mind', x: 0, y: 0, w: 150, h: 40, html: escHTML(String(c)), color: k.color, parent: k.id }; els.push(g); added.push(g); });
+          });
+          layoutAllMinds();
+        }
+        sel = new Set(added.map(e => e.id)); changed(); render(); fitAll(added.length ? added : els);
+        return { added: added.length };
+      },
+      async insert(m) { await aiAdapter.run('add_note_card', { markdown: m }); },
+    };
+
     return {
+      ai: aiAdapter,
       ribbonMode: 'simplified',
       ribbon: () => R,
       mount(body) {

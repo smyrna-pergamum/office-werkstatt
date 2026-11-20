@@ -76,6 +76,25 @@ OW.proEditors = OW.proEditors || {};
       ],
     },
   };
+  /* formats written by the format converter (LibreOffice, shipped with the desktop installer; server: installed LibreOffice) */
+  const C = (ext, label, opts = {}) => F(ext, label, ['convert', ext], Object.assign({ conv: true }, opts));
+  CFG.slide.write.splice(CFG.slide.write.length - 1, 0,
+    // OpenDocument: written natively (js/odf.js), no converter needed
+    F('odp', 'ODF-Präsentation', ['odf', 'odp']), F('otp', 'ODF-Präsentationsvorlage', ['odf', 'otp']), F('odg', 'ODF-Zeichnung (Impress)', ['odf', 'odg']), F('fodp', 'Flat XML ODF-Präsentation', ['odf', 'fodp']),
+    C('ppt', 'PowerPoint 97–2003'), C('pps', 'PowerPoint 97–2003 AutoPlay'), C('pot', 'PowerPoint 97–2003 Vorlage'), C('uop', 'Unified Office Format Präsentation'));
+  CFG.excel.write.push(C('xls', 'Excel 97–2003'), C('xlt', 'Excel 97–2003 Vorlage'), C('ods', 'ODF-Tabellendokument'), C('ots', 'ODF-Tabellenvorlage'), C('fods', 'Flat XML ODF-Tabelle'), C('uos', 'Unified Office Format Tabelle'));
+  CFG.word.write.splice(2, 0, C('doc', 'Word 97–2003', { id: 'doc97' }), C('dot', 'Word 97–2003 Vorlage'), C('uot', 'Unified Office Format Text'));
+  /* opened through the converter (→ the engine's working format) */
+  OW.NATIVE_OPEN = { slide: ['odp', 'otp', 'odg', 'fodp'] };   // read natively (js/odf.js)
+  OW.CONV_OPEN = { slide: ['ppt', 'pps', 'pot', 'uop', 'sxi', 'key'], excel: ['xlt', 'ots', 'fods', 'uos'], word: ['uot', 'wps', 'wpd'] };
+  CFG.slide.open.push('pps', 'pot', 'odp', 'otp', 'odg', 'fodp', 'uop'); CFG.excel.open.push('xlt', 'ots', 'fods', 'uos'); CFG.word.open.push('uot', 'wps');
+  OW.converter = null;    // true / false once asked
+  OW.checkConverter = async () => { if (OW.converter !== null) return OW.converter; try { const r = await fetch('api/convert', { cache: 'no-store' }); OW.converter = r.ok && !!(await r.json()).available; } catch { OW.converter = false; } return OW.converter; };
+  OW.convert = async function (blob, from, to) {
+    const r = await fetch(`api/convert?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { method: 'POST', body: blob, headers: { 'Content-Type': 'application/octet-stream' } });
+    if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error || m; } catch { /* binary */ } throw new Error(m); }
+    return r.blob();
+  };
   OW.PRO_CFG = CFG;
   OW.proOpenTypes = type => CFG[type] ? CFG[type].open : [];
 
@@ -113,7 +132,7 @@ OW.proEditors = OW.proEditors || {};
     const X = OW.ooxml;
     if (type === 'word') return X.htmlToDocx(OW.sanitizeHTML((c && c.html) || '<p></p>'));
     if (type === 'excel') return X.sheetsToXlsx((c && c.sheets && c.sheets.length) ? c.sheets : [{ name: 'Sheet1', cells: {} }]);
-    if (type === 'slide') return X.slidesToPptx({ theme: (c && c.theme) || 'office', slides: (c && c.slides && c.slides.length) ? c.slides : [{ els: [] }] }, OW.SLIDE_THEMES);
+    if (type === 'slide') return X.slidesToPptx({ theme: (c && c.theme) || 'office', slides: (c && c.slides && c.slides.length) ? c.slides.map(sl => sl.els ? sl : Object.assign({}, sl, { els: OW.slideLayoutEls ? OW.slideLayoutEls(sl.layout || 'title-content', sl.title || '', sl.body || '') : [] })) : [{ els: [] }] }, OW.SLIDE_THEMES);
     return null;
   }
   OW.proFileOf = function (file) {
@@ -140,7 +159,8 @@ OW.proEditors = OW.proEditors || {};
   /* ---------- the Office-style "Save As" dialog ---------- */
   function saveAsDialog(t, cfg, defName, defId) {
     const E = OW.escape;
-    const items = cfg.write.map(f => ({ id: f.id || f.ext, f }));
+    // with the converter: real Word 97–2003 .doc instead of RTF named .doc; without it: no converter formats
+    const items = cfg.write.filter(f => OW.converter ? !(f.rename && f.ext === 'doc') : !f.conv).map(f => ({ id: f.id || f.ext, f }));
     const sel = items.find(x => x.id === defId) || items[0];
     return OW.modal(`<form class="dlg sa-dlg">
         <h3>${t('pro.saveAs')}</h3>
@@ -211,6 +231,8 @@ OW.proEditors = OW.proEditors || {};
         if (how === 'slidePdf') return imagesToPdf(await renderSlides('jpeg', 2), 960, 540);
         if (how === 'slideImages') { const imgs = await renderSlides(a, 2); if (imgs.length === 1) return imgs[0]; const ext = a === 'jpeg' ? 'jpg' : a, files = {}; for (let i = 0; i < imgs.length; i++) files[`${base()} – ${i + 1}.${ext}`] = new Uint8Array(await imgs[i].arrayBuffer()); f.zipped = true; return OW.ooxml.writeZip(files); }
         if (how === 'outline') return outline(a);
+        if (how === 'convert') { const src = await produce(working()); return OW.convert(src, cfg.ext, a); }
+        if (how === 'odf') { const src = await produce(working()); return OW.odf.fromPptx(await src.arrayBuffer(), a); }
         if (how === 'export') return capture(() => exec('file.export', { path: base() + '.' + (a === 'outline' ? 'txt' : a === 'jpeg' ? 'jpg' : a), format: a, all: true }));
         if (how === 'csv') return capture(() => exec('file.exportCsv', { path: base() + '.csv' }));
         if (how === 'pdf') { const r = await exec('file.exportPdf', { sheets: 'all' }); if (r && r.base64) return fromB64(r.base64, 'application/pdf'); return capture(() => exec('file.exportPdf', { path: base() + '.pdf', sheets: 'all' })); }
@@ -292,6 +314,14 @@ OW.proEditors = OW.proEditors || {};
           if (job) { W.fetch(this.href).then(r => r.blob()).then(b => job.done(b)); return; }
           if (exporting && /^blob:/.test(this.href)) { const href = this.href, n = this.download; W.fetch(href).then(r => r.blob()).then(async b => exporting && exporting.extra.push({ name: n, blob: new Blob([await b.arrayBuffer()]) })); return; }
           if (/^blob:/.test(this.href) && Date.now() - refusedAt < 3000) return;   // the engine's fallback after our dialog took over
+          // the engine's own Save / Save As / Export (no file picker in the app): never a raw download such as
+          // "<name>.deckcraft" – Office Werkstatt's Save As dialog opens instead (all formats, own format as .werkzeug)
+          if (/^blob:/.test(this.href) && this.download) {
+            const m = /\.([a-z0-9]+)$/i.exec(this.download), asked = m ? m[1].toLowerCase() : cfg.ext;
+            refusedAt = Date.now();
+            saveAsFlow(cfg.craft && asked === cfg.craft ? 'werkzeug' : asked);
+            return;
+          }
           return orig.apply(this, arguments);
         };
         const origOpen = W.open;
@@ -341,64 +371,94 @@ OW.proEditors = OW.proEditors || {};
         } catch (e) { console.warn('theme', e); }
         recover(400);
       }
-      /* Excel and Slide draw their own light/dark switch in their title bar (Word: its own search box, see COVER). Office Werkstatt has one switch
-         (top right), so the engine's switch is covered. It is painted into the canvas (no DOM element): find it in
-         a screenshot of the title bar – the 4th control from the right (switch · comments · Share/Present · search) –
-         and lay a patch of title-bar colour over it that also swallows the clicks. */
-      /* Word draws its own search box there as well (search box · avatar): Office Werkstatt's search (Alt+M) replaces it */
-      const COVER = { excel: { nth: 3, min: 8, max: 44 }, slide: { nth: 3, min: 8, max: 44 }, word: { nth: 1, min: 120, max: 460, thr: 18 } }[type];   // thr: the box is filled a shade lighter than the bar
-      const HAS_SWITCH = !!COVER;
-      let cover = null, coverAt = null, coverTimer = 0, watch = 0, lastTry = 0;
-      async function locateSwitch() {
-        const a = api(); if (!a || !a.screenshot) return null;
+      /* The engines draw a few title-bar controls that Office Werkstatt already has, or that must not be switched off:
+           - Excel / Slide: their own light/dark switch – Office Werkstatt has one switch (top right) that drives the engines
+           - Word: its own search box – Office Werkstatt's search (Alt+M) lists the engine's commands
+           - Word / Excel: the AutoSave toggle – Office Werkstatt always saves on its own (after a pause, on close)
+         They are painted into the canvas (no DOM element): find them in a screenshot of the title bar and lay a patch of
+         title-bar colour over each that also swallows the clicks.
+         from: count controls from that side; nth: which one (0 = outermost); min/max: plausible width (CSS px);
+         gap: blank px that separate two controls; thr: colour difference that counts as "drawn" */
+      const TARGETS = {
+        excel: [{ from: 'right', nth: 3, min: 8, max: 44 }, { from: 'left', nth: 0, min: 40, max: 260, gap: 12 }],   // switch · comments · Share · search | AutoSave
+        slide: [{ from: 'right', nth: 3, min: 8, max: 44 }],                                                       // switch · comments · Present · search
+        word: [{ from: 'right', nth: 1, min: 120, max: 460, thr: 18 }, { from: 'left', nth: 0, min: 40, max: 260, gap: 12, thr: 24 }],   // search box (filled a shade lighter) · avatar | AutoSave (pale, greyed)
+      }[type] || [];
+      const HAS_SWITCH = TARGETS.length > 0;
+      let covers = [], coverAt = null, coverTimer = 0, watch = 0, lastTry = 0;
+      async function locateControls() {
+        const a = api(); if (!a || !a.screenshot) return [];
         const shot = parse(await a.screenshot()), b64 = shot && (shot.data || shot.base64 || (typeof shot === 'string' ? shot : null));
-        if (!b64) return null;
+        if (!b64) return [];
         const img = new Image(); img.src = 'data:image/png;base64,' + b64.replace(/^data:[^,]*,/, ''); await img.decode();
         const w = img.width, k = w / W.innerWidth, y0 = Math.round(6 * k), y1 = Math.round(30 * k);
         const c = document.createElement('canvas'); c.width = w; c.height = y1;
         const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
         const d = g.getImageData(0, y0, w, y1 - y0).data, rows = y1 - y0, px = (x, y) => (y * w + x) * 4;
         const bi = px(w - Math.max(2, Math.round(3 * k)), 0), bg = [d[bi], d[bi + 1], d[bi + 2]];
-        const ink = x => { for (let y = 0; y < rows; y++) { const i = px(x, y); if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > (COVER.thr || 60)) return true; } return false; };
-        const gap = Math.round(9 * k), stop = Math.round(w * 0.5), parts = [];
-        let end = -1, start = -1, blank = 0;
-        for (let x = w - 1; x >= stop && parts.length <= COVER.nth; x--) {
-          if (ink(x)) { if (end < 0) end = x; start = x; blank = 0; }
-          else if (end >= 0 && ++blank >= gap) { parts.push([start, end]); end = -1; }
+        const ink = (x, thr) => { for (let y = 0; y < rows; y++) { const i = px(x, y); if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > thr) return true; } return false; };
+        const found = [];
+        for (const T of TARGETS) {
+          const gap = Math.round((T.gap || 9) * k), thr = T.thr || 60, parts = [], rtl = T.from === 'right';
+          const x0 = rtl ? w - 1 : 0, x1 = rtl ? Math.round(w * 0.5) : Math.round(w * 0.4), step = rtl ? -1 : 1;
+          let a0 = -1, a1 = -1, blank = 0;
+          for (let x = x0; rtl ? x >= x1 : x <= x1; x += step) {
+            if (parts.length > T.nth) break;
+            if (ink(x, thr)) { if (a0 < 0) a0 = x; a1 = x; blank = 0; }
+            else if (a0 >= 0 && ++blank >= gap) { parts.push([Math.min(a0, a1), Math.max(a0, a1)]); a0 = -1; }
+          }
+          if (a0 >= 0 && parts.length <= T.nth) parts.push([Math.min(a0, a1), Math.max(a0, a1)]);
+          const p = parts[T.nth]; if (!p) continue;
+          const wd = (p[1] - p[0] + 1) / k; if (wd < T.min || wd > T.max) continue;   // not what we look for: leave the bar alone
+          found.push({ left: p[0] / k, right: (p[1] + 1) / k, bg: `rgb(${bg.join(',')})` });
         }
-        if (end >= 0 && parts.length <= COVER.nth) parts.push([start, end]);
-        const p = parts[COVER.nth]; if (!p) return null;
-        const wd = (p[1] - p[0] + 1) / k; if (wd < COVER.min || wd > COVER.max) return null;   // not what we look for: leave the bar alone
-        return { left: p[0] / k, right: (p[1] + 1) / k, bg: `rgb(${bg.join(',')})` };
+        return found;
+      }
+      function makeCover() {
+        const el = W.document.createElement('div'); el.className = 'ow-cover';
+        el.style.cssText = 'position:fixed;top:2px;height:34px;z-index:5;cursor:default;';
+        ['pointerdown', 'pointerup', 'pointermove', 'mousedown', 'mouseup', 'mousemove', 'click', 'dblclick', 'contextmenu', 'wheel', 'touchstart', 'touchend']
+          .forEach(ev => el.addEventListener(ev, e => { e.stopPropagation(); if (!/move$/.test(ev)) e.preventDefault(); }, { passive: false }));
+        W.document.body.appendChild(el); return el;
       }
       async function coverSwitch() {
         if (!HAS_SWITCH || !ready || !api()) return;
-        let at = null; try { at = await locateSwitch(); } catch (e) { console.warn('theme switch', e); }
-        if (!at) { if (cover) cover.style.display = 'none'; return; }
-        if (!cover || !cover.isConnected) {
-          cover = W.document.createElement('div'); cover.id = 'ow-theme-cover';
-          cover.style.cssText = 'position:fixed;top:2px;height:34px;z-index:5;cursor:default;';
-          ['pointerdown', 'pointerup', 'pointermove', 'mousedown', 'mouseup', 'mousemove', 'click', 'dblclick', 'contextmenu', 'wheel', 'touchstart', 'touchend']
-            .forEach(ev => cover.addEventListener(ev, e => { e.stopPropagation(); if (!/move$/.test(ev)) e.preventDefault(); }, { passive: false }));
-          W.document.body.appendChild(cover);
-        }
-        coverAt = at;
-        Object.assign(cover.style, { left: (at.left - 4) + 'px', width: (at.right - at.left + 8) + 'px', background: at.bg, display: '' });
+        let at = []; try { at = await locateControls(); } catch (e) { console.warn('title bar', e); }
+        covers = covers.filter(el => el.isConnected);
+        while (covers.length < at.length) covers.push(makeCover());
+        covers.forEach((el, i) => {
+          const r = at[i];
+          if (!r) { el.style.display = 'none'; return; }
+          Object.assign(el.style, { left: (r.left - 4) + 'px', width: (r.right - r.left + 8) + 'px', background: r.bg, display: '' });
+        });
+        coverAt = at.length ? at : null;
       }
+      const coversMissing = () => covers.filter(el => el.isConnected && el.style.display !== 'none').length < TARGETS.length;
       function recover(ms = 350) { if (!HAS_SWITCH) return; clearTimeout(coverTimer); coverTimer = setTimeout(coverSwitch, ms); }
       /* no title bar during a slide show or on the File screen: the patch must not cover anything there */
+      /* the engine's own File > Save As page offers only its few formats (and .deckcraft): Office Werkstatt's Save As dialog takes over */
+      const BS_CLOSE = { slide: () => exec('app.backstage', { on: false }), excel: () => exec('ui.backstage', { page: '' }) };
+      let bsBusy = false;
+      async function takeOverSaveAs(st) {
+        if (bsBusy || !BS_CLOSE[type] || !st || st.backstage !== 'saveAs') return false;
+        bsBusy = true;
+        try { await BS_CLOSE[type](); } catch (e) { console.warn(e); }
+        try { await saveAsFlow(); } finally { bsBusy = false; }
+        return true;
+      }
       function watchScreens() {
-        if (!HAS_SWITCH) return;
-        W.addEventListener('resize', () => recover());
+        if (HAS_SWITCH) W.addEventListener('resize', () => recover());
         clearInterval(watch);
         watch = setInterval(async () => {
           if (!api() || !frame.isConnected) return;
           let st = null; try { st = parse(await api().uiInspect()); } catch { return; }
+          if (await takeOverSaveAs(st)) return;
+          if (!HAS_SWITCH) return;
           const away = !!(st && (st.backstage || st.showing || st.animPreview || (st.ui && st.ui.backstage === true)));
-          if (away) { if (cover) cover.style.display = 'none'; return; }
-          // back on the normal view, or not found yet (e.g. Word starts on its File screen): look again, at most every 3 s
-          if ((!cover || cover.style.display === 'none') && Date.now() - lastTry > 3000) { lastTry = Date.now(); recover(0); }
-        }, 1000);
+          if (away) { covers.forEach(el => { el.style.display = 'none'; }); return; }
+          // back on the normal view, or not all found yet (e.g. Word starts on its File screen): look again, at most every 3 s
+          if (coversMissing() && Date.now() - lastTry > 3000) { lastTry = Date.now(); recover(0); }
+        }, 500);
       }
       /* Word: no "Developer" tab – an "Advanced" tab instead, which also holds the Zotero / citation tools */
       const ADV = { tr: ['Gelişmiş', 'Denetimler'], de: ['Erweitert', 'Steuerelemente'], en: ['Advanced', 'Controls'], es: ['Avanzado', 'Controles'], fr: ['Avancé', 'Contrôles'] };
@@ -435,7 +495,9 @@ OW.proEditors = OW.proEditors || {};
       async function handOver() {
         let { blob, ext } = OW.proFileOf(file);
         if (!blob) return;
-        if (type === 'slide' && ext === 'ppt') { blob = OW.pptToPptx(await blob.arrayBuffer()); ext = 'pptx'; }
+        if ((OW.NATIVE_OPEN[type] || []).includes(ext)) { blob = await OW.odf.toPptx(await blob.arrayBuffer()); ext = cfg.ext; }
+        else if ((OW.CONV_OPEN[type] || []).includes(ext) && await OW.checkConverter()) { blob = await OW.convert(blob, ext, cfg.ext); ext = cfg.ext; }
+        else if (type === 'slide' && ext === 'ppt') { blob = OW.pptToPptx(await blob.arrayBuffer()); ext = 'pptx'; }
         const name = base() + '.' + ext, b64 = await toB64(blob);
         const tries = type === 'word' ? [['file.open', { path: name, data: b64 }]]
           : type === 'excel' ? [['file.open', { name, base64: b64 }]]
@@ -451,6 +513,100 @@ OW.proEditors = OW.proEditors || {};
         const r = cv.getBoundingClientRect(), o = { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.width / 2, clientY: r.height / 2 };
         ['dragenter', 'dragover', 'drop'].forEach(k => cv.dispatchEvent(new W.DragEvent(k, o)));
       }
+
+      /* ---- AI Werkzeug: the assistant works in the engine through its command API ---- */
+      const T = OW.aiTool, J = x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; } }, cut = (x, n = 14000) => { const s2 = typeof x === 'string' ? x : JSON.stringify(x); return s2.length > n ? s2.slice(0, n) + ' …(truncated)' : s2; };
+      async function findCommands(q) {
+        let list = J(await api().commands()); list = Array.isArray(list) ? list : (list.commands || []);
+        const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
+        return list.filter(c => c && c.id && words.every(w => (c.id + ' ' + c.label + ' ' + (c.menu || []).join(' ') + ' ' + (c.location || '')).toLowerCase().includes(w)))
+          .slice(0, 30).map(c => ({ id: c.id, label: c.label, params: c.params || '', enabled: c.enabled !== false }));
+      }
+      const GENERIC = [
+        T('find_commands', `Search the ${OW.TYPES[type].engine} command list (every ribbon command: formatting, styles, tables, charts, layout …). Returns ids and their parameters.`, { query: { type: 'string', description: 'words such as "bold", "table insert", "chart"' } }, ['query']),
+        T('run_command', 'Run one engine command by id with its parameters (see find_commands).', { id: { type: 'string' }, params: { type: 'object' } }, ['id']),
+      ];
+      const plain = m => { const d = document.createElement('div'); d.innerHTML = OW.mdToHtml(m); return d.innerText; };
+      const mdRows = m => { const rows = String(m).split('\n').filter(l => /^\s*\|.*\|\s*$/.test(l) && !/^\s*\|[\s:|-]+\|\s*$/.test(l)).map(l => l.trim().replace(/^\||\|$/g, '').split('|').map(c => { const v = c.trim(); return v !== '' && !isNaN(+v.replace(',', '.')) && /^-?[\d.,]+$/.test(v) ? +v.replace(',', '.') : v; })); return rows.length ? rows : String(m).split('\n').filter(Boolean).map(l => [l]); };
+      const AIS = {
+        word: {
+          label: t('type.word') + ' (Word Werkzeug)',
+          suggestions: [t('ai.w.s1'), t('ai.w.s2'), t('ai.w.s3')],
+          describe: async () => 'Text of the document:\n' + cut(J(await exec('document.text')), 10000),
+          tools: [
+            T('read_document', 'Read the whole text of the document.'),
+            T('read_selection', 'Read the text the user has selected.'),
+            T('insert_content', 'Write formatted content (Markdown: headings, lists, bold, tables, links) into the document.', { markdown: { type: 'string' }, position: { type: 'string', enum: ['cursor', 'end', 'start'], description: 'default: end' } }, ['markdown']),
+            T('replace_document', 'Replace the WHOLE document with new content (Markdown). Only when the user asks to rewrite everything.', { markdown: { type: 'string' } }, ['markdown']),
+            T('apply_style', 'Apply a paragraph style (e.g. "Heading 1", "Title", "Normal") to the paragraph at the cursor.', { style: { type: 'string' } }, ['style']),
+          ].concat(GENERIC),
+          async run(n, a) {
+            if (n === 'read_document') return cut(J(await exec('document.text')), 30000);
+            if (n === 'read_selection') return cut(J(await exec('document.selection')), 20000);
+            if (n === 'insert_content' || n === 'replace_document') {
+              if (n === 'replace_document') { await exec('caret.docStart'); await exec('caret.docEnd', { extend: true }); }
+              else if (a.position === 'start') await exec('caret.docStart');
+              else if (a.position !== 'cursor') await exec('caret.docEnd');
+              await exec('edit.paste', { html: OW.mdToHtml(a.markdown || ''), text: plain(a.markdown || '') }); ctx.markDirty(); nudge(); return { ok: true };
+            }
+            if (n === 'apply_style') { await exec('styles.apply', { style: a.style }); ctx.markDirty(); return { ok: true }; }
+            if (n === 'find_commands') return findCommands(a.query);
+            if (n === 'run_command') { const r = await exec(a.id, a.params || {}); ctx.markDirty(); nudge(); return cut(J(r) === undefined ? { ok: true } : J(r)); }
+          },
+          async insert(m) { await exec('edit.paste', { html: OW.mdToHtml(m), text: plain(m) }); ctx.markDirty(); nudge(); },
+        },
+        excel: {
+          label: t('type.excel') + ' (Excel Werkzeug)',
+          suggestions: [t('ai.x.s1'), t('ai.x.s2'), t('ai.x.s3')],
+          describe: async () => 'Used range of the active sheet (rows):\n' + cut(J(await exec('sheet.read', {})), 10000),
+          tools: [
+            T('read_sheet', 'Read cells as rows of values. Without range: the used range of the active sheet.', { range: { type: 'string', description: 'e.g. A1:F40' }, sheet: { type: 'string' }, formulas: { type: 'boolean' } }),
+            T('write_cells', 'Write a block of values starting at a cell. Strings starting with = are formulas (English function names, comma separators).', { start: { type: 'string', description: 'top-left cell, e.g. A1' }, rows: { type: 'array', items: { type: 'array', items: {} } }, sheet: { type: 'string' } }, ['start', 'rows']),
+            T('set_cell', 'Enter one value or formula into a cell.', { cell: { type: 'string' }, input: { type: 'string' }, sheet: { type: 'string' } }, ['cell', 'input']),
+          ].concat(GENERIC),
+          async run(n, a) {
+            if (n === 'read_sheet') return cut(J(await exec('sheet.read', Object.assign({}, a.range ? { range: a.range } : {}, a.sheet ? { sheet: a.sheet } : {}, a.formulas ? { formulas: true } : {}))), 30000);
+            if (n === 'write_cells') { await exec('range.setValues', Object.assign({ range: a.start || 'A1', values: a.rows || [] }, a.sheet ? { sheet: a.sheet } : {})); ctx.markDirty(); nudge(); return { ok: true }; }
+            if (n === 'set_cell') { await exec('cell.set', Object.assign({ cell: a.cell, input: String(a.input) }, a.sheet ? { sheet: a.sheet } : {})); ctx.markDirty(); nudge(); return { ok: true }; }
+            if (n === 'find_commands') return findCommands(a.query);
+            if (n === 'run_command') { const r = await exec(a.id, a.params || {}); ctx.markDirty(); nudge(); return cut(J(r) === undefined ? { ok: true } : J(r)); }
+          },
+          async insert(m) { await exec('range.setValues', { values: mdRows(m) }); ctx.markDirty(); nudge(); },
+        },
+        slide: {
+          label: t('type.slide') + ' (Slide Werkzeug)',
+          suggestions: [t('ai.p.s1'), t('ai.p.s2'), t('ai.p.s3')],
+          describe: async () => 'Presentation: ' + cut(J(await exec('file.info', {})), 2000) + '\nContent:\n' + cut(J(await api().docInspect()), 9000),
+          tools: [
+            T('read_presentation', 'Read the slides with their shapes (ids) and texts.'),
+            T('add_slide', 'Add a slide with a title and bullet points.', { title: { type: 'string' }, bullets: { type: 'array', items: { type: 'string' } }, layout: { type: 'string', description: 'title, titleAndContent (default), sectionHeader, twoContent, comparison, titleOnly, blank' }, at: { type: 'integer', description: '0-based position (default: after the current slide)' } }, ['title']),
+            T('set_text', 'Replace the text of a shape (id from read_presentation); \\n starts a new paragraph.', { id: { type: ['string', 'integer'] }, text: { type: 'string' } }, ['id', 'text']),
+          ].concat(GENERIC),
+          async run(n, a) {
+            if (n === 'read_presentation') return cut(J(await api().docInspect()), 30000);
+            if (n === 'add_slide') {
+              // layout kinds differ between themes: try the kind, its usual name, then the theme's default layout
+              const kind = a.layout || ((a.bullets && a.bullets.length) ? 'titleAndContent' : 'title'), NAMES = { title: 'Title Slide', titleAndContent: 'Title and Content', sectionHeader: 'Section Header', twoContent: 'Two Content', comparison: 'Comparison', titleOnly: 'Title Only', blank: 'Blank' };
+              const p0 = Object.assign({ title: a.title || '', body: (a.bullets || []).join('\n') }, a.at != null ? { at: a.at } : {});
+              let made = null;
+              for (const lay of [kind, NAMES[kind], null]) { try { made = J(await exec('slide.new', lay ? Object.assign({ layout: lay }, p0) : p0)); break; } catch (e) { if (lay === null) throw e; } }
+              // a deck without placeholder layouts (e.g. converted from an older file): put the texts in text boxes
+              try {
+                const info = J(await api().docInspect()), sl = (info.slides || []).find(x => made && x.id === made.id), [W2, H2] = info.slideSize || [960, 540];
+                if (sl && !sl.shapes) {
+                  if (a.title) await exec('insert.textBox', { rect: [48, 36, W2 - 96, 90], text: a.title });
+                  if (a.bullets && a.bullets.length) await exec('insert.textBox', { rect: [48, 140, W2 - 96, H2 - 180], text: a.bullets.map(x => '• ' + x).join('\n') });
+                }
+              } catch (e) { console.warn('add_slide', e); }
+              ctx.markDirty(); nudge(); return { ok: true, slide: made };
+            }
+            if (n === 'set_text') { await exec('text.set', { id: a.id, text: a.text }); ctx.markDirty(); nudge(); return { ok: true }; }
+            if (n === 'find_commands') return findCommands(a.query);
+            if (n === 'run_command') { const r = await exec(a.id, a.params || {}); ctx.markDirty(); nudge(); return cut(J(r) === undefined ? { ok: true } : J(r)); }
+          },
+          async insert(m) { const lines = plain(m).split('\n').map(x => x.trim()).filter(Boolean); await AIS.slide.run('add_slide', { title: lines[0] || '', bullets: lines.slice(1) }); },
+        },
+      }, AI = AIS[type];
 
       ctx.exports = cfg.write.filter(f => f.ext !== cfg.ext).map(f => ({ label: `${fmtLabel(t, cfg, f)} (.${f.ext})`, fn: () => { busy = busy.then(() => exportAs(base(), f).catch(e => OW.toast(t('pro.writeFailed') + ' ' + OW.escape(e.message || ''), 'warn'))); } }));
 
@@ -478,6 +634,7 @@ OW.proEditors = OW.proEditors || {};
           return file.content;
         },
         status: () => ({ left: OW.TYPES[type].engine, right: '' }),
+        get ai() { return ready ? AI : null; },
         /* the title-bar search (Alt+M) lists the engine's own commands */
         async commands() {
           let list = []; try { list = parse(await api().commands()); list = Array.isArray(list) ? list : (list.commands || []); } catch { return []; }

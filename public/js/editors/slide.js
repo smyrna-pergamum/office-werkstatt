@@ -8,6 +8,18 @@ OW.SLIDE_THEMES = {
     forest: { bg: 'linear-gradient(135deg,#4caf50,#2e7d32)', ink: '#ffffff', accent: '#d7ff7a', font: 'Trebuchet MS, sans-serif', deco: 'bar' },
     night: { bg: '#141826', ink: '#e8ecf6', accent: '#ff8a5c', font: 'Segoe UI, sans-serif', deco: 'blob' },
   };
+/* the text boxes of a layout slide { layout, title, body } (templates) – also used when such a deck goes to Slide Werkzeug Pro */
+OW.slideLayoutEls = function (layout, title = '', body = '', t = OW.t) {
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const T = (y, h, size, html, extra = {}) => Object.assign({ id: uid(), type: 'text', x: 70, y, w: 820, h, html, style: { fontSize: size } }, extra);
+  const els = [];
+    if (layout === 'title') { els.push(T(170, 110, 52, `<b>${OW.escape(title)}</b>`, { style: { fontSize: 52, align: 'center' } })); els.push(T(300, 60, 24, OW.escape(body), { style: { fontSize: 24, align: 'center', opacity: .8 } })); }
+    else if (layout === 'section') { els.push(T(200, 90, 44, `<b>${OW.escape(title)}</b>`, { style: { fontSize: 44 } })); els.push({ id: uid(), type: 'shape', x: 70, y: 300, w: 160, h: 8, style: { shape: 'rect', fill: 'accent' } }); }
+    else if (layout === 'two') { els.push(T(40, 80, 36, `<b>${OW.escape(title)}</b>`)); els.push(T(140, 340, 22, '<ul><li>' + t('slide.point') + '</li></ul>', { w: 400 })); els.push(T(140, 340, 22, '<ul><li>' + t('slide.point') + '</li></ul>', { x: 490, w: 400 })); }
+    else if (layout === 'blank') { /* nothing */ }
+    else { els.push(T(40, 80, 36, `<b>${OW.escape(title)}</b>`)); els.push(T(140, 350, 24, body ? '<ul>' + body.split('\n').map(l => `<li>${OW.escape(l)}</li>`).join('') + '</ul>' : `<ul><li>${t('slide.point')}</li></ul>`)); }
+  return els;
+};
 OW.editors.slide = async function (ctx) {
   const t = ctx.t, I = OW.icon;
   const W = 960, H = 540;
@@ -21,14 +33,7 @@ OW.editors.slide = async function (ctx) {
   let stage, stageWrap, thumbs, notesEl;
 
   function makeSlide(layout, title = '', body = '') {
-    const T = (y, h, size, html, extra = {}) => Object.assign({ id: uid(), type: 'text', x: 70, y, w: 820, h, html, style: { fontSize: size } }, extra);
-    const els = [];
-    if (layout === 'title') { els.push(T(170, 110, 52, `<b>${OW.escape(title)}</b>`, { style: { fontSize: 52, align: 'center' } })); els.push(T(300, 60, 24, OW.escape(body), { style: { fontSize: 24, align: 'center', opacity: .8 } })); }
-    else if (layout === 'section') { els.push(T(200, 90, 44, `<b>${OW.escape(title)}</b>`, { style: { fontSize: 44 } })); els.push({ id: uid(), type: 'shape', x: 70, y: 300, w: 160, h: 8, style: { shape: 'rect', fill: 'accent' } }); }
-    else if (layout === 'two') { els.push(T(40, 80, 36, `<b>${OW.escape(title)}</b>`)); els.push(T(140, 340, 22, '<ul><li>' + t('slide.point') + '</li></ul>', { w: 400 })); els.push(T(140, 340, 22, '<ul><li>' + t('slide.point') + '</li></ul>', { x: 490, w: 400 })); }
-    else if (layout === 'blank') { /* nothing */ }
-    else { els.push(T(40, 80, 36, `<b>${OW.escape(title)}</b>`)); els.push(T(140, 350, 24, body ? '<ul>' + body.split('\n').map(l => `<li>${OW.escape(l)}</li>`).join('') + '</ul>' : `<ul><li>${t('slide.point')}</li></ul>`)); }
-    return { id: uid(), layout, els, notes: '', transition: 'fade', hidden: false };
+    return { id: uid(), layout, els: OW.slideLayoutEls(layout, title, body, t), notes: '', transition: 'fade', hidden: false };
   }
   const slide = () => content.slides[cur];
   const theme = () => THEMES[content.theme] || THEMES.office;

@@ -7,6 +7,8 @@ const path = require('path'), fs = require('fs');
 const base = app.isPackaged ? path.join(process.resourcesPath, 'app') : path.join(__dirname, '..');
 process.env.DATA_DIR = path.join(app.getPath('userData'), 'documents');
 process.env.OW_VERSION = app.getVersion();
+if (app.isPackaged) process.env.OW_CONVERTER = path.join(process.resourcesPath, 'converter');
+if (app.isPackaged) process.env.OW_LLM_DIR = path.join(process.resourcesPath, 'llm');            // built-in AI engine (llama.cpp)   // LibreOffice shipped with the installer (format converter)
 const server = require(path.join(base, 'server', 'server.js'));
 
 /* errors in the main process are logged instead of popping up a dialog (e.g. while shutting down) */

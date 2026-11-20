@@ -1,10 +1,10 @@
 /* Office Werkstatt – service worker: caches the whole app so it runs without internet */
-const CACHE = 'office-werkstatt-v1.3.2';
+const CACHE = 'office-werkstatt-v1.4.0-4';
 const CORE = ['./', './index.html', './manifest.webmanifest', './css/app.css', './css/editors.css',
-  './js/icons.js', './js/i18n.js', './js/store.js', './js/sanitize.js', './js/desktop.js', './js/zip.js', './js/legacy-ppt.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
+  './js/icons.js', './js/i18n.js', './js/store.js', './js/sanitize.js', './js/desktop.js', './js/zip.js', './js/legacy-ppt.js', './js/odf.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
   './js/editors/word.js', './js/editors/excel.js', './js/editors/slide.js', './js/editors/note.js', './js/editors/note-calendar.js', './js/editors/draw.js', './js/editors/pdf.js', './js/editors/pro.js',
   './js/qrcode.js', './js/form-core.js', './js/editors/form.js',
-  './js/design-core.js', './js/stock-core.js', './js/editors/design-strings.js', './js/editors/design.js', './js/fabric.min.js', './fonts/fonts.css',
+  './js/design-core.js', './js/stock-core.js', './js/editors/design-strings.js', './js/editors/design.js', './js/ai-strings.js', './js/agent-bridge.js', './js/ai.js', './js/editors/ai.js', './js/fabric.min.js', './fonts/fonts.css',
   './assets/logo.svg', './assets/icon-192.png', './assets/icon-512.png', './engines/engines.js'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));

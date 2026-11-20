@@ -148,6 +148,38 @@ OW.editors.note = async function (ctx) {
       bindInk(); renderAll();
     },
     focus() { pageTitle.focus(); },
+    /* AI Werkzeug: read and write pages */
+    ai: (() => {
+      const T = OW.aiTool, txt = h => { const d = document.createElement('div'); d.innerHTML = OW.sanitizeHTML(h || ''); return d.innerText; };
+      const findPage = title => { for (const s of nb.sections) for (const p of s.pages) if ((p.title || '').toLowerCase() === String(title || '').toLowerCase()) return [s, p]; return null; };
+      return {
+        label: t('type.note') + ' (Note Werkzeug)',
+        suggestions: [t('ai.n.s1'), t('ai.n.s2'), t('ai.n.s3')],
+        describe: () => `Notebook "${ctx.file.name}". Sections: ${nb.sections.map(s => `${s.name} (${s.pages.map(p => p.title || t('note.untitled')).join(', ')})`).join('; ')}.\nOpen page "${pg ? pg.title : ''}":\n${pg ? txt(pg.html).slice(0, 8000) : '(none)'}`,
+        tools: [
+          T('list_pages', 'List the sections and pages of the notebook.'),
+          T('read_page', 'Read a page (default: the open page).', { title: { type: 'string' } }),
+          T('write_page', 'Write Markdown into the open page (or a page by title): append (default) or replace.', { markdown: { type: 'string' }, mode: { type: 'string', enum: ['append', 'replace'] }, title: { type: 'string' } }, ['markdown']),
+          T('new_page', 'Create a new page in the current section with a title and Markdown content, and open it.', { title: { type: 'string' }, markdown: { type: 'string' } }, ['title']),
+          T('rename_page', 'Change the title of the open page.', { title: { type: 'string' } }, ['title']),
+        ],
+        async run(n, a) {
+          if (n === 'list_pages') return nb.sections.map(s => ({ section: s.name, pages: s.pages.map(p => p.title || t('note.untitled')) }));
+          const hit = a.title ? findPage(a.title) : null;
+          if (n === 'read_page') { const p = hit ? hit[1] : pg; return p ? { title: p.title, text: txt(p.html).slice(0, 30000) } : { error: 'no page' }; }
+          if (n === 'write_page') {
+            if (hit) { sec = hit[0]; pg = hit[1]; calOn = false; renderAll(); }
+            if (!pg) newPage();
+            const html = OW.sanitizeHTML(OW.mdToHtml(a.markdown || ''));
+            pg.html = a.mode === 'replace' ? html : ((pg.html || '').replace(/<p><br><\/p>\s*$/, '') + html);
+            renderPage(); sync(); return { ok: true };
+          }
+          if (n === 'new_page') { const p = { id: uid(), title: a.title || '', html: OW.sanitizeHTML(OW.mdToHtml(a.markdown || '')) || '<p><br></p>', created: Date.now(), ink: [] }; sec.pages.push(p); pg = p; calOn = false; renderAll(); ctx.markDirty(); return { ok: true }; }
+          if (n === 'rename_page') { if (!pg) return { error: 'no page' }; pg.title = a.title; renderPage(); sync(); return { ok: true }; }
+        },
+        async insert(m) { if (!pg) newPage(); pg.html = (pg.html || '').replace(/<p><br><\/p>\s*$/, '') + OW.sanitizeHTML(OW.mdToHtml(m)); renderPage(); sync(); },
+      };
+    })(),
     getContent: () => nb,
     setReadOnly(v) { pageBody.contentEditable = !v; pageTitle.readOnly = v; },
     status: () => calOn ? ({ left: `${t('note.calendar')} · ${nb.events.length} ${t('cal.events')}`, right: '' }) : ({ left: `${OW.escape(sec.name)} · ${sec.pages.length} ${t('note.pages')}`, right: '' }),

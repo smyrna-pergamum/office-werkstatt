@@ -882,7 +882,40 @@
       { label: t('dz.svg'), fn: exportSVG }, { label: t('dz.video'), hint: t('dz.audioHint'), fn: exportVideo },
     ];
 
+    /* AI Werkzeug: texts and colours of the design */
+    const AIT = OW.aiTool;
+    const texts = () => cv ? cv.getObjects().filter(o => o.type === 'textbox' || o.type === 'i-text' || o.type === 'text') : [];
+    const aiAdapter = {
+      label: t('type.design') + ' (Design Werkzeug)',
+      suggestions: [t('ai.g.s1'), t('ai.g.s2'), t('ai.g.s3')],
+      describe: () => !D || !cv ? 'No design open yet (the format picker is shown).' : JSON.stringify({ format: fmt().id, size: DC.sizeLabel(fmt()), page: cur + 1, pages: D.pages.length, texts: texts().map((o, i) => ({ index: i, text: o.text, fontSize: Math.round(o.fontSize), color: o.fill })) }),
+      tools: [
+        AIT('read_design', 'Read the format, pages and the texts on the current page (with index).'),
+        AIT('set_text', 'Replace the text of a text object on the current page (index from read_design).', { index: { type: 'integer' }, text: { type: 'string' } }, ['index', 'text']),
+        AIT('add_text', 'Add a text to the current page.', { text: { type: 'string' }, kind: { type: 'string', enum: ['heading', 'sub', 'body'] }, color: { type: 'string', description: '#RRGGBB' } }, ['text']),
+        AIT('set_background', 'Set the background colour of the current page.', { color: { type: 'string', description: '#RRGGBB' } }, ['color']),
+        AIT('add_page', 'Add an empty page after the current one and go to it.'),
+      ],
+      async run(n, a) {
+        if (!D || !cv) return { error: 'choose a format first' };
+        if (n === 'read_design') return aiAdapter.describe();
+        if (n === 'set_text') { const o = texts()[a.index]; if (!o) return { error: 'no text with that index' }; o.set('text', String(a.text)); cv.requestRenderAll(); pushUndo(); changed(); return { ok: true }; }
+        if (n === 'add_text') {
+          const B = S.brand, k = a.kind || 'body', base = { heading: { fontSize: G.w * .09, fontWeight: 700, fontFamily: B.heading }, sub: { fontSize: G.w * .055, fontWeight: 700, fontFamily: B.heading }, body: { fontSize: G.w * .035, fontWeight: 400, fontFamily: B.body } }[k] || {};
+          await fontsReady([base]);
+          const tb = textbox(String(a.text || ''), Object.assign({}, base, { textAlign: 'center' }, /^#[0-9a-f]{6}$/i.test(a.color || '') ? { fill: a.color } : {}));
+          const below = texts().filter(o => o !== tb).reduce((m, o) => Math.max(m, o.top + o.getScaledHeight()), G.bleed + G.h * .1);
+          tb.set({ left: G.W / 2 - tb.width / 2, top: Math.min(below + G.h * .03, G.H - tb.height - G.bleed) });
+          add(tb, false); pushUndo(); changed(); return { ok: true, index: texts().indexOf(tb) };
+        }
+        if (n === 'set_background') { if (!/^#[0-9a-f]{3,8}$/i.test(a.color || '')) return { error: 'colour as #RRGGBB' }; setBgColor(a.color); return { ok: true }; }
+        if (n === 'add_page') { await addPage(); return { ok: true, page: cur + 1 }; }
+      },
+      async insert(m) { const d = document.createElement('div'); d.innerHTML = OW.mdToHtml(m); await aiAdapter.run('add_text', { text: d.innerText.trim(), kind: 'body' }); },
+    };
+
     return {
+      ai: aiAdapter,
       ribbonMode: 'classic',
       ribbon: () => R(),
       async mount(body) {

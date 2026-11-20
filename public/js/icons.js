@@ -150,7 +150,7 @@ window.OW = window.OW || {};
   };
   /* Tool tile icons (colored app glyphs like Office) */
   OW.appGlyph = function (type, size = 22) {
-    const letter = { word: 'W', excel: 'X', slide: 'S', note: 'N', draw: 'D', pdf: 'PDF', form: 'F', design: 'Ds', app: '+' }[type] || '?';
+    const letter = { word: 'W', excel: 'X', slide: 'S', note: 'N', draw: 'D', pdf: 'PDF', form: 'F', design: 'Ds', ai: 'AI', app: '+' }[type] || '?';
     const fs = type === 'pdf' ? Math.max(7, Math.round(size * 0.3)) : type === 'design' ? Math.round(size * 0.42) : Math.round(size * 0.55);
     return `<span class="glyph glyph-${type}" style="width:${size}px;height:${size}px;font-size:${fs}px">${letter}</span>`;
   };

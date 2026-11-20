@@ -153,3 +153,13 @@ Office Werkstatt: [MIT](LICENSE) © Süleyman Akbulut.
 Yerleşik motorlar kendi lisanslarını korur; lisans metinleri ilgili klasörlerdedir:
 `public/engines/word|excel|slide/LICENSE-*` (MIT veya Apache-2.0), `public/engines/pdf/LICENSE` (AGPL-3.0).
 PDF Werkstatt içindeki bileşenler (PDF.js, pdf-lib, MuPDF, Tesseract.js …) için `public/engines/pdf/LICENSE`.
+
+## AI Werkzeug (KI / YZ)
+
+An assistant in every Werkzeug (AI button in the title bar) and as its own Werkzeug.
+
+- **Engines:** [Ollama](https://ollama.com) on the same computer (default `http://127.0.0.1:11434`, private and offline) or any API in the OpenAI standard (`/v1/chat/completions`, e.g. OpenAI, OpenRouter, Mistral, Groq, LM Studio, vLLM). Settings › AI.
+- **Chat:** questions and internet research (web search + reading pages, answers with source links).
+- **Agent:** an agent inside the open document – Word (write, styles, every ribbon command), Excel (cells, formulas), Slide (slides, texts), Note, Draw (sticky notes, mind maps), Design, Formular.
+- **Library:** list/read files and create new documents.
+- Requests go through the Office Werkstatt server (`/api/ai/*`), so there are no CORS problems; the web tools refuse local-network addresses. API keys stay in the browser/desktop app and are only sent to the configured API.

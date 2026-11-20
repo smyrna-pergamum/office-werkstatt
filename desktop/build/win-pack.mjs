@@ -11,6 +11,9 @@ const here = path.dirname(fileURLToPath(import.meta.url)), root = path.join(here
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const run = c => execSync(c, { cwd: root, stdio: 'inherit' });
 
+// built-in AI engine (llama.cpp): fetched once into build/llm
+fs.mkdirSync(path.join(here, 'llm'), { recursive: true });
+if (!process.env.OW_SKIP_LLM) run('node build/fetch-llm.mjs');
 run('npx electron-builder --win --x64 --dir');
 const exe = path.join(root, 'dist', 'win-unpacked', 'Office Werkstatt.exe');
 const ico = path.join(here, 'icon.ico');

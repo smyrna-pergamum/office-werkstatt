@@ -1,0 +1,15 @@
+{
+  "name": "office-werkstatt-agent-bridge",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "demo": "node examples/demo.mjs",
+    "demo:v3": "node examples/v3-demo.mjs",
+    "demo:v4": "node examples/v4-demo.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

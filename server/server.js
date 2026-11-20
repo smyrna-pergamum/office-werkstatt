@@ -177,10 +177,17 @@ async function stockApi(req, res, what, url) {
   send(res, 404, { error: 'not found' });
 }
 
+const aiApi = require('./ai.js')({ send, readBody, VERSION });
+const convertApi = require('./convert.js')({ send, DATA });
+const llmApi = require('./llm.js')({ send, readBody, DATA, VERSION });   // built-in AI engine (llama.cpp) + model manager   // LibreOffice (bundled or installed): .ppt/.pps/.pot, OpenDocument, .doc, .xls …   // AI Werkzeug: model proxy, web search, page reader
+
 async function api(req, res, parts) {
   if (parts[1] === 'health') return send(res, 200, { ok: true, name: 'office-werkstatt', version: VERSION });
   if (parts[1] === 'engines') { const o = {}; for (const t of ['word', 'excel', 'slide', 'pdf']) o[t] = fs.existsSync(path.join(ROOT, 'engines', t, 'index.html')); return send(res, 200, o); }
   if (parts[1] === 'stock') return stockApi(req, res, parts[2], new URL(req.url, 'http://x'));
+  if (parts[1] === 'ai') return aiApi(req, res, parts[2], new URL(req.url, 'http://x'));
+  if (parts[1] === 'llm') return llmApi(req, res, parts[2], new URL(req.url, 'http://x'));
+  if (parts[1] === 'convert' && !parts[2]) return convertApi(req, res, new URL(req.url, 'http://x'));
   if (parts[1] === 'forms') { const fid = safeId(decodeURIComponent(parts[2] || '')); return fid && ['responses', 'publish'].includes(parts[3]) && !parts[4] ? formsApi(req, res, fid, parts[3]) : send(res, 404, { error: 'not found' }); }
   if (parts[1] !== 'files') return send(res, 404, { error: 'not found' });
   const id = parts[2] ? safeId(decodeURIComponent(parts[2])) : null;
@@ -269,6 +276,7 @@ const start = async (port = 0, host = '127.0.0.1') => {
 };
 /* stop: close all open connections so nothing keeps the process alive */
 const stop = () => new Promise(r => {
+  try { llmApi.stop(); } catch { /* not running */ }
   if (server.closeAllConnections) server.closeAllConnections();
   server.close(() => r()); setTimeout(r, 1000);
 });

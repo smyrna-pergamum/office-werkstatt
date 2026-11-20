@@ -158,6 +158,7 @@ OW.editors = OW.editors || {};
         <span class="ed-saved" title="${t('editor.saved')}">${I('cloudOk', 18)}</span>
         <button class="ed-search">${I('search', 16)}<span>${t('editor.search')}</span><kbd>Alt + M</kbd></button>
         <div class="ed-tright">
+          ${file.type !== 'ai' ? `<button class="ed-aibtn" title="${t('ai.open')}">${I('sparkle', 16)}<span>${t('ai.button')}</span></button>` : ''}
  <button class="ed-lang" title="${t('set.language')}">${I('globe', 16)}<span>${OW.lang.toUpperCase()}</span></button>
           <button class="icon-btn ed-theme" title="${t('theme.toggle')}">${I(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', 18)}</button>
           <span class="ed-user">${OW.escape(OW.settings.userName || t('user.guest'))}</span>
@@ -180,11 +181,12 @@ OW.editors = OW.editors || {};
     const $ = s => root.querySelector(s);
     const nameInput = $('.ed-name'); nameInput.value = file.name;
     let dirty = false, saveTimer = null, readOnly = false, activeTab = 'start', instance;
+    let revision = 0;   // every change of the document counts up (the AI agent checks it before applying and undoing)
 
     const ctx = {
       file, t, root,
       markDirty() {
-        dirty = true; $('.ed-saved').classList.add('pending');
+        dirty = true; revision++; $('.ed-saved').classList.add('pending');
         clearTimeout(saveTimer); saveTimer = setTimeout(save, (instance && instance.saveDelay) || 700);
       },
       refresh() {
@@ -272,6 +274,25 @@ OW.editors = OW.editors || {};
     $('.ed-back').addEventListener('click', close);
     $('.ed-theme').addEventListener('click', () => { OW.toggleTheme(); $('.ed-theme').innerHTML = I(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', 18); instance.onTheme && instance.onTheme(); });
     $('.ed-search').addEventListener('click', () => commandSearch());
+    /* the AI agent sees the Werkzeug's tools plus the document's revision and a whole-document snapshot / restore
+       (restore reopens the editor with the earlier content: one undo for everything an agent run changed) */
+    function aiAdapter() {
+      const base = instance && instance.ai; if (!base) return null;
+      const a = Object.create(base);
+      a.module = file.type; a.docId = file.id;
+      if (!base.revision) a.revision = () => revision;
+      if (!base.snapshot) a.snapshot = async () => { const c = await instance.getContent(); return c instanceof Blob ? c : structuredClone(c); };
+      if (!base.restore) a.restore = async snap => {
+        clearTimeout(saveTimer); dirty = false;
+        file.content = snap; file.history = (file.history || []).concat([{ at: Date.now(), by: 'AI ↺' }]).slice(-20);
+        await OW.store.put(file);
+        instance.destroy && instance.destroy();
+        document.removeEventListener('keydown', keys);
+        return OW.openEditor(file, { relocalize: true });
+      };
+      return a;
+    }
+    if ($('.ed-aibtn')) $('.ed-aibtn').addEventListener('click', () => OW.aiDock(root, aiAdapter));
     $('.ed-lang').addEventListener('click', e => OW.popover(e.currentTarget, OW.LANGS.map(l => ({ label: OW.escape(l.name), noPad: true, checked: OW.lang === l.code, onClick: () => OW.setLang(l.code) })), { alignRight: true }));
     OW.currentFile = file.id;
 
