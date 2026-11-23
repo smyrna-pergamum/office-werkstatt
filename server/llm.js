@@ -133,5 +133,6 @@ module.exports = function makeLLM({ send, readBody, DATA, VERSION }) {
     } catch (e) { return send(res, 500, { error: String((e && e.message) || e) }); }
   }
   llmApi.stop = stop;
+  llmApi.status = status;
   return llmApi;
 };
