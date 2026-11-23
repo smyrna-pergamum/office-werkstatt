@@ -1,14 +1,18 @@
+# Office Werkstatt – server (team / intranet)
+#   docker compose up -d        then open http://<server>:8080/setup and create the administrator
+#   (the setup code: docker compose logs office-werkstatt)
+# Over the internet use HTTPS: deploy/docker-compose.https.yml (automatic certificate).
 services:
   office-werkstatt:
-    build: .
+    image: ghcr.io/smyrna-pergamum/office-werkstatt:latest
+    # build: .                     # or build the image from this folder instead
     ports: ["8080:8080"]
-    volumes: ["./data:/data"]
+    volumes: ["office-werkstatt:/data"]
     environment:
-      # Reachable from the network → a login is required (the server refuses to start without one).
-      # OW_USER/OW_PASS is the first admin; more accounts with roles: Control center › Users,
-      # or: docker compose exec office-werkstatt node server/owctl.js user add <name> --role editor
-      # Put it behind HTTPS (reverse proxy such as Caddy/nginx/Traefik): basic auth is sent in clear text.
-      OW_USER: ${OW_USER:?set OW_USER in .env}
-      OW_PASS: ${OW_PASS:?set OW_PASS in .env}
-      PORT: 8080
+      # optional – instead of the setup page: OW_USER / OW_PASS become an administrator account
+      # OW_USER: admin
+      # OW_PASS: a-long-password
+      OW_BACKUP_HOURS: 24
     restart: unless-stopped
+volumes:
+  office-werkstatt:

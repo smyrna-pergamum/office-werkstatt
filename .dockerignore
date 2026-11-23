@@ -1,0 +1,11 @@
+.git
+.github
+data
+desktop
+agent-bridge
+engines-src
+docs
+scripts
+deploy
+node_modules
+*.log

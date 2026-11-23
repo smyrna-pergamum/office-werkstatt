@@ -1,3 +1,11 @@
+## Office Werkstatt 1.5.1
+
+### Kolay sunucu kurulumu
+- **Hazır Docker imajı:** her sürümde otomatik yayınlanır (`ghcr.io/smyrna-pergamum/office-werkstatt`, Intel/AMD ve ARM – Raspberry Pi, NAS). Kurulum tek komut: `docker run -d -p 8080:8080 -v office-werkstatt:/data ghcr.io/smyrna-pergamum/office-werkstatt`.
+- **İlk açılışta kurulum sihirbazı:** ağda hesapsız başlatılan sunucu artık başlamayı reddetmez; tarayıcıda bir kurulum sayfası açar (5 dil). Konsolda (`docker logs`) ve `data/SETUP-CODE.txt` dosyasında gösterilen tek kullanımlık kurulum koduyla ilk yönetici oluşturulur. Kurulum bitene kadar başka hiçbir sayfa veya veri açılmaz. `OW_USER`/`OW_PASS` gerekmez.
+- **İnternet için HTTPS hazır:** `deploy/docker-compose.https.yml` – `.env` dosyasına alan adını yazın, sertifikayı Caddy kendisi alır.
+- `docker-compose.yml` artık hazır imajı ve adlandırılmış bir birim kullanır (klasör izni ayarı gerekmez).
+
 ## Office Werkstatt 1.5.0
 
 ### Yeni: Kontrol merkezi (sunucu yönetimi)

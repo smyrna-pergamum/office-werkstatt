@@ -119,19 +119,37 @@ Download `Office-Werkstatt-Setup-<version>.exe` from the [Releases](https://gith
 Setup needs **no internet and no administrator rights**; it adds a desktop shortcut, a Start menu entry and
 “Open with → Office Werkstatt” for `.docx .xlsx .pptx .pdf .csv .md .excalidraw`. Documents are stored in `%APPDATA%\Office Werkstatt`.
 
-### 2 · Server (team / intranet) — Node.js 18+, no dependencies
+### 2 · Server (team / intranet / internet) — one command
 ```bash
-node server/server.js                 # http://localhost:8080 — this computer only (127.0.0.1)
-# Windows: start-windows.bat   ·   Linux/macOS: ./start.sh
-HOST=0.0.0.0 OW_USER=team OW_PASS=secret node server/server.js     # share on the network: login required
-OW_USER=team OW_PASS=secret docker compose up -d                    # data in ./data
+docker run -d --name office-werkstatt -p 8080:8080 -v office-werkstatt:/data --restart unless-stopped \
+  ghcr.io/smyrna-pergamum/office-werkstatt
+docker logs office-werkstatt          # shows the setup code
 ```
-**Security:** by default the server only listens on `127.0.0.1`. On a network address (`HOST=0.0.0.0` etc.) it does **not start**
-without `OW_USER` / `OW_PASS` — otherwise everyone on the network could read and change every document. On a network, always run it
-behind an HTTPS reverse proxy (Caddy, nginx, Traefik); basic authentication sends the password in plain text. In local mode, access from other
-sites through domain names pointed at `127.0.0.1` (DNS rebinding) is blocked. HTML in documents is sanitised every time it is shown
-(scripts, event handlers and `javascript:` links don't run).
-In server mode everyone sees the same files.
+Open `http://<server>:8080` – a **setup page** asks for the setup code and creates the first administrator.
+More people are added afterwards in **Control center › Users**. Updating: `docker pull ghcr.io/smyrna-pergamum/office-werkstatt`
+and start the container again – the documents stay in the `office-werkstatt` volume. The image is published for every release
+(`linux/amd64`, `linux/arm64`), so it also runs on a Raspberry Pi, a Synology/QNAP NAS or panels like Portainer and Coolify.
+
+**On the internet with HTTPS** (certificate is created automatically; the domain must point to the server, ports 80/443 open):
+```bash
+git clone https://github.com/smyrna-pergamum/office-werkstatt && cd office-werkstatt
+echo "DOMAIN=office.example.org" > .env
+docker compose -f deploy/docker-compose.https.yml up -d
+```
+Then open `https://office.example.org` and complete the setup.
+
+**Without Docker** (Node.js 20+, no dependencies):
+```bash
+node server/server.js                 # http://localhost:8080 — this computer only, no login
+HOST=0.0.0.0 node server/server.js    # on the network: the first start opens the setup page (code in the console)
+# Windows: start-windows.bat   ·   Linux/macOS: ./start.sh
+```
+
+**Security:** by default the server only listens on `127.0.0.1`. On a network address it never runs open: without an account
+it only shows the setup page, protected by a one-time code from the console / `data/SETUP-CODE.txt` (or `OW_SETUP_CODE`).
+`OW_USER` / `OW_PASS` can still be used instead and become an administrator account. Over the internet always use HTTPS
+(see above) – basic authentication sends the password in plain text. In local mode, access from other sites through
+domain names pointed at `127.0.0.1` (DNS rebinding) is blocked. HTML in documents is sanitised every time it is shown.
 In the browser it can be installed as an app (PWA) with the **Install** icon in the address bar.
 
 #### Control center (server administration)
@@ -170,7 +188,6 @@ node server/owctl.js trash empty --older-than 30   ·   node server/owctl.js rep
 node server/owctl.js logs --level warn -n 100 [--cat sharing] [--day 2026-11-23] [--grep anna]
 node server/owctl.js status --url https://office.example.org     # a running server (OW_USER/OW_PASS for the details)
 ```
-So a server on the network can be started without `OW_USER`/`OW_PASS`: create an admin first with `owctl.js user add`.
 
 | Variable | Default | |
 |---|---|---|
@@ -180,6 +197,8 @@ So a server on the network can be started without `OW_USER`/`OW_PASS`: create an
 | `OW_LOG_LEVEL` | `info` | `debug` also records status polling |
 | `OW_LOGIN_FAILS` | `10` | wrong logins per address in 15 minutes before it has to wait |
 | `OW_RESTORE_MB` | `2048` | largest backup upload |
+| `OW_SETUP_CODE` | random | your own setup code for the first start |
+| `OW_PUBLIC_URL` | – | the address shown in the console (e.g. `https://office.example.org`) |
 
 ### 3 · Without installing
 Double-click `public/index.html` — documents are stored in the browser (IndexedDB).
@@ -217,10 +236,11 @@ public/              web app (index.html, css/, js/, assets/, manifest, service 
 server/server.js     dependency-free Node server + REST API (/api/files, /api/engines)
 server/ai.js         AI: API bridge, web search, page reading · server/llm.js: built-in llama.cpp engine
 server/admin.js      control center API (/api/admin, /api/me) · users.js accounts & roles · sharing.js owners & sharing · log.js · maintenance.js
-server/doctor-core.js health checks · server/owctl.js command line (doctor, users, backup, logs …) · server/test/ (node --test)
+server/setup.js      first-run setup page · server/doctor-core.js health checks · server/owctl.js command line (doctor, users, backup, logs …) · server/test/ (node --test)
 public/js/admin.js   control center page (#/admin)
 agent-bridge/        Agent Bridge reference package (V1–V4, with tests: npm test)
 engines-src/         build notes and patches for the engines (e.g. Slide interface translation)
+deploy/              docker-compose with automatic HTTPS (Caddy)
 desktop/             Electron shell, print preview, offline NSIS installer script
 scripts/             engine install / build scripts
 ```
@@ -232,14 +252,14 @@ scripts/             engine install / build scripts
 Office tarzı şeritli Word, Excel, Slide, Note, Draw, PDF, Design, Formular ve **YZ** Werkzeug; 5 arayüz dili, açık/koyu tema.
 Yerleşik **YZ ajanı** (yerel llama.cpp motoru, Ollama veya OpenAI uyumlu her API) belgeyi, kitaplığı ve interneti okur, her değişikliği bir plan olarak
 hazırlar, onayınıza sunar ve tek işlem olarak uygular – hata olursa geri döner, tek adımda geri alınır.
-Çevrimdışı Windows kurulum dosyası **Releases** sayfasında; sunucu: `node server/server.js`.
+Çevrimdışı Windows kurulum dosyası **Releases** sayfasında. Sunucu tek komutla: `docker run -d -p 8080:8080 -v office-werkstatt:/data ghcr.io/smyrna-pergamum/office-werkstatt` – ardından tarayıcıda açılan kurulum sayfasında ilk yöneticiyi oluşturun (kurulum kodu: `docker logs`).
 
 ## Deutsch
 **Office Werkstatt** ist eine integrierte Office-Suite, die komplett ohne Internet läuft – im Browser, auf dem Desktop und auf dem eigenen Server:
 Word-, Excel-, Slide-, Note-, Draw-, PDF-, Design-, Formular- und **KI**-Werkzeug mit Menüband im Office-Stil, 5 Sprachen, hellem/dunklem Design und responsivem Layout.
 Der eingebaute **KI-Agent** (lokale llama.cpp-Engine, Ollama oder jede OpenAI-kompatible API) liest Dokument, Bibliothek und Internet,
 plant jede Änderung, zeigt den Plan zur Freigabe und wendet ihn als eine Transaktion an – mit Rücknahme bei Fehlern und Rückgängig in einem Schritt.
-Den Offline-Installer für Windows gibt es unter **Releases**; Server-Start mit `node server/server.js`.
+Den Offline-Installer für Windows gibt es unter **Releases**. Server mit einem Befehl: `docker run -d -p 8080:8080 -v office-werkstatt:/data ghcr.io/smyrna-pergamum/office-werkstatt` – danach im Browser auf der Einrichtungsseite den ersten Administrator anlegen (Einrichtungscode: `docker logs`).
 
 ## License
 Office Werkstatt: [MIT](LICENSE) © Süleyman Akbulut.
