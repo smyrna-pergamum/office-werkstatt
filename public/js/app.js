@@ -161,6 +161,12 @@
     OW.download(new Blob([JSON.stringify({ format: 'office-werkstatt', version: 1, file: Object.assign({}, f, { content: f.content }) })], { type: 'application/json' }), OW.safeName(f.name) + '.owdoc');
   }
   function fileMenu(f, anchor) {
+    if (f.sharedWithMe) return OW.popover(anchor, [
+      { header: OW.escape(t('share.from', { n: f.owner })) + ' · ' + t(f.access === 'edit' ? 'share.canEdit' : 'share.canView') },
+      { icon: 'arrowRight', label: t('open'), onClick: () => openFile(f.id) },
+      { icon: 'copy', label: t('share.copyToMine'), onClick: () => duplicate(f.id) },
+      { icon: 'download', label: t('download'), onClick: () => downloadFile(f.id) },
+    ], { alignRight: true });
     const items = f.trashed ? [
       { icon: 'restore', label: t('trash.restore'), onClick: () => update(f.id, { trashed: false }).then(() => OW.toast(t('trash.restored'))) },
       { icon: 'trash', label: t('trash.deleteForever'), danger: true, onClick: () => OW.confirm(t('trash.confirmOne')).then(ok => ok && OW.store.remove(f.id).then(OW.refresh)) },
@@ -170,7 +176,8 @@
       { icon: 'copy', label: t('duplicate'), onClick: () => duplicate(f.id) },
       { icon: 'folder', label: t('folder.moveTo'), onClick: () => pickFolder().then(v => v !== null && moveTo(f.id, v)) },
       { icon: 'star', label: f.favorite ? t('fav.remove') : t('fav.add'), onClick: () => update(f.id, { favorite: !f.favorite }) },
-      { icon: 'users', label: f.shared ? t('share.unshare') : t('share.markShared'), onClick: () => update(f.id, { shared: !f.shared }) },
+      OW.canShareWithPeople() ? { icon: 'users', label: t('share.people'), onClick: () => OW.shareDialog(f).then(r => r && OW.refresh()) }
+        : { icon: 'users', label: f.shared ? t('share.unshare') : t('share.markShared'), onClick: () => update(f.id, { shared: !f.shared }) },
       { icon: 'download', label: t('download'), onClick: () => downloadFile(f.id) },
       '-',
       { icon: 'trash', label: t('trash.move'), danger: true, onClick: () => update(f.id, { trashed: true, trashedAt: Date.now() }).then(() => OW.toast(t('trash.moved') + ` <button class="link" onclick="OW._undoTrash('${f.id}')">${t('undo')}</button>`)) },
@@ -229,6 +236,7 @@
     if (route === 'home') { renderHome(); $('#view-home').classList.add('on'); }
     else if (route === 'templates') { renderTemplates(); $('#view-templates').classList.add('on'); }
     else if (route === 'settings') { renderSettings(); $('#view-settings').classList.add('on'); }
+    else if (route === 'admin') { OW.renderAdmin($('#view-admin')); $('#view-admin').classList.add('on'); }
     else { renderList(); $('#view-list').classList.add('on'); }
     $('#views').scrollTop = 0;
   }
@@ -291,7 +299,7 @@
     $('#dropzone').onclick = () => $('#filePicker').click();
   }
   function rowHTML(f) {
-    const loc = [f.shared ? t('nav.shared') : t('nav.files')].concat(folderPath(parentOf(f)).map(x => OW.escape(x.name))).join(' / ') + ' · ' + t('type.' + f.type);
+    const loc = [f.sharedWithMe ? t('share.from', { n: OW.escape(f.owner) }) : f.shared || (f.shares && f.shares.length) ? t('nav.shared') : t('nav.files')].concat(folderPath(parentOf(f)).map(x => OW.escape(x.name))).join(' / ') + ' · ' + t('type.' + f.type);
     return `<div class="row" data-open="${f.id}">${OW.appGlyph(f.type, 30)}<div class="rn"><b>${OW.escape(f.name)}<small class="ext">.${OW.TYPES[f.type].ext}</small></b><small>${loc}</small></div>
       ${f.favorite ? `<span class="fav on">${I('star', 16)}</span>` : ''}<span class="rd">${when(f.trashed ? f.trashedAt || f.modified : f.modified)}</span><button class="icon-btn sm more" data-menu="${f.id}" aria-label="${t('more')}">${I('more')}</button></div>`;
   }
@@ -308,7 +316,8 @@
     const titles = { recent: ['clock', t('nav.recent')], files: ['folder', t('nav.files')], shared: ['users', t('nav.shared')], favorites: ['star', t('nav.favorites')], trash: ['trash', t('nav.trash')] };
     const [ic, title] = titles[route] || titles.files;
     let list = files.filter(f => route === 'trash' ? f.trashed : !f.trashed);
-    if (route === 'shared') list = list.filter(f => f.shared);
+    if (route === 'shared') list = list.filter(f => f.shared || f.sharedWithMe || (f.shares && f.shares.length));
+    if (route === 'files') list = list.filter(f => !f.sharedWithMe);          // other people's documents are under "Shared" 
     if (route === 'favorites') list = list.filter(f => f.favorite);
     if (filter !== 'all') list = list.filter(f => f.type === filter);
     if (query) list = list.filter(f => f.name.toLowerCase().includes(query.toLowerCase()));
@@ -336,7 +345,7 @@
         </div></div>
       ${route === 'trash' && list.length ? `<p class="muted note-trash">${I('trash', 14)} ${t('trash.hint')}</p>` : ''}
       ${list.length || subs.length ? (S.view === 'grid'
-        ? `<div class="file-grid">${subs.map(x => `<div class="fcard fc-folder" data-folder="${x.id}" data-drop="${x.id}" data-drag="${x.id}" draggable="true"><div class="fthumb">${I('folder', 56)}</div><div class="fmeta"><b title="${OW.escape(x.name)}">${OW.escape(x.name)}</b><small>${t('folder.items', { n: countIn(x.id) })}</small></div><button class="icon-btn sm more" data-fmenu="${x.id}">${I('more')}</button></div>`).join('')}${list.map(f => `<div class="fcard fc-${f.type}" data-open="${f.id}"><div class="fthumb">${OW.appGlyph(f.type, 44)}<span class="fext">.${OW.TYPES[f.type].ext}</span>${f.shared ? `<span class="badge">${I('users', 12)}</span>` : ''}</div><div class="fmeta"><b title="${OW.escape(f.name)}">${OW.escape(f.name)}</b><small>${when(f.trashed ? f.trashedAt || f.modified : f.modified)}${f.size ? ' · ' + fmtSize(f.size) : ''}</small></div>${route !== 'trash' ? `<button class="fav-t ${f.favorite ? 'on' : ''}" data-id="${f.id}" title="${t('fav.add')}">${I('star', 16)}</button>` : ''}<button class="icon-btn sm more" data-menu="${f.id}">${I('more')}</button></div>`).join('')}</div>`
+        ? `<div class="file-grid">${subs.map(x => `<div class="fcard fc-folder" data-folder="${x.id}" data-drop="${x.id}" data-drag="${x.id}" draggable="true"><div class="fthumb">${I('folder', 56)}</div><div class="fmeta"><b title="${OW.escape(x.name)}">${OW.escape(x.name)}</b><small>${t('folder.items', { n: countIn(x.id) })}</small></div><button class="icon-btn sm more" data-fmenu="${x.id}">${I('more')}</button></div>`).join('')}${list.map(f => `<div class="fcard fc-${f.type}" data-open="${f.id}"><div class="fthumb">${OW.appGlyph(f.type, 44)}<span class="fext">.${OW.TYPES[f.type].ext}</span>${f.shared || f.sharedWithMe || (f.shares && f.shares.length) ? `<span class="badge" title="${f.sharedWithMe ? OW.escape(t('share.from', { n: f.owner })) : ''}">${I('users', 12)}</span>` : ''}</div><div class="fmeta"><b title="${OW.escape(f.name)}">${OW.escape(f.name)}</b><small>${when(f.trashed ? f.trashedAt || f.modified : f.modified)}${f.size ? ' · ' + fmtSize(f.size) : ''}</small></div>${route !== 'trash' ? `<button class="fav-t ${f.favorite ? 'on' : ''}" data-id="${f.id}" title="${t('fav.add')}">${I('star', 16)}</button>` : ''}<button class="icon-btn sm more" data-menu="${f.id}">${I('more')}</button></div>`).join('')}</div>`
         : `<div class="card"><div class="rows">${subs.map(x => `<div class="row row-folder" data-folder="${x.id}" data-drop="${x.id}" data-drag="${x.id}" draggable="true"><span class="fold-ic">${I('folder', 26)}</span><div class="rn"><b>${OW.escape(x.name)}</b><small>${t('folder.items', { n: countIn(x.id) })}</small></div><span class="rd">${when(x.modified)}</span><button class="icon-btn sm more" data-fmenu="${x.id}">${I('more')}</button></div>`).join('')}${list.map(rowHTML).join('')}</div></div>`)
         : `<div class="empty">${I(ic, 48)}<h3>${emptyMsg}</h3>${route !== 'trash' ? `<button class="btn primary" id="emptyNew">${I('plus', 16)}<span>${t('new')}</span></button>` : ''}</div>`}`;
     bindCommon($('#view-list'));
@@ -473,7 +482,7 @@
     render();
   };
   function netPill() { const on = navigator.onLine; $('#netPill').innerHTML = `${I(on ? 'cloudOk' : 'wifiOff', 14)}<span>${on ? t('net.online') : t('net.offline')}</span>`; $('#netPill').classList.toggle('off', !on); }
-  function storagePill() { $('#storagePill').innerHTML = `${I(OW.store.mode === 'server' ? 'server' : 'lock', 14)}<span>${OW.store.mode === 'server' ? t('storage.server') : t('storage.local')}</span>`; }
+  function storagePill() { const ro = OW.me && OW.me.role === 'viewer'; $('#storagePill').innerHTML = `${I(OW.store.mode === 'server' ? 'server' : 'lock', 14)}<span>${OW.store.mode === 'server' ? t('storage.server') : t('storage.local')}</span>${ro ? `<span class="ro-pill" title="${t('me.readOnly')}">${I('eye', 12)}${t('adm.role.viewer')}</span>` : ''}`; }
 
   const closeSidebar = () => { document.body.classList.remove('nav-open'); };
   let deferredInstall = null;
@@ -491,7 +500,7 @@
     document.querySelectorAll('[data-icon]').forEach(e => e.innerHTML = I(e.dataset.icon));
     document.body.dataset.density = S.density;
     applyTheme(); OW.applyI18n(document); renderLang();
-    await OW.store.init(); storagePill(); netPill();
+    await OW.store.init(); await OW.loadMe(); storagePill(); netPill();
     await detectEngines();
     await new Promise(res => { const s = document.createElement('script'); s.src = 'engines/apps.js'; s.onload = s.onerror = res; document.head.appendChild(s); });
     await load();
@@ -512,7 +521,12 @@
     $('#btnMenu').onclick = () => document.body.classList.toggle('nav-open');
     $('#scrim').onclick = closeSidebar;
     $('#btnBell').onclick = e => { e.currentTarget.classList.remove('has-dot'); OW.popover(e.currentTarget, [{ header: t('notifications') }, { icon: 'sparkle', label: t('notif.welcome') }, { icon: navigator.onLine ? 'cloudOk' : 'wifiOff', label: t('notif.offline') }, { icon: 'upload', label: t('notif.drop') }], { alignRight: true }); };
-    $('#btnUser').onclick = e => OW.popover(e.currentTarget, [{ header: OW.escape(S.userName || t('user.guest')) }, { icon: 'pen', label: t('set.name'), onClick: () => OW.prompt(t('set.name'), S.userName).then(n => { if (n !== null) { S.userName = n.trim(); saveSettings(); render(); } }) }, { icon: 'settings', label: t('nav.settings'), onClick: () => go('settings') }, { icon: 'app', label: t('help.about'), onClick: OW.about }], { alignRight: true });
+    $('#btnUser').onclick = e => { const me = OW.me && OW.me.auth ? OW.me : null; OW.popover(e.currentTarget, [{ header: OW.escape(S.userName || (me && me.name) || t('user.guest')) + (me ? `<br><small class="muted">${OW.escape(me.name)} · ${t('me.role', { r: t('adm.role.' + me.role) })}</small>` : '') },
+      { icon: 'pen', label: t('set.name'), onClick: () => OW.prompt(t('set.name'), S.userName).then(n => { if (n !== null) { S.userName = n.trim(); saveSettings(); render(); } }) },
+      ...(me && me.canChangePassword ? [{ icon: 'lock', label: t('me.password'), onClick: OW.changePassword }] : []),
+      { icon: 'settings', label: t('nav.settings'), onClick: () => go('settings') },
+      ...(OW.me && OW.me.role === 'admin' ? [{ icon: 'gauge', label: t('nav.admin'), onClick: () => go('admin') }] : []),
+      { icon: 'app', label: t('help.about'), onClick: OW.about }], { alignRight: true }); };
     $('#filePicker').onchange = e => { importFiles(e.target.files); e.target.value = ''; };
     document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && $('#editorHost').hidden) { e.preventDefault(); globalSearch(); } });
 

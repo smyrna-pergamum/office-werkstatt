@@ -7,6 +7,7 @@ const path = require('path'), fs = require('fs');
 const base = app.isPackaged ? path.join(process.resourcesPath, 'app') : path.join(__dirname, '..');
 process.env.DATA_DIR = path.join(app.getPath('userData'), 'documents');
 process.env.OW_VERSION = app.getVersion();
+process.env.OW_DESKTOP = '1';   // one person on this computer: no accounts; the admin panel shows status, checks, maintenance and logs
 if (app.isPackaged) process.env.OW_CONVERTER = path.join(process.resourcesPath, 'converter');
 if (app.isPackaged) process.env.OW_LLM_DIR = path.join(process.resourcesPath, 'llm');            // built-in AI engine (llama.cpp)   // LibreOffice shipped with the installer (format converter)
 const server = require(path.join(base, 'server', 'server.js'));

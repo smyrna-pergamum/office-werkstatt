@@ -208,7 +208,9 @@ OW.editors = OW.editors || {};
     };
 
     let saveFailed = false;
+    const viewOnly = file.access === 'view' || !!(OW.me && OW.me.role === 'viewer');   // shared with me to view / role viewer: nothing is saved
     async function save() {
+      if (viewOnly) { dirty = false; return true; }
       if (!dirty || !instance) return true;
       dirty = false;                       // edits made while saving set it again
       try {
@@ -230,6 +232,7 @@ OW.editors = OW.editors || {};
     ctx.save = async () => { dirty = true; return save(); };
 
     instance = await factory(ctx);
+    if (viewOnly) setTimeout(() => { try { setRO(true); OW.toast(t('me.readOnly')); } catch { /* editor without read-only mode */ } });
     // every Help tab gets "Check for updates" (opens the releases page of the project)
     if (instance.ribbon) {
       const origRibbon = instance.ribbon.bind(instance);
@@ -304,7 +307,9 @@ OW.editors = OW.editors || {};
       { icon: 'eye', label: t('editor.viewing'), checked: readOnly, onClick: () => setRO(true) },
     ], { alignRight: true }));
     $('.ed-share').addEventListener('click', e => OW.popover(e.currentTarget, [
-      { icon: 'users', label: file.shared ? t('share.unshare') : t('share.markShared'), onClick: async () => { file.shared = !file.shared; await OW.store.put(file); OW.toast(file.shared ? t('share.sharedOk') : t('share.unsharedOk')); } },
+      ...(file.sharedWithMe ? [{ header: OW.escape(t('share.from', { n: file.owner })) + ' · ' + t(file.access === 'edit' ? 'share.canEdit' : 'share.canView') }]
+        : OW.canShareWithPeople && OW.canShareWithPeople() ? [{ icon: 'users', label: t('share.people'), onClick: () => OW.shareDialog(file).then(r => { if (r) Object.assign(file, r); }) }]
+        : [{ icon: 'users', label: file.shared ? t('share.unshare') : t('share.markShared'), onClick: async () => { file.shared = !file.shared; await OW.store.put(file); OW.toast(file.shared ? t('share.sharedOk') : t('share.unsharedOk')); } }]),
       { icon: 'link', label: t('share.copyLink'), onClick: () => {
           const url = location.href.split('#')[0] + '#/edit/' + file.id;
           (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => OW.toast(t('share.linkCopied'))).catch(() => OW.toast(url));

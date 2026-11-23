@@ -6,7 +6,10 @@
   "private": true,
   "scripts": {
     "start": "node server/server.js",
-    "engines": "node scripts/fetch-engines.js"
+    "engines": "node scripts/fetch-engines.js",
+    "doctor": "node server/owctl.js doctor",
+    "owctl": "node server/owctl.js",
+    "test": "node --test server/test/*.test.js"
   },
   "engines": { "node": ">=18" }
 }
