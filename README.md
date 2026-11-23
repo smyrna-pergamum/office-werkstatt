@@ -134,6 +134,53 @@ sites through domain names pointed at `127.0.0.1` (DNS rebinding) is blocked. HT
 In server mode everyone sees the same files.
 In the browser it can be installed as an app (PWA) with the **Install** icon in the address bar.
 
+#### Control center (server administration)
+Administrators find **Control center** in the sidebar (`#/admin`, all 5 languages). In the desktop app and on a local server
+without a login, the person at the computer is the administrator.
+
+| Tab | What it does |
+|---|---|
+| **Overview** | status, uptime, documents, data size and free disk space, requests per minute, errors/warnings of the last 24 h, active users, last backup, built-in AI engine; refreshes itself |
+| **Checks** | health checks (Node version, writable data folder, disk space, unreadable documents, interrupted saves, orphaned form data, old trash, backups, login and network exposure, file permissions, engines, converter, memory) with one-click fixes |
+| **Users** | several accounts with roles — **admin** (everything), **editor** (documents and forms), **viewer** (read only); add, change role, set password, disable, delete. Everybody can change their own password in the user menu |
+| **Sharing** | every document with owner and the people it is shared with; per person: owns / shares / receives. Change any share, give a document a new owner, hand over all documents of a person, stop every share with a person, give older documents (from before accounts) an owner |
+| **Maintenance** | backups (create, download, upload, restore *merge* or *replace* – a safety backup is always made first, delete), empty the trash for all users, repair (unreadable files → `data/quarantine/`, nothing is deleted) |
+| **Logs** | server log with categories (files & sharing, logins & accounts, administration, requests, problems), level filter, search, live view and download per day |
+| **Sessions** | who used the server in the last 24 hours: user, role, address, browser, requests |
+
+**Sharing between users:** with accounts, a new document belongs to the person who creates it and is **private**. In the file menu
+(and the editor's *Share* button) *Share with people…* gives single people *can view* or *can edit*, or everybody on the server.
+Shared documents appear under **Shared** (“from ali”); people with *can view* open them read-only, only the owner can share, move,
+trash or delete them, and anybody can *Make my own copy*. Documents from before accounts existed have no owner and stay visible
+to everybody until an admin gives them one. Sharing changes, owner changes, creating/renaming/deleting, and every time someone
+opens or edits another person's document are written to the log (category *Files & sharing*).
+
+Accounts are stored in `data/users.json` (scrypt password hashes, file mode 600). `OW_USER`/`OW_PASS` still work and are always an
+admin; as soon as **any** account exists, everybody has to sign in. After 10 wrong passwords in 15 minutes an address has to wait.
+Admin requests need the header `X-OW-Request: 1` and the server's own origin (CSRF protection). `GET /api/health` answers without a
+login for monitoring (the Docker image uses it as `HEALTHCHECK`).
+
+**Command line** (`server/owctl.js`, same `DATA_DIR` / `HOST` / `PORT` as the server, works while it runs):
+```bash
+npm run doctor                                     # = node server/owctl.js doctor [--fix] [--json]  (exit code 1 on problems)
+node server/owctl.js user add anna --role admin    # password is asked (or OW_NEW_PASS / stdin)
+node server/owctl.js user list | passwd <name> | role <name> <role> | disable <name> | enable <name> | remove <name>
+node server/owctl.js backup [list]   ·   node server/owctl.js restore <file> [--replace]
+node server/owctl.js trash empty --older-than 30   ·   node server/owctl.js repair
+node server/owctl.js logs --level warn -n 100 [--cat sharing] [--day 2026-11-23] [--grep anna]
+node server/owctl.js status --url https://office.example.org     # a running server (OW_USER/OW_PASS for the details)
+```
+So a server on the network can be started without `OW_USER`/`OW_PASS`: create an admin first with `owctl.js user add`.
+
+| Variable | Default | |
+|---|---|---|
+| `OW_BACKUP_HOURS` | `24` | automatic backup interval (`0` = off) |
+| `OW_BACKUP_KEEP` | `10` | automatic backups to keep |
+| `OW_LOG_DAYS` | `14` | days of log files in `data/logs/` (`0` = memory only) |
+| `OW_LOG_LEVEL` | `info` | `debug` also records status polling |
+| `OW_LOGIN_FAILS` | `10` | wrong logins per address in 15 minutes before it has to wait |
+| `OW_RESTORE_MB` | `2048` | largest backup upload |
+
 ### 3 · Without installing
 Double-click `public/index.html` — documents are stored in the browser (IndexedDB).
 
@@ -169,6 +216,9 @@ public/              web app (index.html, css/, js/, assets/, manifest, service 
   engines/           full engines + engines.js + apps.js (own app)
 server/server.js     dependency-free Node server + REST API (/api/files, /api/engines)
 server/ai.js         AI: API bridge, web search, page reading · server/llm.js: built-in llama.cpp engine
+server/admin.js      control center API (/api/admin, /api/me) · users.js accounts & roles · sharing.js owners & sharing · log.js · maintenance.js
+server/doctor-core.js health checks · server/owctl.js command line (doctor, users, backup, logs …) · server/test/ (node --test)
+public/js/admin.js   control center page (#/admin)
 agent-bridge/        Agent Bridge reference package (V1–V4, with tests: npm test)
 engines-src/         build notes and patches for the engines (e.g. Slide interface translation)
 desktop/             Electron shell, print preview, offline NSIS installer script

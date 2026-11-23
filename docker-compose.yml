@@ -5,6 +5,8 @@ services:
     volumes: ["./data:/data"]
     environment:
       # Reachable from the network → a login is required (the server refuses to start without one).
+      # OW_USER/OW_PASS is the first admin; more accounts with roles: Control center › Users,
+      # or: docker compose exec office-werkstatt node server/owctl.js user add <name> --role editor
       # Put it behind HTTPS (reverse proxy such as Caddy/nginx/Traefik): basic auth is sent in clear text.
       OW_USER: ${OW_USER:?set OW_USER in .env}
       OW_PASS: ${OW_PASS:?set OW_PASS in .env}

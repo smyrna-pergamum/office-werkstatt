@@ -1,3 +1,19 @@
+## Office Werkstatt 1.5.0 (geliştirme)
+
+### Yeni: Kontrol merkezi (sunucu yönetimi)
+- **Kontrol merkezi** (kenar çubuğu, yalnızca yöneticiler; 5 dil): Genel bakış · Kontroller · Kullanıcılar · Bakım · Kayıtlar · Oturumlar.
+- **Genel bakış:** sunucu durumu, çalışma süresi, belge sayısı, veri boyutu ve boş disk alanı, dakikadaki istek, son 24 saatin hata/uyarıları, etkin kullanıcılar, son yedek, yerleşik YZ motoru.
+- **Kontroller (doctor):** Node sürümü, veri klasörü, disk, okunamayan belgeler, yarım kalan kayıtlar, sahipsiz form verileri, eski çöp, yedekler, giriş ve ağdan erişim, dosya izinleri, motorlar, dönüştürücü, bellek – tek tıkla onarım.
+- **Kullanıcılar ve roller:** birden çok hesap (`data/users.json`, scrypt); **Yönetici**, **Düzenleyici**, **Görüntüleyici** (salt okunur). Ekle, rol değiştir, parola belirle, devre dışı bırak, sil; herkes kendi parolasını kullanıcı menüsünden değiştirebilir. `OW_USER/OW_PASS` çalışmaya devam eder (her zaman yönetici). 15 dakikada 10 hatalı girişten sonra adres bekletilir.
+- **Bakım:** yedek oluştur / indir / yükle / geri yükle (*ekle ve üzerine yaz* veya *her şeyi değiştir*; önce her zaman güvenlik yedeği), otomatik yedek (`OW_BACKUP_HOURS`, varsayılan 24 saat), tüm kullanıcıların çöp kutusunu boşaltma, onarım (bozuk dosyalar `data/quarantine/` klasörüne taşınır, hiçbir şey silinmez).
+- **Kayıtlar:** `data/logs/` içinde günlük dosyalar (`OW_LOG_DAYS`, varsayılan 14 gün); düzey filtresi, arama, canlı görünüm, gün indirme. Parolalar ve belge içerikleri asla kaydedilmez.
+- **Kullanıcılar arası paylaşım:** hesaplar varken yeni belge onu oluşturanındır ve **özeldir**. Dosya menüsünde (ve düzenleyicideki *Paylaş* düğmesinde) *Kişilerle paylaş…*: kişi bazında *görüntüleyebilir* / *düzenleyebilir* ya da sunucudaki herkes. Paylaşılan belgeler "Paylaşılanlar" altında ("ali paylaştı") görünür; görüntüleme yetkisiyle salt okunur açılır; yalnızca sahibi paylaşabilir, taşıyabilir, çöpe atabilir, silebilir; herkes *Kendi kopyamı oluştur* diyebilir. Hesaplardan önceki belgelerin sahibi yoktur, yönetici sahip atayana kadar herkese görünür.
+- **Kontrol merkezi › Paylaşımlar:** tüm belgeler sahibi ve paylaşıldığı kişilerle; kişi başına sahip olduğu / paylaştığı / aldığı belgeler. Her paylaşımı değiştirme, sahibi değiştirme, bir kişinin tüm belgelerini devretme, bir kişiyle tüm paylaşımları durdurma, sahipsiz belgelere sahip atama.
+- **Kayıtlarda paylaşım:** paylaşım ve sahiplik değişiklikleri, belge oluşturma / yeniden adlandırma / silme ve başkasının belgesinin her açılışı ve düzenlenişi kaydedilir; kayıtlarda kategori filtresi (Dosyalar ve paylaşım, Girişler ve hesaplar, Yönetim, İstekler, Yalnızca sorunlar).
+- **Oturumlar:** son 24 saatte kim, hangi adresten, hangi tarayıcıyla bağlandı.
+- **Komut satırı:** `node server/owctl.js doctor | user | backup | restore | trash | repair | logs | status` – ör. ağda ilk yöneticiyi oluşturmak için `owctl.js user add anna --role admin`.
+- **Güvenlik:** yönetici istekleri için CSRF koruması (`X-OW-Request` başlığı + aynı köken); `/api/health` izleme için girişsiz yanıt verir, Docker imajında `HEALTHCHECK`.
+
 ## Office Werkstatt 1.4.0
 
 ### Yeni: AI Werkzeug (KI / YZ)
