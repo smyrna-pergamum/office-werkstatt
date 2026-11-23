@@ -1,4 +1,4 @@
-## Office Werkstatt 1.5.0 (geliştirme)
+## Office Werkstatt 1.5.0
 
 ### Yeni: Kontrol merkezi (sunucu yönetimi)
 - **Kontrol merkezi** (kenar çubuğu, yalnızca yöneticiler; 5 dil): Genel bakış · Kontroller · Kullanıcılar · Bakım · Kayıtlar · Oturumlar.
