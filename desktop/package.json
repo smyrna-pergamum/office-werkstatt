@@ -1,7 +1,7 @@
 {
   "name": "office-werkstatt-desktop",
   "productName": "Office Werkstatt",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Office Werkstatt desktop app (Windows, macOS, Linux) – works without internet",
   "main": "main.js",
   "author": "smyrna-pergamum",
