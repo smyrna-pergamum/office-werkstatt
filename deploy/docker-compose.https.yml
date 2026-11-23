@@ -1,0 +1,23 @@
+# Office Werkstatt on the internet with HTTPS (Caddy gets the certificate by itself)
+#   1. point your domain (DNS A/AAAA record) to this server, ports 80 and 443 open
+#   2. echo "DOMAIN=office.example.org" > .env
+#   3. docker compose -f deploy/docker-compose.https.yml up -d
+#   4. open https://office.example.org/setup – the setup code: docker compose -f deploy/docker-compose.https.yml logs office-werkstatt
+services:
+  office-werkstatt:
+    image: ghcr.io/smyrna-pergamum/office-werkstatt:latest
+    volumes: ["office-werkstatt:/data"]
+    environment:
+      OW_PUBLIC_URL: https://${DOMAIN:?set DOMAIN in .env}
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+    command: caddy reverse-proxy --from ${DOMAIN} --to office-werkstatt:8080
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes: ["caddy-data:/data", "caddy-config:/config"]
+    depends_on: [office-werkstatt]
+    restart: unless-stopped
+volumes:
+  office-werkstatt:
+  caddy-data:
+  caddy-config:
