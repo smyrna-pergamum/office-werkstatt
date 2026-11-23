@@ -1,0 +1,80 @@
+# Office Werkstatt – one release page for desktop AND server
+# For every published release (or by hand for an existing tag):
+#   1. builds the server package Office-Werkstatt-Server-<version>.zip (Node.js, no Docker needed) and attaches it
+#   2. puts a "Downloads" table at the top of the release notes: desktop installer · Docker image · server package
+# The Windows installer (build-windows.yml) and the Docker image (docker.yml) are built by their own workflows;
+# their links in the table follow the same names, so they work as soon as those workflows are done.
+name: Release page (desktop + server)
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. v1.5.1)
+        required: true
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - name: Version
+        id: v
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Server package
+        run: |
+          V=${{ steps.v.outputs.version }}
+          D=office-werkstatt-server-$V
+          mkdir -p "$D"
+          cp -r server public deploy package.json start.sh start-windows.bat Dockerfile docker-compose.yml README.md RELEASE_NOTES.md LICENSE "$D"/
+          rm -rf "$D/server/test"
+          cat > "$D/INSTALL.txt" <<EOF
+          Office Werkstatt $V – server
+          ==============================
+          Needs Node.js 20 or newer (https://nodejs.org) – no other programs, no internet.
+
+          This computer only:   node server/server.js            -> http://localhost:8080
+                                (Windows: start-windows.bat · Linux/macOS: ./start.sh)
+          For the network:      HOST=0.0.0.0 node server/server.js
+                                (Windows PowerShell: \$env:HOST="0.0.0.0"; node server/server.js)
+                                then open http://<this-computer>:8080/setup and create the administrator –
+                                the setup code is shown in the console and in data/SETUP-CODE.txt
+
+          With Docker instead:  docker run -d -p 8080:8080 -v office-werkstatt:/data ghcr.io/smyrna-pergamum/office-werkstatt:$V
+          On the internet with HTTPS: see deploy/docker-compose.https.yml
+          Health check:         node server/owctl.js doctor
+          EOF
+          zip -qr "Office-Werkstatt-Server-$V.zip" "$D"
+          ls -lh "Office-Werkstatt-Server-$V.zip"
+          gh release upload "$TAG" "Office-Werkstatt-Server-$V.zip" --clobber
+      - name: Downloads table in the release notes
+        run: |
+          gh release view "$TAG" --json body -q .body > body.md
+          node - "${{ steps.v.outputs.version }}" "$TAG" "${{ github.repository }}" <<'EOF'
+          const fs = require('fs'); const [v, tag, repo] = process.argv.slice(2);
+          const dl = `https://github.com/${repo}/releases/download/${tag}`;
+          const img = `ghcr.io/${repo}`;
+          const table = `<!-- downloads -->
+          ## Downloads
+
+          | | | |
+          |---|---|---|
+          | 💻 **Desktop** | Windows 10 / 11 | [**Office-Werkstatt-Setup-${v}.exe**](${dl}/Office-Werkstatt-Setup-${v}.exe) – offline installer, no administrator rights needed |
+          | 🖥️ **Server** | Docker (amd64 · arm64) | \`docker run -d -p 8080:8080 -v office-werkstatt:/data ${img}:${v}\` → open \`http://<server>:8080\` and create the administrator ([image](https://github.com/${repo}/pkgs/container/${repo.split('/')[1]})) |
+          | 📦 **Server** | Node.js 20+ (without Docker) | [**Office-Werkstatt-Server-${v}.zip**](${dl}/Office-Werkstatt-Server-${v}.zip) – unzip, \`node server/server.js\` – see INSTALL.txt |
+
+          Desktop and server are the same version and open the same documents. Internet with HTTPS: \`deploy/docker-compose.https.yml\`.
+          <!-- /downloads -->
+          `.replace(/^ {10}/gm, '');
+          let body = fs.readFileSync('body.md', 'utf8').replace(/<!-- downloads -->[\s\S]*?<!-- \/downloads -->\s*/g, '');
+          fs.writeFileSync('body.md', table + '\n' + body);
+          EOF
+          gh release edit "$TAG" --notes-file body.md
