@@ -48,7 +48,7 @@
   });
   OW.confirm = (msg) => modal(`<div class="dlg"><h3>${msg}</h3><div class="dlg-btns"><button class="btn ghost" data-x>${t('cancel')}</button><button class="btn danger" data-ok>${t('ok')}</button></div></div>`, (c, close) => { c.querySelector('[data-x]').onclick = () => close(false); c.querySelector('[data-ok]').onclick = () => close(true); });
   OW.alert = (title, html) => modal(`<div class="dlg"><h3>${title}</h3><div class="dlg-body">${html}</div><div class="dlg-btns"><button class="btn primary" data-x>${t('ok')}</button></div></div>`, (c, close) => c.querySelector('[data-x]').onclick = () => close(true));
-  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.3</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Design Werkzeug · Formular Werkzeug · AI Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
+  OW.about = () => OW.alert('Office Werkstatt', `<div class="about"><img src="assets/logo.svg" width="72" height="72" alt=""><div><b>Office Werkstatt 1.5</b><p>${t('about.text')}</p><p class="muted small">Word Werkzeug · Excel Werkzeug · Slide Werkzeug · Note Werkzeug · Draw Werkzeug · PDF Werkzeug · Design Werkzeug · Formular Werkzeug · AI Werkzeug</p><p class="muted small">${t('about.engines')}: Word Werkzeug Pro · Excel Werkzeug Pro · Slide Werkzeug Pro · SilverBullet · Excalidraw · PDF Werkstatt</p></div></div>`);
 
   /* command palette (Ctrl+K) */
   OW.palette = function ({ placeholder, items }) {
