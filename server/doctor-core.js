@@ -68,7 +68,7 @@ async function runChecks(ctx) {
     add('usersFile', mode ? 'warn' : accounts && !admins ? 'warn' : 'ok', `${accounts} account(s) in users.json${accounts && !admins ? ' – no active admin' : ''}${mode}`);
   }
   if (!isLoopback(HOST)) {
-    if (!auth && env.OW_INSECURE_NO_AUTH !== '1') add('exposure', 'fail', `listens on ${HOST} without a login – the server refuses to start`);
+    if (!auth && env.OW_INSECURE_NO_AUTH !== '1') add('exposure', 'warn', `listens on ${HOST} without an account – setup mode: open /setup and create the first administrator (code in the console / SETUP-CODE.txt)`);
     else if (!auth) add('exposure', 'fail', `OW_INSECURE_NO_AUTH=1: everybody on the network can read and delete all documents`);
     else add('exposure', 'warn', `listens on ${HOST} – put it behind HTTPS (reverse proxy); the login is sent in clear text otherwise`);
   } else add('exposure', 'ok', `this computer only (${HOST})${env.OW_ALLOW_ANY_HOST === '1' ? ' – OW_ALLOW_ANY_HOST=1 turns off the DNS-rebinding guard' : ''}`);

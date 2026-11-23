@@ -216,7 +216,8 @@ async function stockApi(req, res, what, url) {
   send(res, 404, { error: 'not found' });
 }
 
-const sharing = require('./sharing.js')({ DATA, users, log, send, readBody });   // owners and sharing between users
+const sharing = require('./sharing.js')({ DATA, users, log, send, readBody });
+const setup = require('./setup.js')({ DATA, users, log, readBody, send });          // first run on a network: create the admin in the browser   // owners and sharing between users
 const aiApi = require('./ai.js')({ send, readBody, VERSION });
 const convertApi = require('./convert.js')({ send, DATA });
 const llmApi = require('./llm.js')({ send, readBody, DATA, VERSION });   // built-in AI engine (llama.cpp) + model manager   // LibreOffice (bundled or installed): .ppt/.pps/.pot, OpenDocument, .doc, .xls …   // AI Werkzeug: model proxy, web search, page reader
@@ -302,6 +303,7 @@ const server = http.createServer(async (req, res) => {
   if (!hostAllowed(req)) { res.writeHead(421, { 'Content-Type': 'text/plain' }); return res.end('misdirected request'); }
   let urlPath; try { urlPath = new URL(req.url, 'http://x').pathname; } catch { return send(res, 400, 'bad request', 'text/plain'); }
   track(req, res, urlPath);
+  if (setup.handle(req, res, urlPath)) return;                               // first-run setup pending: only /setup is served
   const parts = urlPath.split('/').filter(Boolean);
   /* public, no password: published forms (/f/<id>) and sending an answer to them */
   try {
@@ -326,15 +328,25 @@ server.on('upgrade', (_req, socket) => socket.destroy());   // no websockets are
 
 function checkExposure(host) {
   if ((USER && !PASS) || (PASS && !USER)) throw new Error('Set both OW_USER and OW_PASS (or neither).');
-  if (!isLoopback(host) && !users.enabled() && process.env.OW_INSECURE_NO_AUTH !== '1')
-    throw new Error(`Refusing to listen on ${host} without a login: anyone on the network could read, change and delete all documents.\n` +
-      'Set OW_USER and OW_PASS or add an admin (node server/owctl.js user add <name> --role admin), use HTTPS via a reverse proxy, or HOST=127.0.0.1 for this computer only.');
   LOCAL_ONLY = isLoopback(host) && process.env.OW_ALLOW_ANY_HOST !== '1';
+  /* reachable from the network without any account: start in setup mode (the first admin is created at /setup)
+   * instead of being open to everybody */
+  return !isLoopback(host) && !users.enabled() && process.env.OW_INSECURE_NO_AUTH !== '1' && !DESKTOP;
+}
+function publicURL(host, port) {
+  if (process.env.OW_PUBLIC_URL) return process.env.OW_PUBLIC_URL.replace(/\/+$/, '');
+  let h = host;
+  if (/^(0\.0\.0\.0|::|\[::\])$/.test(host)) {
+    const ips = Object.values(require('os').networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal);
+    h = ips.length ? ips[0].address : 'localhost';
+  }
+  return `http://${h.includes(':') ? '[' + h + ']' : h}:${port}`;
 }
 const start = async (port = 0, host = '127.0.0.1') => {
-  checkExposure(host);
+  const needsSetup = checkExposure(host);
   const p = await new Promise((r, j) => { server.once('error', j); const s = server.listen(port, host, () => r(s.address().port)); });
   log.info('server.start', { version: VERSION, host, port: p, auth: users.enabled(), accounts: users.list().length, desktop: DESKTOP });
+  if (needsSetup) setup.begin(publicURL(host, p));
   maint.startAuto();
   return p;
 };
@@ -346,6 +358,6 @@ const stop = () => new Promise(r => {
   server.close(() => r()); setTimeout(r, 1000);
 });
 if (require.main === module) start(PORT, HOST)
-  .then(p => console.log(`Office Werkstatt → http://${isLoopback(HOST) ? 'localhost' : HOST}:${p}  (data: ${DATA}${users.enabled() ? ', login required' : ''})`))
+  .then(p => console.log(`Office Werkstatt → ${isLoopback(HOST) ? 'http://localhost:' + p : publicURL(HOST, p)}  (data: ${DATA}${users.enabled() ? ', login required' : setup.active ? ', waiting for setup at /setup' : ''})`))
   .catch(e => { console.error('Office Werkstatt: ' + e.message); process.exit(1); });
-module.exports = { server, start, stop, log, users, maint };
+module.exports = { server, start, stop, log, users, maint, setup };
