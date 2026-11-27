@@ -1,0 +1,60 @@
+/* ow-ribbon: Office Werkstatt menu (quick access, tabs, ribbon, File backstage) */
+#app.owr-on .topbar,#app.owr-on #dtb{display:none!important}
+.owr{flex:none;background:var(--bg);border-bottom:1px solid var(--line);user-select:none;-webkit-user-select:none}
+.owr-qat{height:36px;display:flex;align-items:center;gap:8px;padding:0 10px}
+.owr-qa{display:flex;align-items:center;gap:2px;flex:1}
+.owr-qa.r{justify-content:flex-end}
+.owr-qb{width:30px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:none;color:var(--ink-2);cursor:pointer}
+.owr-qb:hover:not(:disabled){background:var(--hover);color:var(--ink)}
+.owr-qb:disabled{opacity:.38;cursor:default}
+.owr-name{flex:2;display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;color:var(--ink);font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.owr-name>span:last-child{overflow:hidden;text-overflow:ellipsis}
+.owr-name .dot{width:7px;height:7px;border-radius:50%;background:var(--saffron);flex:none}
+.owr-tabs{display:flex;align-items:flex-end;gap:2px;padding:0 10px;height:32px;overflow-x:auto;scrollbar-width:none}
+.owr-tabs::-webkit-scrollbar{display:none}
+.owr-tab{position:relative;flex:none;height:30px;padding:0 11px;border:0;background:none;color:var(--ink-2);font:inherit;font-size:13.5px;cursor:pointer;border-radius:6px 6px 0 0}
+.owr-tab:hover{color:var(--ink);background:var(--hover)}
+.owr-tab[aria-selected="true"]{color:var(--cobalt);font-weight:600}
+.owr-tab[aria-selected="true"]::after{content:"";position:absolute;left:11px;right:11px;bottom:2px;height:3px;border-radius:3px;background:var(--cobalt)}
+.owr-tab.file{color:var(--cobalt);font-weight:600}
+.owr-band{padding:0 8px 8px}
+.owr-row{display:flex;align-items:stretch;gap:0;min-height:76px;padding:5px 6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 2px rgba(27,36,51,.06);overflow-x:auto;scrollbar-width:thin}
+.owr-grp{display:flex;align-items:stretch;gap:2px;padding:0 6px;border-right:1px solid var(--line);flex:none}
+.owr-grp:last-child{border-right:0}
+.owr-big{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;min-width:56px;max-width:88px;padding:6px 6px 4px;border:0;border-radius:7px;background:none;color:var(--ink);font:inherit;font-size:12px;line-height:1.15;cursor:pointer;text-align:center}
+.owr-big svg{color:var(--cobalt);flex:none}
+.owr-big span{white-space:normal}
+.owr-col{display:flex;flex-direction:column;justify-content:flex-start;gap:1px;padding-top:1px}
+.owr-sm{display:flex;align-items:center;gap:7px;height:22px;padding:0 8px 0 6px;border:0;border-radius:5px;background:none;color:var(--ink);font:inherit;font-size:12.5px;white-space:nowrap;cursor:pointer;text-align:left}
+.owr-sm svg{color:var(--ink-2);flex:none}
+.owr-big:hover:not(:disabled),.owr-sm:hover:not(:disabled){background:var(--hover)}
+.owr-big:active:not(:disabled),.owr-sm:active:not(:disabled){background:var(--press)}
+.owr-big[aria-pressed="true"],.owr-sm[aria-pressed="true"]{background:var(--cobalt-wash);color:var(--cobalt)}
+.owr-sm[aria-pressed="true"] svg{color:var(--cobalt)}
+.owr-big:disabled,.owr-sm:disabled{opacity:.4;cursor:default}
+.owr-big:disabled svg{color:var(--ink-3)}
+.owr-zoom{height:23px;font:inherit;font-size:12px;border:1px solid var(--line-2);border-radius:5px;background:var(--field);color:var(--ink);padding:0 4px;margin:1px 0 0 6px;max-width:140px}
+.owr-pages{display:flex;flex-direction:column;justify-content:flex-start;gap:1px}
+.owr-pno{display:flex;align-items:center;gap:6px;height:22px;padding-left:8px;font-size:12.5px;color:var(--ink-2)}
+.owr-pin{width:44px;height:21px;text-align:center;font:inherit;font-size:12.5px;border:1px solid var(--line-2);border-radius:5px;background:var(--field);color:var(--ink)}
+.owr-search{align-items:center;margin-left:auto}
+.owr-q{display:flex;align-items:center;gap:6px;height:30px;padding:0 9px;border:1px solid var(--line-2);border-radius:7px;background:var(--field);color:var(--ink-3)}
+.owr-q input{border:0;outline:0;background:none;font:inherit;font-size:13px;width:170px;color:var(--ink)}
+.owr-q .cnt{font-size:11.5px;color:var(--ink-3)}
+.owr-q:focus-within{border-color:var(--cobalt);box-shadow:0 0 0 3px var(--cobalt-wash)}
+/* File backstage: a red column on the left, the start page beside it */
+.owr-bs{display:none;position:absolute;left:0;top:0;bottom:0;width:220px;z-index:5;background:var(--cobalt);color:#fff;flex-direction:column;padding:10px 0 12px;overflow-y:auto}
+#app.owr-bs-on .owr-bs{display:flex}
+#app.owr-bs-on main>.view{left:220px;right:0;width:auto}
+.owr-bi{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;padding:0 20px;border:0;background:none;color:#fff;font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.owr-bi:hover:not(:disabled){background:rgba(255,255,255,.14)}
+.owr-bi:disabled{opacity:.45;cursor:default}
+.owr-bi.back{min-height:44px;margin-bottom:6px}
+.owr-bsep{height:1px;margin:8px 20px;background:rgba(255,255,255,.28)}
+:root[data-theme="dark"] .owr-bs{background:#7A1E1E}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .owr-bs{background:#7A1E1E}}
+@media (max-width:720px){.owr-bs{width:64px}.owr-bi span{display:none}#app.owr-bs-on main>.view{left:64px}.owr-name{display:none}}
+
+/* inside Office Werkstatt: its own title bar and ribbon are used */
+#app.owr-embedded #owRibbon,#app.owr-embedded .owr-bs{display:none!important}
+#app.owr-embedded main>.view{left:0}
