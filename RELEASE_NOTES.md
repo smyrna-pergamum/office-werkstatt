@@ -1,3 +1,10 @@
+## Office Werkstatt 1.5.2
+
+### Değişiklikler
+- **PDF Werkzeug – yeni üst menü:** Note, Draw ve Design'daki gibi Office tarzı sekmeler ve şerit: Dosya · Giriş · Ekle · Düzenle · Yorum · Formlar · Koru · Dönüştür · Görünüm · Yardım. PDF Werkstatt'ın tüm işlevleri (metin düzenleme, imza, vurgu, damga, sayfa düzenleme, OCR, Word/Excel'e dönüştürme, parola, karartma …) şeritten açılır; etkin araç şeritte işaretlenir. 5 dil.
+- **PDF Werkstatt (tek başına):** aynı tarzda şerit ve kırmızı Dosya ekranı.
+- **Word Werkzeug:** doğrudan boş belgeyle açılır (önce Dosya ekranı gelmez).
+
 ## Office Werkstatt 1.5.1
 
 ### Kolay sunucu kurulumu
