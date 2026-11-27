@@ -202,7 +202,9 @@ OW.editors.pdf = async function (ctx) {
   RE[0].groups[0].items.forEach(x => { x.title = x.title.replace(/^pdfr\./, ''); });
   RE[0].groups[0].items[0].title = t('undo') + ' (Ctrl+Z)'; RE[0].groups[0].items[1].title = t('redo') + ' (Ctrl+Y)';
   // the engine reports every change: active buttons, zoom and page number follow it
-  function onState(s) { st = s || {}; pno.forEach(el => el.isConnected ? el._sync() : pno.delete(el)); try { ctx.refresh(); } catch { /* closing */ } }
+  function onState(s) { st = s || {};
+    if (OW.pdfIntent && st.doc) { const c = OW.pdfIntent; OW.pdfIntent = null; setTimeout(run(c), 400); }   // a quick tool chosen on the PDF start screen
+    pno.forEach(el => el.isConnected ? el._sync() : pno.delete(el)); try { ctx.refresh(); } catch { /* closing */ } }
 
   const R = [
     { id: 'start', label: t('tab.home'), groups: [

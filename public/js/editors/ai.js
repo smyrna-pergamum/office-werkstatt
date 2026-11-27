@@ -20,6 +20,7 @@ OW.editors.ai = async function (ctx) {
         },
       });
       setTimeout(() => panel.focus(), 50);
+      if (OW.aiPending) { const q = OW.aiPending; OW.aiPending = null; setTimeout(() => panel.ask(q), 150); }   // asked on the AI start screen
     },
     getContent: () => chat || { items: [], api: [], mode: 'chat' },
     status: () => ({ left: OW.ai.cfg().provider === 'ollama' ? 'Ollama' : t('ai.api'), right: '' }),

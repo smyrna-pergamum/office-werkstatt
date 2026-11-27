@@ -362,6 +362,64 @@ pdf.openFirst | Open a PDF first | Zuerst ein PDF öffnen | Önce bir PDF açın
 editor.search | Search for tools, help and more | Nach Tools, Hilfe und mehr suchen | Araç, yardım ve daha fazlasını ara | Buscar herramientas, ayuda y más | Rechercher outils, aide et plus
 m.more | More | Mehr | Daha fazla | Más | Plus
 m.allCommands | All commands | Alle Befehle | Tüm komutlar | Todos los comandos | Toutes les commandes
+bn.home | Home | Start | Ana Sayfa | Inicio | Accueil
+bn.menu | Menu | Menü | Menü | Menú | Menu
+th.word.tag | Turn your ideas into documents | Aus Ideen werden Dokumente | Fikirlerini belgeye dönüştür | Convierte tus ideas en documentos | Transformez vos idées en documents
+th.excel.tag | Organise your data and analyse it easily | Daten ordnen und einfach auswerten | Verilerini düzenle, kolayca analiz et | Organiza tus datos y analízalos fácilmente | Organisez vos données et analysez-les facilement
+th.slide.tag | Turn your story into presentations that stick | Aus Ihrer Geschichte werden packende Präsentationen | Hikâyeni etkileyici sunumlara dönüştür | Convierte tu historia en presentaciones que impactan | Transformez votre histoire en présentations marquantes
+th.note.tag | A place for your thoughts | Ein Ort für Ihre Gedanken | Düşüncelerine bir yer aç | Un lugar para tus ideas | Un espace pour vos idées
+th.draw.tag | Bring your ideas together on one board | Ideen auf einem Board zusammenbringen | Fikirlerini aynı panoda buluştur | Reúne tus ideas en un mismo tablero | Réunissez vos idées sur un même tableau
+th.pdf.tag | One workspace for your PDF files | Ein Arbeitsplatz für Ihre PDF-Dateien | PDF dosyaların için tek çalışma alanı | Un espacio de trabajo para tus PDF | Un espace de travail pour vos PDF
+th.design.tag | Got an idea? Turn it into a design. | Eine Idee? Machen Sie ein Design daraus. | Bir fikrin var. Tasarıma dönüştür. | ¿Tienes una idea? Conviértela en diseño. | Une idée ? Faites-en un design.
+th.form.tag | Ask your questions, bring the answers together | Fragen stellen, Antworten zusammenführen | Sorularını sor, yanıtları bir araya getir | Haz tus preguntas y reúne las respuestas | Posez vos questions, rassemblez les réponses
+th.ai.tag | What shall we prepare together? | Was bereiten wir gemeinsam vor? | Birlikte ne hazırlayalım? | ¿Qué preparamos juntos? | Que préparons-nous ensemble ?
+th.search.word | Search your documents | In Ihren Dokumenten suchen | Belgelerinde ara | Buscar en tus documentos | Rechercher dans vos documents
+th.search.excel | Search your spreadsheets | In Ihren Tabellen suchen | Tablolarında ara | Buscar en tus hojas de cálculo | Rechercher dans vos classeurs
+th.search.slide | Search your presentations | In Ihren Präsentationen suchen | Sunumlarında ara | Buscar en tus presentaciones | Rechercher dans vos présentations
+th.search.note | Search your notes | In Ihren Notizen suchen | Notlarında ara | Buscar en tus notas | Rechercher dans vos notes
+th.search.draw | Search your boards | In Ihren Boards suchen | Panolarında ara | Buscar en tus tableros | Rechercher dans vos tableaux
+th.search.pdf | Search your PDF files | In Ihren PDF-Dateien suchen | PDF dosyalarında ara | Buscar en tus PDF | Rechercher dans vos PDF
+th.search.design | Search your designs | In Ihren Designs suchen | Tasarımlarında ara | Buscar en tus diseños | Rechercher dans vos designs
+th.search.form | Search your forms | In Ihren Formularen suchen | Formlarında ara | Buscar en tus formularios | Rechercher dans vos formulaires
+th.search.ai | Search your chats | In Ihren Chats suchen | Sohbetlerinde ara | Buscar en tus chats | Rechercher dans vos discussions
+th.new.word | New document | Neues Dokument | Yeni belge | Nuevo documento | Nouveau document
+th.new.excel | New workbook | Neue Arbeitsmappe | Yeni çalışma kitabı | Nuevo libro | Nouveau classeur
+th.new.slide | New presentation | Neue Präsentation | Yeni sunum | Nueva presentación | Nouvelle présentation
+th.new.note | New note | Neue Notiz | Yeni not | Nueva nota | Nouvelle note
+th.new.draw | New board | Neues Board | Yeni pano | Nuevo tablero | Nouveau tableau
+th.new.pdf | Open a PDF file | PDF-Datei öffnen | PDF dosyası aç | Abrir un archivo PDF | Ouvrir un fichier PDF
+th.new.design | New design | Neues Design | Yeni tasarım | Nuevo diseño | Nouveau design
+th.new.form | New form | Neues Formular | Yeni form | Nuevo formulario | Nouveau formulaire
+th.new.ai | New chat | Neuer Chat | Yeni sohbet | Nuevo chat | Nouvelle discussion
+th.recent.word | Recent documents | Letzte Dokumente | Son belgeler | Documentos recientes | Documents récents
+th.recent.excel | Recent spreadsheets | Letzte Tabellen | Son tablolar | Hojas recientes | Classeurs récents
+th.recent.slide | Recent presentations | Letzte Präsentationen | Son sunumlar | Presentaciones recientes | Présentations récentes
+th.recent.note | Recent notes | Letzte Notizen | Son notlar | Notas recientes | Notes récentes
+th.recent.draw | Recent boards | Letzte Boards | Son panolar | Tableros recientes | Tableaux récents
+th.recent.pdf | Recent PDFs | Letzte PDFs | Son PDF'ler | PDF recientes | PDF récents
+th.recent.design | Recent designs | Letzte Designs | Son tasarımlar | Diseños recientes | Designs récents
+th.recent.form | My forms | Meine Formulare | Formlarım | Mis formularios | Mes formulaires
+th.recent.ai | Recent chats | Letzte Chats | Son sohbetler | Chats recientes | Discussions récentes
+th.startTpl | Start with a template | Mit einer Vorlage beginnen | Şablonla başla | Empezar con una plantilla | Commencer avec un modèle
+th.openFile | Open file | Datei öffnen | Dosya aç | Abrir archivo | Ouvrir un fichier
+th.importCsv | Import CSV | CSV importieren | CSV içe aktar | Importar CSV | Importer un CSV
+th.importPptx | Import PPTX | PPTX importieren | PPTX içe aktar | Importar PPTX | Importer un PPTX
+th.import | Import | Importieren | İçe aktar | Importar | Importer
+th.onDevice | Saved on this device | Auf diesem Gerät gespeichert | Cihazda kayıtlı | Guardado en este dispositivo | Enregistré sur cet appareil
+th.onServer | Saved on the server | Auf dem Server gespeichert | Sunucuda kayıtlı | Guardado en el servidor | Enregistré sur le serveur
+th.quickTools | Quick tools | Schnellwerkzeuge | Hızlı araçlar | Herramientas rápidas | Outils rapides
+th.pdf.edit | Edit | Bearbeiten | Düzenle | Editar | Modifier
+th.pdf.ocr | Recognise text (OCR) | Text erkennen (OCR) | Metni tanı (OCR) | Reconocer texto (OCR) | Reconnaître le texte (OCR)
+th.pdf.sign | Sign | Unterschreiben | İmzala | Firmar | Signer
+th.pdf.convert | Convert | Umwandeln | Dönüştür | Convertir | Convertir
+th.ai.ask | What would you like to do? | Was möchten Sie tun? | Ne yapmak istersin? | ¿Qué quieres hacer? | Que voulez-vous faire ?
+th.ai.noModel | No model chosen | Kein Modell gewählt | Model seçilmedi | Ningún modelo elegido | Aucun modèle choisi
+th.ai.s1 | Prepare a document | Ein Dokument vorbereiten | Bir belge hazırla | Preparar un documento | Préparer un document
+th.ai.s2 | Summarise my data | Meine Daten zusammenfassen | Verilerimi özetle | Resumir mis datos | Résumer mes données
+th.ai.s3 | Draft a presentation | Präsentation entwerfen | Sunum taslağı oluştur | Crear un borrador de presentación | Ébaucher une présentation
+th.ai.s4 | Write form questions | Formularfragen schreiben | Form soruları yaz | Escribir preguntas de formulario | Rédiger des questions de formulaire
+th.all | All | Alle | Tümü | Todo | Tout
+th.empty | Nothing here yet | Noch nichts da | Henüz bir şey yok | Aún no hay nada | Rien pour l’instant
 editor.searchTools | Search a command… | Befehl suchen… | Komut ara… | Buscar un comando… | Rechercher une commande…
 editor.comments | Comments | Kommentare | Yorumlar | Comentarios | Commentaires
 editor.catchup | Catch up | Aufholen | Güncel kal | Ponerse al día | Rattraper

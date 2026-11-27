@@ -237,7 +237,11 @@
     else if (route === 'templates') { renderTemplates(); $('#view-templates').classList.add('on'); }
     else if (route === 'settings') { renderSettings(); $('#view-settings').classList.add('on'); }
     else if (route === 'admin') { OW.renderAdmin($('#view-admin')); $('#view-admin').classList.add('on'); }
+    else if (route.startsWith('tool/') && OW.TYPES[route.slice(5)]) { renderTool(route.slice(5)); $('#view-tool').classList.add('on'); }
     else { renderList(); $('#view-list').classList.add('on'); }
+    const tool = route.startsWith('tool/') ? route.slice(5) : '';
+    document.body.style.setProperty('--bn-accent', tool ? `var(--c-${tool})` : 'var(--c-app-2, #6B5CF0)');
+    document.querySelectorAll('#bnav [data-bn]').forEach(a => a.classList.toggle('on', a.dataset.bn === (route === 'home' || tool ? 'home' : route === 'templates' ? 'templates' : ['files', 'recent', 'shared', 'favorites', 'trash'].includes(route) ? 'files' : '')));
     $('#views').scrollTop = 0;
   }
 
@@ -297,6 +301,69 @@
     $('#qsOpen').onclick = () => $('#filePicker').click();
     $('#qsTpl').onclick = () => go('templates');
     $('#dropzone').onclick = () => $('#filePicker').click();
+    $('#view-home').querySelectorAll('.tool[data-new]').forEach(b => b.onclick = () => OW.isPhone() ? go('tool/' + b.dataset.new) : OW.createFile(b.dataset.new));
+  }
+
+  /* ---------- the start screen of one Werkzeug (phones: from the dashboard; any size: #/tool/<type>) ----------
+     search · primary action · quick actions · templates · recent documents of this type */
+  const TOOL_ACTIONS = {
+    word: ['open', 'tpl'], excel: ['open', 'csv'], slide: ['pptx', 'open'], note: ['open', 'tpl'], draw: ['open', 'import'],
+    design: ['tpl', 'open'], form: ['tpl', 'open'],
+  };
+  const ACCEPT = { word: '.docx,.doc,.odt,.rtf,.txt,.md,.html,.htm,.dotx', excel: '.xlsx,.xls,.ods,.csv,.tsv,.xlsm', slide: '.pptx,.ppt,.odp,.ppsx,.potx', note: '.owdoc,.json,.md,.txt,.html', draw: '.excalidraw,.json,.odg,image/*', pdf: '.pdf,image/*', design: '.json,image/*', form: '.json' };
+  function pickFor(ty, accept) {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = accept || ACCEPT[ty] || '';
+    inp.onchange = () => { if (inp.files.length) OW.importFiles(inp.files); }; inp.click();
+  }
+  function renderTool(ty) {
+    const v = $('#view-tool'), mine = () => files.filter(f => !f.trashed && f.type === ty).sort((a, b) => b.modified - a.modified);
+    const tpls = OW.templates().filter(tp => tp.type === ty);
+    const act = {
+      open: { icon: 'folder', label: t('th.openFile'), fn: () => pickFor(ty) },
+      tpl: { icon: 'grid', label: t('nav.templates'), fn: () => { tplType = ty; go('templates'); } },
+      csv: { icon: 'table', label: t('th.importCsv'), fn: () => pickFor(ty, '.csv,.tsv') },
+      pptx: { icon: 'upload', label: t('th.importPptx'), fn: () => pickFor(ty, '.pptx,.ppt,.ppsx,.potx,.odp') },
+      import: { icon: 'download', label: t('th.import'), fn: () => pickFor(ty) },
+    };
+    const PDF_TOOLS = [['editText', 'pen', 'th.pdf.edit'], ['ocr', 'ocr', 'th.pdf.ocr'], ['sign', 'signature', 'th.pdf.sign'], ['export', 'rotate', 'th.pdf.convert']];
+    const AI_S = [['filePlus', 'th.ai.s1'], ['sigma', 'th.ai.s2'], ['present', 'th.ai.s3'], ['checklist', 'th.ai.s4']];
+    const c = ty === 'ai' ? OW.ai.cfg() : null, aiModel = c ? (c.provider === 'builtin' ? c.builtinModel : c.provider === 'ollama' ? c.ollamaModel : c.apiModel) : '';
+    v.style.setProperty('--tool', `var(--c-${ty})`);
+    v.innerHTML = `
+      <header class="th-head">${OW.appGlyph(ty, 52)}<div><h1>${t('tool.' + ty + '.name')}</h1><p>${t('th.' + ty + '.tag')}</p></div></header>
+      ${ty === 'ai'
+        ? `<button class="th-model" id="thModel">${I('layers', 18)}<span>${aiModel ? OW.escape(aiModel.replace(/^.*\//, '').replace(/\.gguf$/i, '')) : t('th.ai.noModel')}</span>${I('chevronDown', 16)}</button>
+           <div class="th-cards">${AI_S.map(([ic, k]) => `<button class="th-card" data-ask="${k}"><span class="th-ic">${I(ic, 22)}</span><b>${t(k)}</b></button>`).join('')}</div>`
+        : `<label class="th-search">${I('search', 18)}<input type="search" id="thQ" placeholder="${t('th.search.' + ty)}" autocomplete="off"></label>
+           <button class="th-primary" id="thNew">${I(ty === 'pdf' ? 'upload' : 'plus', 20)}<span>${t('th.new.' + ty)}</span></button>
+           ${ty === 'pdf'
+             ? `<h2 class="th-h">${t('th.quickTools')}</h2><div class="th-grid">${PDF_TOOLS.map(([cmd, ic, k]) => `<button class="th-sec" data-pdf="${cmd}">${I(ic, 18)}<span>${t(k)}</span></button>`).join('')}</div>`
+             : `<div class="th-grid">${(TOOL_ACTIONS[ty] || ['open', 'tpl']).map(k => `<button class="th-sec" data-act="${k}">${I(act[k].icon, 18)}<span>${act[k].label}</span></button>`).join('')}</div>`}
+           ${tpls.length ? `<h2 class="th-h">${t('th.startTpl')}</h2><div class="th-tpls">${tpls.slice(0, 8).map((tp, i) => `<button class="th-tpl tpl-${tp.type}" data-tpl="${i}">${tplThumb(tp)}<span>${tp.name}</span></button>`).join('')}</div>` : ''}`}
+      <div class="th-rh"><h2 class="th-h">${t('th.recent.' + ty)}</h2><span class="th-where">${I(OW.store.mode === 'server' ? 'server' : 'phone', 14)}${t(OW.store.mode === 'server' ? 'th.onServer' : 'th.onDevice')}</span></div>
+      <div class="th-list" id="thList"></div>
+      ${ty === 'ai' ? `<form class="th-ask" id="thAsk"><textarea rows="2" placeholder="${t('th.ai.ask')}"></textarea><button class="th-send" title="${t('ai.send')}">${I('arrowUp', 18)}</button></form>` : ''}`;
+    const list = q => {
+      const all = mine().filter(f => !q || f.name.toLowerCase().includes(q.toLowerCase())), shown = all.slice(0, q ? 20 : 5);
+      $('#thList').innerHTML = shown.length ? shown.map(f => `<div class="th-row" data-open="${f.id}"><span class="th-thumb">${OW.appGlyph(f.type, 30)}</span><div class="rn"><b>${OW.escape(f.name)}<small class="ext">.${OW.TYPES[f.type].ext}</small></b><small>${when(f.modified)}${f.size ? ' · ' + fmtSize(f.size) : ''}</small></div><button class="icon-btn more" data-menu="${f.id}" aria-label="${t('more')}">${I('more')}</button></div>`).join('')
+        + (!q && all.length > shown.length ? `<a class="th-all" href="#/files">${t('th.all')} (${all.length}) ${I('arrowRight', 14)}</a>` : '')
+        : `<div class="th-empty">${OW.appGlyph(ty, 28)}<span>${q ? t('search.none') : t('th.empty')}</span></div>`;
+      bindCommon($('#thList'));
+    };
+    list('');
+    const q = $('#thQ'); if (q) q.oninput = () => list(q.value.trim());
+    const nb = $('#thNew'); if (nb) nb.onclick = () => ty === 'pdf' ? pickFor('pdf') : OW.createFile(ty);
+    v.querySelectorAll('[data-act]').forEach(b => b.onclick = () => act[b.dataset.act].fn());
+    v.querySelectorAll('[data-pdf]').forEach(b => b.onclick = () => { OW.pdfIntent = b.dataset.pdf; pickFor('pdf', '.pdf'); });
+    v.querySelectorAll('[data-tpl]').forEach(b => b.onclick = () => { const tp = tpls[+b.dataset.tpl]; OW.createFile(tp.type, { name: tp.id === 'blank' ? undefined : tp.name, content: tp.content }); });
+    if (ty === 'ai') {
+      const ask = text => { OW.aiPending = text; OW.createFile('ai'); };
+      $('#thModel').onclick = () => OW.aiSettings();
+      v.querySelectorAll('[data-ask]').forEach(b => b.onclick = () => { const ta = $('#thAsk textarea'); ta.value = t(b.dataset.ask) + ': '; ta.focus(); });
+      const ta = $('#thAsk textarea');
+      ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#thAsk').requestSubmit(); } };
+      $('#thAsk').onsubmit = e => { e.preventDefault(); const x = ta.value.trim(); if (x) ask(x); };
+    }
   }
   function rowHTML(f) {
     const loc = [f.sharedWithMe ? t('share.from', { n: OW.escape(f.owner) }) : f.shared || (f.shares && f.shares.length) ? t('nav.shared') : t('nav.files')].concat(folderPath(parentOf(f)).map(x => OW.escape(x.name))).join(' / ') + ' · ' + t('type.' + f.type);
@@ -519,6 +586,7 @@
     $('#btnTheme').onclick = OW.toggleTheme;
     $('#btnAI').onclick = () => OW.aiDock($('#app'), () => null);   // dashboard: chat, research and new documents
     $('#btnMenu').onclick = () => document.body.classList.toggle('nav-open');
+    $('#bnMenu').onclick = () => document.body.classList.toggle('nav-open');
     $('#scrim').onclick = closeSidebar;
     $('#btnBell').onclick = e => { e.currentTarget.classList.remove('has-dot'); OW.popover(e.currentTarget, [{ header: t('notifications') }, { icon: 'sparkle', label: t('notif.welcome') }, { icon: navigator.onLine ? 'cloudOk' : 'wifiOff', label: t('notif.offline') }, { icon: 'upload', label: t('notif.drop') }], { alignRight: true }); };
     $('#btnUser').onclick = e => { const me = OW.me && OW.me.auth ? OW.me : null; OW.popover(e.currentTarget, [{ header: OW.escape(S.userName || (me && me.name) || t('user.guest')) + (me ? `<br><small class="muted">${OW.escape(me.name)} · ${t('me.role', { r: t('adm.role.' + me.role) })}</small>` : '') },

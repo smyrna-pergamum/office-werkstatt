@@ -50,6 +50,7 @@
   <div class="main">
     <header class="topbar">
       <button class="icon-btn only-mobile" id="btnMenu" aria-label="Menu"><span data-icon="menu"></span></button>
+      <a class="tb-brand" href="#/home" aria-label="Office Werkstatt"><img src="assets/logo.svg" alt="" width="30" height="30"><span>Office <b>Werkstatt</b></span></a>
       <button class="searchbox" id="btnSearch">
         <span data-icon="search"></span><span class="ph" data-i18n="search.placeholder"></span><kbd>Ctrl + K</kbd>
       </button>
@@ -65,9 +66,17 @@
       <section class="view" id="view-home"></section>
       <section class="view" id="view-list"></section>
       <section class="view" id="view-templates"></section>
+      <section class="view view-tool" id="view-tool"></section>
       <section class="view" id="view-settings"></section>
       <section class="view" id="view-admin"></section>
     </main>
+    <!-- phones: bottom navigation -->
+    <nav class="bnav" id="bnav">
+      <a href="#/home" data-bn="home"><span data-icon="home"></span><span data-i18n="bn.home"></span></a>
+      <a href="#/files" data-bn="files"><span data-icon="folder"></span><span data-i18n="nav.files"></span></a>
+      <a href="#/templates" data-bn="templates"><span data-icon="grid"></span><span data-i18n="nav.templates"></span></a>
+      <button type="button" data-bn="menu" id="bnMenu"><span data-icon="menu"></span><span data-i18n="bn.menu"></span></button>
+    </nav>
   </div>
 </div>
 
