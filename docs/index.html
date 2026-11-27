@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office Werkstatt – the office suite that works offline</title>
+<meta name="description" content="Office Werkstatt is an integrated, open-source office suite: Word, Excel, Slide, Note, Draw, PDF, Design, Form and AI Werkzeug in one window – fully offline, in the browser, on the desktop and on your own server.">
+<meta property="og:title" content="Office Werkstatt">
+<meta property="og:description" content="Nine Werkzeuge. One window. No internet needed.">
+<meta property="og:image" content="dashboard.png">
+<link rel="icon" href="site/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="site/icon.png">
+<link rel="stylesheet" href="site/style.css">
+</head>
+<body class="is-loading">
+
+<!-- Intro: the hexagon draws itself -->
+<div class="loader" aria-hidden="true">
+  <svg viewBox="0 0 128 128"><polygon class="loader-hex" points="64,12 109,38 109,90 64,116 19,90 19,38"/><path class="loader-w" d="M47 54 L55 77 L64 61 L73 77 L81 54"/></svg>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="#intro" data-goto="0"><img src="site/logo.svg" alt=""><span>Office Werkstatt</span></a>
+  <nav class="topnav">
+    <div class="lang" role="group" aria-label="Language">
+      <button data-lang="en">EN</button><button data-lang="de">DE</button><button data-lang="tr">TR</button>
+    </div>
+    <a class="link" href="https://github.com/smyrna-pergamum/office-werkstatt">GitHub</a>
+    <a class="pill" href="https://github.com/smyrna-pergamum/office-werkstatt/releases/latest" data-i18n="nav.download">Download</a>
+  </nav>
+</header>
+
+<nav class="dots" aria-label="Sections"></nav>
+
+<main class="deck">
+
+  <!-- 1 · Hero -->
+  <section class="slide s-hero" id="intro" data-theme="light">
+    <div class="hero-bg" style="background-image:url(dashboard.png)"></div>
+    <figure class="hero-card side left"><img src="note-werkzeug.png" alt="Note Werkzeug"></figure>
+    <figure class="hero-card main"><img src="dashboard-dark.png" alt="Office Werkstatt dashboard"></figure>
+    <figure class="hero-card side right"><img src="excel-werkzeug-pro.png" alt="Excel Werkzeug Pro"></figure>
+    <div class="hero-title">
+      <h1 data-i18n="hero.title">Introducing Office Werkstatt</h1>
+      <p class="serif" data-i18n="hero.sub">An office suite that works fully offline</p>
+    </div>
+    <div class="scroll-hint" aria-hidden="true"><span></span></div>
+  </section>
+
+  <!-- 2 · Belief -->
+  <section class="slide s-belief" data-theme="dark">
+    <div class="shapes dark-shapes"></div>
+    <div class="panel">
+      <p class="serif" data-i18n="belief.a">Because we believe</p>
+      <h2 class="huge" data-i18n="belief.b">Great Work</h2>
+      <p class="serif" data-i18n="belief.c">starts in</p>
+      <h2 class="huge" data-i18n="belief.d">Your Own Workshop</h2>
+      <p class="serif muted how" data-i18n="belief.e">Here’s how it works:</p>
+    </div>
+  </section>
+
+  <!-- 3 · All Werkzeuge -->
+  <section class="slide s-tools" data-theme="light">
+    <div class="mint-floor"></div>
+    <div class="pages">
+      <div class="page p1"><i class="pen"></i><small>Werkzeug: Word</small><h4>Quarterly Report</h4><div class="lines"></div></div>
+      <div class="page p2"><i class="pen"></i><small>Werkzeug: Excel</small><h4>Budget 2027</h4><div class="grid"></div></div>
+      <div class="page p3 big"><i class="pen"></i><small>Werkzeug: Slide</small><h4>Kick-off Deck</h4><div class="lines"></div><div class="lines short"></div></div>
+      <div class="page p4"><i class="pen"></i><small>Werkzeug: Note</small><h4>Meeting Notes</h4><div class="lines"></div></div>
+      <div class="page p5 rot"><i class="pen"></i><small>Werkzeug: PDF</small><h4>Signed Contract</h4><div class="bars"></div></div>
+      <div class="page p6"><i class="pen"></i><small>Werkzeug: Form</small><h4>Registration</h4><div class="fields"></div></div>
+    </div>
+    <div class="center-title">
+      <h2 class="big-title" data-i18n="tools.title">Nine Werkzeuge</h2>
+      <p class="serif" data-i18n="tools.sub">Word · Excel · Slide · Note · Draw · PDF · Design · Form · AI — in one window</p>
+    </div>
+  </section>
+
+  <!-- 4 · Write & Calculate -->
+  <section class="slide s-write" data-theme="light">
+    <div class="shapes yellow-shapes"></div>
+    <div class="stack-title">
+      <h2 class="big-title" data-i18n="write.title">Write &amp; Calculate</h2>
+      <p class="serif" data-i18n="write.sub">Full engines for .docx, .xlsx and .pptx — and OpenDocument, built in</p>
+    </div>
+    <div class="sheet rise">
+      <i class="pen"></i>
+      <div class="sheet-head"><small>Word Werkzeug Pro</small><h4 data-i18n="write.doc">Quarterly Report</h4></div>
+      <img src="word-werkzeug.png" alt="Word Werkzeug Pro">
+      <div class="torn">
+        <img src="excel-werkzeug-pro.png" alt="Excel Werkzeug Pro">
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · Design & Present -->
+  <section class="slide s-design" data-theme="dark">
+    <div class="stack-title">
+      <h2 class="big-title" data-i18n="design.title">Design &amp; Present</h2>
+      <p class="serif" data-i18n="design.sub">Posters, social posts, flyers and slides — 17 templates, brand kit, video export</p>
+    </div>
+    <div class="sheet rise">
+      <i class="pen"></i>
+      <div class="sheet-head"><small>Design Werkzeug</small><h4 data-i18n="design.doc">Spring Campaign</h4></div>
+      <img src="design-werkzeug.png" alt="Design Werkzeug">
+      <div class="torn">
+        <img src="slide-werkzeug.png" alt="Slide Werkzeug">
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · AI agent -->
+  <section class="slide s-ai" data-theme="dark">
+    <div class="ai-bg" style="background-image:url(draw-werkzeug.png)"></div>
+    <div class="stack-title">
+      <h2 class="big-title" data-i18n="ai.title">Ask the Agent</h2>
+      <p class="serif" data-i18n="ai.sub">A built-in AI in every Werkzeug — local engine, Ollama or any OpenAI-standard API</p>
+    </div>
+    <div class="ai-cards">
+      <figure><img src="note-werkzeug.png" alt="Note Werkzeug"></figure>
+      <figure><img src="pdf-werkzeug.png" alt="PDF Werkzeug"></figure>
+      <figure><img src="form-werkzeug.png" alt="Form Werkzeug"></figure>
+    </div>
+    <div class="bubble">
+      <div class="avatar"><img src="site/logo.svg" alt=""></div>
+      <div>
+        <b>AI Werkzeug</b>
+        <p class="typed" data-i18n="ai.bubble">I summarised your meeting notes and added a task list to the report. Apply the changes?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · Offline -->
+  <section class="slide s-offline" data-theme="light">
+    <div class="paper-stack">
+      <div class="page back b1"></div><div class="page back b2"></div>
+      <div class="page front"><i class="pen"></i><small>Office Werkstatt</small><h4 data-i18n="off.doc">Your Documents</h4><div class="lines"></div>
+        <div class="stamp"><img src="site/logo.svg" alt=""><span data-i18n="off.stamp">stays on your machine</span></div>
+      </div>
+    </div>
+    <div class="center-title over">
+      <h2 class="big-title" data-i18n="off.title">No internet?</h2>
+      <p class="serif" data-i18n="off.sub">No problem. No CDN, no cloud — your files never leave your computer.</p>
+    </div>
+  </section>
+
+  <!-- 8 · Platforms -->
+  <section class="slide s-platforms" data-theme="light">
+    <div class="shapes yellow-shapes"></div>
+    <div class="stack-title">
+      <h2 class="big-title" data-i18n="plat.title">Runs Everywhere</h2>
+      <p class="serif" data-i18n="plat.sub">One suite, four ways to run it</p>
+    </div>
+    <div class="trio">
+      <div class="card rise"><span class="ico">⌂</span><h3 data-i18n="plat.web">Browser</h3><p data-i18n="plat.webt">Open it in any modern browser — installable as an app, also on tablet and phone.</p></div>
+      <div class="card rise"><span class="ico">▣</span><h3 data-i18n="plat.desk">Desktop</h3><p data-i18n="plat.deskt">Offline installer for Windows, plus Linux and macOS — with the built-in AI engine.</p></div>
+      <div class="card rise"><span class="ico">⛁</span><h3 data-i18n="plat.srv">Server</h3><p data-i18n="plat.srvt">Docker image, first-run setup in the browser, users &amp; roles, admin panel and logs.</p></div>
+      <div class="card rise"><span class="soon" data-i18n="plat.soon">Coming soon</span><span class="ico">▯</span><h3>Android</h3><p data-i18n="plat.andt">A native mobile app for phones and tablets — your Werkzeuge in your pocket.</p></div>
+    </div>
+  </section>
+
+  <!-- 9 · Get it -->
+  <section class="slide s-get" data-theme="light" id="download">
+    <div class="get-top">
+      <div class="cover">
+        <div class="shapes cover-shapes"></div>
+        <small class="cover-org">smyrna-pergamum</small>
+        <div class="cover-box">
+          <small data-i18n="get.cover">Open-source office suite</small>
+          <strong>Office Werkstatt</strong>
+          <small class="ver">v1.5.2</small>
+        </div>
+      </div>
+      <div class="perks">
+        <h3 data-i18n="get.title">Build Your Own Office Now</h3>
+        <ul>
+          <li><span class="ring">♥</span><span data-i18n="get.p1">Free and <b>open source</b> (MIT)</span></li>
+          <li><span class="ring">A</span><span data-i18n="get.p2"><b>5 languages</b>: EN · DE · TR · ES · FR</span></li>
+          <li><span class="ring">▯</span><span data-i18n="get.p3">Web · Windows · Linux · macOS · Server · <b>Android</b> (coming soon)</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="get-band">
+      <div class="band-inner">
+        <h3 data-i18n="get.band">Download the latest release</h3>
+        <p data-i18n="get.bandsub">Desktop and server downloads on one release page.</p>
+        <div class="cta">
+          <a class="pill big" href="https://github.com/smyrna-pergamum/office-werkstatt/releases/latest" data-i18n="get.win">Windows installer</a>
+          <a class="ghost" href="https://github.com/smyrna-pergamum/office-werkstatt#quick-start" data-i18n="get.docker">Server / Docker</a>
+        </div>
+      </div>
+      <footer class="foot">
+        <a href="https://github.com/smyrna-pergamum/office-werkstatt">GitHub</a>
+        <a href="https://github.com/smyrna-pergamum/office-werkstatt/releases" data-i18n="foot.rel">Releases</a>
+        <a href="https://github.com/smyrna-pergamum/office-werkstatt#readme" data-i18n="foot.docs">Documentation</a>
+        <a href="https://github.com/smyrna-pergamum/office-werkstatt/blob/main/LICENSE" data-i18n="foot.lic">License</a>
+        <a href="https://www.januam.org">Januam</a>
+        <span class="foot-brand"><img src="site/logo.svg" alt="">Office Werkstatt</span>
+      </footer>
+    </div>
+  </section>
+
+</main>
+
+<script src="site/app.js"></script>
+</body>
+</html>
