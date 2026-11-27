@@ -330,3 +330,6 @@ body[data-theme="dark"] .dots{color:#fff}
   .phones .f1,.phones .f5,.phones .f4{display:none}
   .phones .f3{width:44vw}
 }
+.pill.apk{margin-top:22px;background:#fff;color:var(--excel);box-shadow:0 10px 24px -10px rgba(0,0,0,.4)}
+.pill.android{background:linear-gradient(135deg,#1e9e5a,#14a3a3);box-shadow:0 8px 20px -8px rgba(20,163,163,.7)}
+.s-mobile .stack-title{pointer-events:auto}
