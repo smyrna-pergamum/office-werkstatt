@@ -32,6 +32,8 @@
       "plat.title": "Läuft überall",
       "plat.sub": "Eine Suite, vier Wege sie zu nutzen",
       "plat.soon": "Bald verfügbar",
+      "mob.title": "Immer dabei",
+      "mob.sub": "Office Werkstatt für Android — jedes Werkzeug, gemacht fürs Smartphone",
       "plat.andt": "Eine native App für Smartphone und Tablet — deine Werkzeuge immer dabei.",
       "plat.web": "Browser",
       "plat.webt": "In jedem modernen Browser — als App installierbar, auch auf Tablet und Handy.",
@@ -79,6 +81,8 @@
       "plat.title": "Her yerde çalışır",
       "plat.sub": "Tek paket, dört kullanım şekli",
       "plat.soon": "Yakında",
+      "mob.title": "Cebinizde",
+      "mob.sub": "Android için Office Werkstatt — her Werkzeug telefona göre tasarlandı",
       "plat.andt": "Telefon ve tablet için yerel mobil uygulama — Werkzeug’larınız cebinizde.",
       "plat.web": "Tarayıcı",
       "plat.webt": "Her modern tarayıcıda açılır — uygulama olarak kurulabilir, tablet ve telefonda da.",
@@ -133,12 +137,13 @@
     ["sq", 12, 70, 70, -18], ["tri", 22, 56, 100, -30], ["ci", 85, 78, 60, 0], ["tri", 3, 88, 80, 20],
     ["arc", 82, 22, 70, 200], ["ln", 46, 84, 50, 0]
   ];
+  var TOOLC = ["#2F6BEA", "#1E9E5A", "#EA6A2A", "#7C4DDB", "#E3A21A", "#D93A32", "#E0458F", "#14A3A3", "#6B5CF0"];
   document.querySelectorAll(".shapes").forEach(function (box, bi) {
-    var html = "";
+    var html = "", colour = box.classList.contains("color-shapes");
     LAYOUT.forEach(function (s, i) {
       var size = box.classList.contains("cover-shapes") ? s[3] * 0.55 : s[3];
       html += SHAPES[s[0]].replace("<svg", '<svg style="left:' + s[1] + "%;top:" + s[2] + "%;width:" + size + "px;height:" + size +
-        "px;rotate:" + s[4] + "deg;animation-delay:-" + ((i * 1.7 + bi) % 9) + "s;--dx:" + ((i % 3) - 1) * 18 + "px;--dy:" + (i % 2 ? 20 : -24) + 'px"');
+        "px;" + (colour ? "stroke:" + TOOLC[(i + bi * 2) % TOOLC.length] + ";" : "") + "rotate:" + s[4] + "deg;animation-delay:-" + ((i * 1.7 + bi) % 9) + "s;--dx:" + ((i % 3) - 1) * 18 + "px;--dy:" + (i % 2 ? 20 : -24) + 'px"');
     });
     box.innerHTML = html;
   });
