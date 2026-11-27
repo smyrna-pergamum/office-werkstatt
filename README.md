@@ -5,12 +5,14 @@
 <h1 align="center">Office Werkstatt</h1>
 
 <p align="center">
-  <b>An integrated office suite that works fully offline</b> – in the browser, on the desktop and on your own server.<br>
+  <b>An integrated office suite that works fully offline</b> – in the browser, on the desktop, on Android and on your own server.<br>
   Word · Excel · Slide · Note · Draw · PDF · Design · Form · <b>AI</b> Werkzeug — in one window, with a built-in AI agent.
 </p>
 
 <p align="center">
-  <a href="https://github.com/smyrna-pergamum/office-werkstatt/releases/latest"><b>⬇ Windows installer (offline)</b></a>
+  <a href="https://smyrna-pergamum.github.io/office-werkstatt/"><b>Website</b></a>
+  &nbsp;·&nbsp; <a href="https://github.com/smyrna-pergamum/office-werkstatt/releases/download/v1.6.0/Office-Werkstatt-1.6.0.apk"><b>⬇ Android APK (1.6.0)</b></a>
+  &nbsp;·&nbsp; <a href="https://github.com/smyrna-pergamum/office-werkstatt/releases/latest"><b>⬇ Windows installer (offline)</b></a>
   &nbsp;·&nbsp; <a href="#quick-start">Quick start</a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#ai-agent-ai-werkzeug">AI agent</a>
@@ -26,6 +28,26 @@
 </p>
 
 ![Office Werkstatt dashboard](docs/dashboard.png)
+
+## Website
+
+Visit **[office-werkstatt on GitHub Pages](https://smyrna-pergamum.github.io/office-werkstatt/)** for a product overview, screenshots and downloads in **English, German and Turkish**.
+The website introduces the suite; to use the editors, install the desktop or Android app, or run the browser version as described in [Quick start](#quick-start).
+
+## Android app
+
+**Available since v1.6.0 for Android 7+ (64-bit).** All nine Werkzeuge are available with a phone-friendly start screen, bottom navigation and touch controls. Documents stay on the phone, and the editors work offline.
+
+- **[Download Office-Werkstatt-1.6.0.apk](https://github.com/smyrna-pergamum/office-werkstatt/releases/download/v1.6.0/Office-Werkstatt-1.6.0.apk)** · [Release notes and newer versions](https://github.com/smyrna-pergamum/office-werkstatt/releases)
+- **On-device AI:** download a model once, then use it offline with the built-in llama.cpp engine. Ollama and OpenAI-compatible APIs are also supported.
+- **Open, save and share:** import documents from other apps with *Open with → Office Werkstatt*; exports go to *Documents › Office Werkstatt* and the Android share sheet.
+- See [Android installation](#3--android) and [Android build instructions](mobile/README.md).
+
+<p align="center">
+  <img src="docs/mobile/word.jpg" width="200" alt="Word Werkzeug on Android">
+  &nbsp; <img src="docs/mobile/excel.jpg" width="200" alt="Excel Werkzeug on Android">
+  &nbsp; <img src="docs/mobile/ai.jpg" width="200" alt="AI Werkzeug on Android">
+</p>
 
 ## Features
 
@@ -201,7 +223,9 @@ node server/owctl.js status --url https://office.example.org     # a running ser
 | `OW_PUBLIC_URL` | – | the address shown in the console (e.g. `https://office.example.org`) |
 
 ### 3 · Android
-Download **Office-Werkstatt-&lt;version&gt;.apk** from the release page and open it on the phone (allow *install unknown apps* once).
+Download **[Office-Werkstatt-1.6.0.apk](https://github.com/smyrna-pergamum/office-werkstatt/releases/download/v1.6.0/Office-Werkstatt-1.6.0.apk)** for **Android 7+ (64-bit)** and open it on the phone (allow *install unknown apps* for the app opening the APK when prompted). For newer versions, see [Releases](https://github.com/smyrna-pergamum/office-werkstatt/releases).
+The v1.6.0 APK is signed with the project's public development key.
+
 The same Werkzeuge, documents stay on the phone; on small screens the commands sit at the bottom
 (tab picker, one row of commands, a sheet with all commands). The AI runs **on the phone** (llama.cpp, models from
 Hugging Face – Qwen 2.5 0.5B/1.5B, Llama 3.2 1B/3B), with Ollama in your network or with any OpenAI-compatible API.
@@ -262,18 +286,24 @@ scripts/             engine install / build scripts
 ---
 
 ## Türkçe
-**Office Werkstatt**, tamamen internetsiz çalışan bütünleşik bir ofis paketidir – tarayıcıda, masaüstünde (Windows/macOS/Linux) ve kendi sunucunuzda:
+**Office Werkstatt**, tamamen internetsiz çalışan bütünleşik bir ofis paketidir – tarayıcıda, masaüstünde (Windows/macOS/Linux), Android'de ve kendi sunucunuzda:
 Office tarzı şeritli Word, Excel, Slide, Note, Draw, PDF, Design, Formular ve **YZ** Werkzeug; 5 arayüz dili, açık/koyu tema.
 Yerleşik **YZ ajanı** (yerel llama.cpp motoru, Ollama veya OpenAI uyumlu her API) belgeyi, kitaplığı ve interneti okur, her değişikliği bir plan olarak
 hazırlar, onayınıza sunar ve tek işlem olarak uygular – hata olursa geri döner, tek adımda geri alınır.
 Çevrimdışı Windows kurulum dosyası **Releases** sayfasında. Sunucu tek komutla: `docker run -d -p 8080:8080 -v office-werkstatt:/data ghcr.io/smyrna-pergamum/office-werkstatt` – ardından tarayıcıda açılan kurulum sayfasında ilk yöneticiyi oluşturun (kurulum kodu: `docker logs`).
 
+**[Web sitesi](https://smyrna-pergamum.github.io/office-werkstatt/)**: Türkçe, İngilizce ve Almanca ürün tanıtımı, ekran görüntüleri ve indirme bağlantıları.
+**[Android APK 1.6.0](https://github.com/smyrna-pergamum/office-werkstatt/releases/download/v1.6.0/Office-Werkstatt-1.6.0.apk)**: Android 7+ (64-bit); dokunmatik arayüz, dokuz araç, cihazda çalışan YZ ve dosya paylaşımı. Belgeler telefonda kalır; YZ modeli bir kez indirildikten sonra çevrimdışı çalışır. Kurulum için APK'yı telefonda açın ve istendiğinde ilgili uygulamaya kurulum izni verin.
+
 ## Deutsch
-**Office Werkstatt** ist eine integrierte Office-Suite, die komplett ohne Internet läuft – im Browser, auf dem Desktop und auf dem eigenen Server:
+**Office Werkstatt** ist eine integrierte Office-Suite, die komplett ohne Internet läuft – im Browser, auf dem Desktop, auf Android und auf dem eigenen Server:
 Word-, Excel-, Slide-, Note-, Draw-, PDF-, Design-, Formular- und **KI**-Werkzeug mit Menüband im Office-Stil, 5 Sprachen, hellem/dunklem Design und responsivem Layout.
 Der eingebaute **KI-Agent** (lokale llama.cpp-Engine, Ollama oder jede OpenAI-kompatible API) liest Dokument, Bibliothek und Internet,
 plant jede Änderung, zeigt den Plan zur Freigabe und wendet ihn als eine Transaktion an – mit Rücknahme bei Fehlern und Rückgängig in einem Schritt.
 Den Offline-Installer für Windows gibt es unter **Releases**. Server mit einem Befehl: `docker run -d -p 8080:8080 -v office-werkstatt:/data ghcr.io/smyrna-pergamum/office-werkstatt` – danach im Browser auf der Einrichtungsseite den ersten Administrator anlegen (Einrichtungscode: `docker logs`).
+
+**[Website](https://smyrna-pergamum.github.io/office-werkstatt/)**: Produktübersicht, Screenshots und Downloads auf Deutsch, Englisch und Türkisch.
+**[Android-APK 1.6.0](https://github.com/smyrna-pergamum/office-werkstatt/releases/download/v1.6.0/Office-Werkstatt-1.6.0.apk)**: für Android 7+ (64-Bit), mit Touch-Bedienung, neun Werkzeugen, lokaler KI und Dateifreigabe. Dokumente bleiben auf dem Telefon; KI-Modelle funktionieren nach dem einmaligen Download offline. Zur Installation die APK auf dem Telefon öffnen und bei Aufforderung der verwendeten App die Installation erlauben.
 
 ## License
 Office Werkstatt: [MIT](LICENSE) © Süleyman Akbulut.
