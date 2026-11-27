@@ -1,0 +1,27 @@
+# Office Werkstatt – puts the Office Werkstatt ribbon (engines-src/pdf) into the PDF Werkstatt engine
+# whenever the ribbon sources change (or by hand), and commits the updated engine.
+name: PDF engine ribbon
+on:
+  push:
+    branches: [main]
+    paths: ['engines-src/pdf/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node engines-src/pdf/apply-ribbon.mjs
+      - name: Commit the engine
+        run: |
+          if git diff --quiet -- public/engines/pdf/index.html; then echo "engine up to date"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/engines/pdf/index.html
+          git commit -m "PDF engine: apply the Office Werkstatt ribbon"
+          git push
