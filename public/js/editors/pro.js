@@ -446,6 +446,15 @@ OW.proEditors = OW.proEditors || {};
         try { await saveAsFlow(); } finally { bsBusy = false; }
         return true;
       }
+      /* Word starts on its File screen: Office Werkstatt opens straight into the (blank) document */
+      async function startInDocument() {
+        if (type !== 'word') return;
+        for (let i = 0; i < 6; i++) {
+          try { const st = parse(await api().uiInspect()); if (!(st && st.ui && st.ui.backstage === true)) return; await exec('ui.backstage', { on: false }); }
+          catch { return; }
+          await new Promise(r => setTimeout(r, 250));
+        }
+      }
       function watchScreens() {
         if (HAS_SWITCH) W.addEventListener('resize', () => recover());
         clearInterval(watch);
@@ -623,7 +632,7 @@ OW.proEditors = OW.proEditors || {};
             if (!W) return;
             hookEngine();
             ready = await waitLoaded();
-            if (ready) { syncTheme(); watchScreens(); setupRibbon(); try { await handOver(); } catch (e) { console.error(e); OW.toast(t('pro.openFailed'), 'warn'); } }
+            if (ready) { syncTheme(); watchScreens(); setupRibbon(); try { await handOver(); } catch (e) { console.error(e); OW.toast(t('pro.openFailed'), 'warn'); } startInDocument(); }
             const l = body.querySelector('.pro-loading'); if (l) l.remove();
             try { frame.focus(); } catch { /* ignore */ }
           }, { once: true });
