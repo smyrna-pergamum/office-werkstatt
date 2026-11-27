@@ -1,0 +1,38 @@
+# Applies change bundles that were uploaded through the GitHub web page (no git client needed):
+#   .github/patches/<name>.b64 – line 1: commit message, line 2: base64 of an xz-compressed `git diff --binary`
+# The bundle is applied on main, committed with that message and removed again.
+# Workflow files cannot be changed this way (the Actions token has no "workflows" permission).
+name: Apply patch bundle
+on:
+  push:
+    branches: [main]
+    paths: ['.github/patches/*.b64']
+permissions:
+  contents: write
+  actions: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for f in .github/patches/*.b64; do
+            [ -f "$f" ] || continue
+            msg=$(head -n 1 "$f")
+            tail -n +2 "$f" | tr -d ' \r\n' | base64 -d | xz -d > "$RUNNER_TEMP/p.patch"
+            git apply --index --whitespace=nowarn "$RUNNER_TEMP/p.patch"
+            git rm -q "$f"
+            git commit -q -m "$msg"
+            echo "applied: $msg"
+          done
+          git push
+      - name: Android APK
+        if: hashFiles('.github/workflows/android.yml') != ''
+        run: gh workflow run android.yml --ref main || true
