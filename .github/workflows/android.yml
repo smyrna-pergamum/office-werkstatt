@@ -1,0 +1,81 @@
+# Office Werkstatt for Android – builds the APK (Capacitor shell around public/, on-device AI with llama.cpp)
+#   · every published release: Office-Werkstatt-<version>.apk is attached to the release
+#   · by hand (Actions › Android APK › Run workflow): the APK is kept as a workflow artifact
+#     (give a tag to attach it to that release instead)
+# Signing: the secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# when they exist, otherwise the project's public development key (mobile/ow-dev.keystore.b64).
+name: Android APK
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the APK to (empty = only build)
+        required: false
+  push:
+    branches: [main]
+    paths: ['mobile/**', 'public/js/mobile.js', '.github/workflows/android.yml']
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: android-actions/setup-android@v3
+      - name: Version
+        id: v
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Install (Capacitor, llama.cpp plugin)
+        working-directory: mobile
+        run: |
+          npm install --no-audit --no-fund
+          pip install --quiet pillow || true
+      - name: Android project
+        working-directory: mobile
+        run: node scripts/prepare-android.mjs
+      - name: Release key
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "OW_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo "OW_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "OW_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> "$GITHUB_ENV"
+            echo "OW_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "signing with the release key from the secrets"
+          else
+            echo "::notice::no ANDROID_KEYSTORE_BASE64 secret – signing with the public development key"
+          fi
+      - name: Build APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+      - name: APK
+        run: |
+          V=${{ steps.v.outputs.version }}
+          cp mobile/android/app/build/outputs/apk/release/app-release.apk "Office-Werkstatt-$V.apk"
+          ls -lh "Office-Werkstatt-$V.apk"
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "Office-Werkstatt-$V.apk" | head -3 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Office-Werkstatt-${{ steps.v.outputs.version }}-apk
+          path: Office-Werkstatt-${{ steps.v.outputs.version }}.apk
+          retention-days: 14
+      - name: Attach to the release
+        if: env.TAG != ''
+        run: gh release upload "$TAG" "Office-Werkstatt-${{ steps.v.outputs.version }}.apk" --clobber
