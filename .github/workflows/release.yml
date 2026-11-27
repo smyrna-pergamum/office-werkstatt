@@ -1,8 +1,8 @@
-# Office Werkstatt – one release page for desktop AND server
+# Office Werkstatt – one release page for desktop, Android AND server
 # For every published release (or by hand for an existing tag):
 #   1. builds the server package Office-Werkstatt-Server-<version>.zip (Node.js, no Docker needed) and attaches it
 #   2. puts a "Downloads" table at the top of the release notes: desktop installer · Docker image · server package
-# The Windows installer (build-windows.yml) and the Docker image (docker.yml) are built by their own workflows;
+# The Windows installer (build-windows.yml), the Android APK (android.yml) and the Docker image (docker.yml) are built by their own workflows;
 # their links in the table follow the same names, so they work as soon as those workflows are done.
 name: Release page (desktop + server)
 on:
@@ -68,6 +68,7 @@ jobs:
           | | | |
           |---|---|---|
           | 💻 **Desktop** | Windows 10 / 11 | [**Office-Werkstatt-Setup-${v}.exe**](${dl}/Office-Werkstatt-Setup-${v}.exe) – offline installer, no administrator rights needed |
+          | 📱 **Android** | Android 7+ (64-bit) | [**Office-Werkstatt-${v}.apk**](${dl}/Office-Werkstatt-${v}.apk) – install the APK (allow "install unknown apps" once); AI on the phone with llama.cpp |
           | 🖥️ **Server** | Docker (amd64 · arm64) | \`docker run -d -p 8080:8080 -v office-werkstatt:/data ${img}:${v}\` → open \`http://<server>:8080\` and create the administrator ([image](https://github.com/${repo}/pkgs/container/${repo.split('/')[1]})) |
           | 📦 **Server** | Node.js 20+ (without Docker) | [**Office-Werkstatt-Server-${v}.zip**](${dl}/Office-Werkstatt-Server-${v}.zip) – unzip, \`node server/server.js\` – see INSTALL.txt |
 
