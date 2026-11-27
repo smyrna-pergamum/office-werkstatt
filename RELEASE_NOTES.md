@@ -1,3 +1,15 @@
+## Office Werkstatt 1.6.0
+
+### Yeni: Android uygulaması
+- **Office Werkstatt artık Android'de** (APK, Android 7+, 64 bit): aynı Werkzeuge, aynı akış – Word, Excel, Slide, Note, Draw, PDF, Design, Formular ve YZ. Belgeler telefonda kalır (internet gerekmez).
+- **Telefona uygun arayüz:** küçük ekranlarda komutlar alttadır (başparmak alanı) – sekme seçici, kaydırılabilir tek komut satırı ve tüm komutların adlarıyla göründüğü açılır/kapanır bir sayfa (Office, ONLYOFFICE ve Collabora mobil uygulamalarındaki düzen). Başlık çubuğu sadeleşir; arama, paylaş, yorumlar, dil ve tema "⋯" menüsündedir. Menüler ve iletişim kutuları alttan açılan sayfalar olur, dokunma hedefleri büyür. Not sayfa listesi çekmece olur.
+- **Word/Excel/Slide Pro telefonda:** yüksek yoğunluklu ekranlarda 2–3 kat büyük görünme sorunu giderildi – keskin yazı, doğru boyut (tarayıcıda da).
+- **Telefonda yerleşik YZ motoru:** llama.cpp (açık kaynak, MIT; `@cantoo/capacitor-llama`). Modeller bir kez Hugging Face'ten indirilir, sonra internetsiz çalışır: Qwen 2.5 0.5B / 1.5B (önerilen), Llama 3.2 1B / 3B. Araç çağrıları istem içinde (`<tool_call>`) yürütülür; ajan masaüstündeki gibi belgeleri okur, plan önerir, onaydan sonra uygular.
+- **Sunucu / API / Ollama:** telefondan ağdaki Ollama'ya veya OpenAI uyumlu her API'ye doğrudan bağlanılır (CORS sorunu yok).
+- **İnternet araştırması telefonda da:** web araması (SearXNG, Bing, DuckDuckGo, Wikipedia) ve sayfa okuma sunucusuz çalışır; yerel ağ adresleri engellenir.
+- **Kaydetme ve paylaşma:** dışa aktarılan dosyalar *Belgeler › Office Werkstatt* klasörüne yazılır ve paylaşım menüsü açılır. Diğer uygulamalardan *Birlikte aç › Office Werkstatt* ile PDF, Word, Excel, PowerPoint, ODF, CSV, RTF ve Markdown dosyaları kitaplığa gelir. Geri tuşu menüleri, belgeyi ve uygulamayı sırayla kapatır.
+- **Derleme:** `mobile/` (Capacitor 8). GitHub Actions her sürümde `Office-Werkstatt-<sürüm>.apk` dosyasını yayına ekler; sürüm sayfasındaki indirme tablosunda Android satırı.
+
 ## Office Werkstatt 1.5.2
 
 ### Değişiklikler

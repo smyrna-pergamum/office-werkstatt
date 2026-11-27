@@ -21,7 +21,7 @@
 <p align="center">
   <img alt="Offline" src="https://img.shields.io/badge/works-offline-6B5CF0?style=flat-square">
   <img alt="Languages" src="https://img.shields.io/badge/languages-EN%20·%20DE%20·%20TR%20·%20ES%20·%20FR-2F6BEA?style=flat-square">
-  <img alt="Platforms" src="https://img.shields.io/badge/platform-Web%20·%20Windows%20·%20Linux%20·%20macOS%20·%20Server-1E9E5A?style=flat-square">
+  <img alt="Platforms" src="https://img.shields.io/badge/platform-Web%20·%20Windows%20·%20Linux%20·%20macOS%20·%20Android%20·%20Server-1E9E5A?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-555?style=flat-square">
 </p>
 
@@ -200,7 +200,14 @@ node server/owctl.js status --url https://office.example.org     # a running ser
 | `OW_SETUP_CODE` | random | your own setup code for the first start |
 | `OW_PUBLIC_URL` | – | the address shown in the console (e.g. `https://office.example.org`) |
 
-### 3 · Without installing
+### 3 · Android
+Download **Office-Werkstatt-&lt;version&gt;.apk** from the release page and open it on the phone (allow *install unknown apps* once).
+The same Werkzeuge, documents stay on the phone; on small screens the commands sit at the bottom
+(tab picker, one row of commands, a sheet with all commands). The AI runs **on the phone** (llama.cpp, models from
+Hugging Face – Qwen 2.5 0.5B/1.5B, Llama 3.2 1B/3B), with Ollama in your network or with any OpenAI-compatible API.
+Saved files go to *Documents › Office Werkstatt* and to the share sheet; documents from other apps open with *Open with*.
+
+### 4 · Without installing
 Double-click `public/index.html` — documents are stored in the browser (IndexedDB).
 
 ## Building
@@ -212,6 +219,13 @@ npm run dist:win          # → dist/Office-Werkstatt-Setup-<version>.exe (nativ
 npm run dist:linux        # AppImage    ·    npm run dist:mac → .dmg
 ```
 The Windows installer is also built by GitHub Actions (*Build Windows installer*) and attached to every published release.
+
+Android APK (Capacitor 8 around `public/`; JDK 21 and the Android SDK) – details in [`mobile/README.md`](mobile/README.md):
+```bash
+cd mobile && npm install
+npm run apk               # → android/app/build/outputs/apk/release/app-release.apk
+```
+GitHub Actions (*Android APK*) attaches `Office-Werkstatt-<version>.apk` to every published release.
 
 The full engines come prebuilt in `public/engines/`. To rebuild them (Rust ≥ 1.95, `wasm32-unknown-unknown`, `wasm-bindgen-cli 0.2.129`):
 ```bash

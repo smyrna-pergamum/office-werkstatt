@@ -1,7 +1,7 @@
 /* Office Werkstatt – service worker: caches the whole app so it runs without internet */
-const CACHE = 'office-werkstatt-v1.5.2';
+const CACHE = 'office-werkstatt-v1.6.0';
 const CORE = ['./', './index.html', './manifest.webmanifest', './css/app.css', './css/editors.css',
-  './js/icons.js', './js/i18n.js', './js/store.js', './js/sanitize.js', './js/desktop.js', './js/zip.js', './js/legacy-ppt.js', './js/odf.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
+  './js/icons.js', './js/i18n.js', './js/store.js', './js/sanitize.js', './js/desktop.js', './js/mobile.js', './js/zip.js', './js/legacy-ppt.js', './js/odf.js', './js/templates.js', './js/editor-shell.js', './js/app.js',
   './js/editors/word.js', './js/editors/excel.js', './js/editors/slide.js', './js/editors/note.js', './js/editors/note-calendar.js', './js/editors/draw.js', './js/editors/pdf.js', './js/editors/pro.js',
   './js/qrcode.js', './js/form-core.js', './js/editors/form.js',
   './js/design-core.js', './js/stock-core.js', './js/editors/design-strings.js', './js/editors/design.js', './js/ai-strings.js', './js/agent-bridge.js', './js/ai.js', './js/editors/ai.js', './js/admin.js', './js/fabric.min.js', './fonts/fonts.css',

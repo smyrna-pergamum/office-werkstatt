@@ -92,6 +92,8 @@ OW.editors = OW.editors || {};
     container.appendChild(collapse);
   }
 
+  OW.isPhone = () => matchMedia('(max-width: 640px)').matches;
+
   /* ---------- popover helper (used by ribbon menus and the dashboard) ---------- */
   OW.popover = function (anchor, items, opts = {}) {
     document.querySelectorAll('.popover').forEach(p => p.remove());
@@ -162,6 +164,7 @@ OW.editors = OW.editors || {};
  <button class="ed-lang" title="${t('set.language')}">${I('globe', 16)}<span>${OW.lang.toUpperCase()}</span></button>
           <button class="icon-btn ed-theme" title="${t('theme.toggle')}">${I(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', 18)}</button>
           <span class="ed-user">${OW.escape(OW.settings.userName || t('user.guest'))}</span>
+          <button class="icon-btn ed-more" title="${t('m.more')}">${I('more', 20)}</button>
         </div>
       </div>
       <div class="ed-tabs">
@@ -173,6 +176,7 @@ OW.editors = OW.editors || {};
           <button class="pill-btn share ed-share">${I('share', 16)}<span>${t('editor.share')}</span>${I('chevronDown', 12)}</button>
         </div>
       </div>
+      <div class="ed-mbar"><button class="ed-tabpick"><span></span>${I('chevronDown', 14)}</button><span class="ed-mfill"></span><button class="ed-msheet" title="${t('m.allCommands')}">${I('chevronDown', 18)}</button></div>
       <div class="ribbon"></div>
       <div class="ed-main"><div class="ed-body"></div><aside class="ed-side" hidden></aside></div>
       <div class="ed-status"><span class="st-left"></span><span class="st-right"></span></div>`;
@@ -258,6 +262,7 @@ OW.editors = OW.editors || {};
     });
     function selectTab(id) {
       activeTab = id;
+      const cur = ribbonTabs.find(x => x.id === id) || ribbonTabs[0]; if (cur) $('.ed-tabpick span').textContent = cur.label;
       tl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
       ribbonTabs = instance.ribbon();
       renderRibbon($('.ribbon'), ribbonTabs.find(x => x.id === id) || ribbonTabs[0], mode, ctx);
@@ -265,7 +270,18 @@ OW.editors = OW.editors || {};
     }
     ctx.rebuildRibbon = () => selectTab(activeTab);
 
+    /* ----- phones: the commands sit at the bottom (thumb zone) – a tab picker, one scrolling row of commands and a
+       sheet with all commands of the tab (the pattern of the Office, ONLYOFFICE and Collabora mobile apps) ----- */
+    $('.ed-tabpick').addEventListener('click', e => OW.popover(e.currentTarget, tabs.map(tb => ({ label: OW.escape(tb.label), noPad: true, checked: tb.id === activeTab,
+      onClick: () => tb.id === 'file' ? backstage() : (selectTab(tb.id), root.classList.add('m-sheet')) }))));
+    $('.ed-msheet').addEventListener('click', () => root.classList.toggle('m-sheet'));
+    $('.ribbon').addEventListener('click', e => {   // a command in the open sheet closes it (menus and inputs keep it open)
+      if (!root.classList.contains('m-sheet') || !OW.isPhone()) return;
+      const b = e.target.closest('.rb-btn'); if (b && !b.closest('.rb-menu') && !b.closest('.rb-split')) setTimeout(() => root.classList.remove('m-sheet'), 120);
+    });
+
     instance.mount($('.ed-body'));
+    if (OW.isPhone()) { const nt = root.querySelector('.nt'); if (nt) nt.classList.add('nav-hidden'); }
     selectTab(ribbonTabs[0].id);
 
     /* Word/Excel/Slide/PDF with an installed engine open directly in it (instance.chrome === 'engine'); there is no second view */
@@ -277,6 +293,17 @@ OW.editors = OW.editors || {};
     $('.ed-back').addEventListener('click', close);
     $('.ed-theme').addEventListener('click', () => { OW.toggleTheme(); $('.ed-theme').innerHTML = I(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', 18); instance.onTheme && instance.onTheme(); });
     $('.ed-search').addEventListener('click', () => commandSearch());
+    /* phones: what does not fit into the title bar */
+    $('.ed-more').addEventListener('click', e => OW.popover(e.currentTarget, [
+      { icon: 'search', label: t('editor.search'), onClick: () => commandSearch() },
+      { icon: 'share', label: t('editor.share'), onClick: () => $('.ed-share').click() },
+      { icon: readOnly ? 'pen' : 'eye', label: readOnly ? t('editor.editing') : t('editor.viewing'), onClick: () => setRO(!readOnly) },
+      { icon: 'comment', label: t('editor.comments'), onClick: () => sidePanel('comments') },
+      { icon: 'activity', label: t('editor.catchup'), onClick: () => sidePanel('catchup') },
+      '-',
+      { icon: 'globe', label: t('set.language') + ' · ' + OW.lang.toUpperCase(), onClick: () => $('.ed-lang').click() },
+      { icon: document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', label: t('theme.toggle'), onClick: () => $('.ed-theme').click() },
+    ], { alignRight: true }));
     /* the AI agent sees the Werkzeug's tools plus the document's revision and a whole-document snapshot / restore
        (restore reopens the editor with the earlier content: one undo for everything an agent run changed) */
     function aiAdapter() {

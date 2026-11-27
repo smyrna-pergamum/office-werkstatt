@@ -360,6 +360,8 @@ pro.saved | Saved to Office Werkstatt | In Office Werkstatt gespeichert | Office
 print.failed | Printing failed | Drucken fehlgeschlagen | Yazdırma başarısız | Error al imprimir | Échec de l'impression
 pdf.openFirst | Open a PDF first | Zuerst ein PDF öffnen | Önce bir PDF açın | Abra primero un PDF | Ouvrez d'abord un PDF
 editor.search | Search for tools, help and more | Nach Tools, Hilfe und mehr suchen | Araç, yardım ve daha fazlasını ara | Buscar herramientas, ayuda y más | Rechercher outils, aide et plus
+m.more | More | Mehr | Daha fazla | Más | Plus
+m.allCommands | All commands | Alle Befehle | Tüm komutlar | Todos los comandos | Toutes les commandes
 editor.searchTools | Search a command… | Befehl suchen… | Komut ara… | Buscar un comando… | Rechercher une commande…
 editor.comments | Comments | Kommentare | Yorumlar | Comentarios | Commentaires
 editor.catchup | Catch up | Aufholen | Güncel kal | Ponerse al día | Rattraper

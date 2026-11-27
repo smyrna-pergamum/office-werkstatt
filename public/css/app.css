@@ -349,6 +349,8 @@ html[data-theme="dark"] .toast { background: #ECEEF8; color: #161A33; }
   .tool { min-height: 170px; }
   .topbar { gap: 8px; } .searchbox .ph { font-size: 14px; } .avatar { width: 36px; height: 36px; }
   .top-actions .icon-btn#btnBell { display: none; }
+  .searchbox { min-width: 0; padding: 0 10px 0 12px; gap: 8px; } .top-actions { gap: 2px; flex-shrink: 0; }
+  .ai-top { padding: 0 10px; margin-right: 2px; } .lang-switch .lang-cur { padding: 6px; }
   .hero h1 { font-size: 30px; } .hero p { font-size: 15px; }
   .cta { height: 44px; font-size: 13px; }
   .file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -658,3 +660,7 @@ tr.lv-error td { background: rgba(217, 58, 50, .04); }
 .adm-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .adm-chips .adm-pill { height: 22px; gap: 4px; }
 .adm-note.adm-toolbar { justify-content: space-between; }
+
+/* Android app (js/mobile.js): room for the status bar / gesture bar when the WebView draws edge to edge */
+.ow-native .topbar { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+.ow-native .views, .ow-native .sidebar { padding-bottom: env(safe-area-inset-bottom, 0px); }
